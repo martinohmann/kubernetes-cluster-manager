@@ -24,15 +24,21 @@ func NewManifestRenderer(cfg *config.Config) *Renderer {
 }
 
 func (r *Renderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, error) {
-	if err := r.renderValues(out); err != nil {
+	valuesFile := r.cfg.Helm.Values
+	manifestFile := r.cfg.Manifest
+
+	if err := r.renderValues(valuesFile, out); err != nil {
 		return nil, err
 	}
 
-	return r.renderManifest()
+	if r.cfg.DryRun {
+		valuesFile = next(valuesFile)
+	}
+
+	return r.renderManifest(manifestFile, valuesFile)
 }
 
-func (r *Renderer) renderValues(out *api.InfraOutput) error {
-	valuesFile := r.cfg.Helm.Values
+func (r *Renderer) renderValues(valuesFile string, out *api.InfraOutput) error {
 	content, err := yaml.Marshal(out.Values)
 	if err != nil {
 		return err
@@ -60,14 +66,7 @@ func (r *Renderer) generateManifest(valuesFile string) (*api.Manifest, error) {
 	return &api.Manifest{Content: buf.Bytes()}, nil
 }
 
-func (r *Renderer) renderManifest() (*api.Manifest, error) {
-	manifestFile := r.cfg.Manifest
-	valuesFile := r.cfg.Helm.Values
-
-	if r.cfg.DryRun {
-		valuesFile = next(valuesFile)
-	}
-
+func (r *Renderer) renderManifest(manifestFile, valuesFile string) (*api.Manifest, error) {
 	manifest, err := r.generateManifest(valuesFile)
 	if err != nil {
 		return nil, err

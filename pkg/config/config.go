@@ -1,10 +1,11 @@
 package config
 
 type Config struct {
-	DryRun     bool   `json:"dryRun"`
-	WorkingDir string `json:"workingDir"`
-	Manifest   string `json:"manifest"`
-	Kubeconfig string `json:"kubeconfig"`
+	DryRun       bool   `json:"dryRun"`
+	OnlyManifest bool   `json:"onlyManifest"`
+	WorkingDir   string `json:"workingDir"`
+	Manifest     string `json:"manifest"`
+	Kubeconfig   string `json:"kubeconfig"`
 
 	Deletions string `json:"deletions"`
 

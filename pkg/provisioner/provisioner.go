@@ -33,7 +33,13 @@ func NewClusterProvisioner(im infra.Manager, mr manifest.Renderer, w io.Writer) 
 }
 
 func (p *Provisioner) Provision(cfg *config.Config, deletions *api.Deletions) error {
-	output, err := p.infraManager.Apply()
+	if !cfg.OnlyManifest {
+		if err := p.infraManager.Apply(); err != nil {
+			return err
+		}
+	}
+
+	output, err := p.infraManager.GetOutput()
 	if err != nil {
 		return err
 	}

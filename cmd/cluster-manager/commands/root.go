@@ -26,7 +26,8 @@ func init() {
 	cobra.OnInitialize(cfg.ApplyDefaults)
 
 	rootCmd.PersistentFlags().BoolVar(&cfg.DryRun, "dry-run", false, "Do not make any changes")
-	rootCmd.PersistentFlags().StringVar(&cfg.Kubeconfig, "kubeconfig", "", "Kubeconfig")
+	rootCmd.PersistentFlags().BoolVar(&cfg.OnlyManifest, "only-manifest", false, "Only render manifest, skip infrastructure changes")
+	rootCmd.PersistentFlags().StringVar(&cfg.Kubeconfig, "kubeconfig", "", "Path to kubeconfig file")
 	rootCmd.PersistentFlags().StringVar(&cfg.Manifest, "manifest", "", "Manifest file path (Default: manifest.yaml)")
 	rootCmd.PersistentFlags().StringVar(&cfg.Deletions, "deletions", "", "Deletions file path (Default: deletions.yaml)")
 	rootCmd.PersistentFlags().StringVar(&cfg.WorkingDir, "working-dir", workingDir, "Working directory")

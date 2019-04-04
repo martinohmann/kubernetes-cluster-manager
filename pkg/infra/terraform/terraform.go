@@ -40,7 +40,7 @@ func NewInfraManager(cfg *config.Config, w io.Writer) *Manager {
 	}
 }
 
-func (m *Manager) Apply() (*api.InfraOutput, error) {
+func (m *Manager) Apply() error {
 	if m.cfg.DryRun {
 		return m.plan()
 	}
@@ -48,8 +48,11 @@ func (m *Manager) Apply() (*api.InfraOutput, error) {
 	return m.apply()
 }
 
-func (m *Manager) apply() (*api.InfraOutput, error) {
-	args := terraform("apply")
+func (m *Manager) apply() error {
+	args := []string{
+		"terraform",
+		"apply",
+	}
 
 	if m.cfg.Terraform.Parallelism != 0 {
 		args = append(args, fmt.Sprintf("-parallelism=%d", m.cfg.Terraform.Parallelism))
@@ -59,39 +62,38 @@ func (m *Manager) apply() (*api.InfraOutput, error) {
 		args = append(args, "-auto-approve")
 	}
 
-	err := executor.Execute(m.w, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return m.fetchOutputValues(&api.InfraOutput{})
+	return executor.Execute(m.w, args...)
 }
 
-func (m *Manager) plan() (*api.InfraOutput, error) {
-	args := terraform("plan", "-detailed-exitcode")
+func (m *Manager) plan() error {
+	args := []string{
+		"terraform",
+		"plan",
+		"-detailed-exitcode",
+	}
 
 	err := executor.Execute(m.w, args...)
 
-	output := &api.InfraOutput{}
-
 	if err != nil {
+		// ExitCode 2 means that there are infrastructure changes. This is not an error.
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
-			output.HasChanges = true
 			err = nil
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	return m.fetchOutputValues(output)
+	return err
 }
 
-func (m *Manager) fetchOutputValues(out *api.InfraOutput) (*api.InfraOutput, error) {
+func (m *Manager) GetOutput() (*api.InfraOutput, error) {
 	var buf bytes.Buffer
 
-	err := executor.Execute(&buf, terraform("output", "-json")...)
+	args := []string{
+		"terraform",
+		"output",
+		"-json",
+	}
+
+	err := executor.Execute(&buf, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +103,12 @@ func (m *Manager) fetchOutputValues(out *api.InfraOutput) (*api.InfraOutput, err
 		return nil, err
 	}
 
-	out.Values = make(map[string]interface{})
+	output := &api.InfraOutput{}
+
+	output.Values = make(map[string]interface{})
 	for key, ov := range values {
-		out.Values[key] = ov.Value
+		output.Values[key] = ov.Value
 	}
 
-	return out, nil
+	return output, nil
 }
