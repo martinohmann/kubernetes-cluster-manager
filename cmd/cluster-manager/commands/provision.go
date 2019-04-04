@@ -12,7 +12,10 @@ import (
 
 var (
 	provisionCmd = &cobra.Command{
-		Use:  "provision",
+		Use:   "provision",
+		Short: "Provisions a cluster",
+		Long: "Provisions a cluster by creating or updating its infrastructure\n" +
+			"resources and afterwards applying Kubernetes manifests.",
 		RunE: provision,
 	}
 )
@@ -21,20 +24,12 @@ func init() {
 	rootCmd.AddCommand(provisionCmd)
 }
 
-func provision(cmd *cobra.Command, args []string) (err error) {
-	if err = os.Chdir(cfg.WorkingDir); err != nil {
-		return
-	}
-
+func provision(cmd *cobra.Command, args []string) error {
 	writer := os.Stdout
 
 	m := terraform.NewInfraManager(cfg, writer)
 	r := helm.NewManifestRenderer(cfg)
 	p := provisioner.NewClusterProvisioner(m, r, writer)
 
-	if err = p.Provision(cfg, nil); err != nil {
-		return
-	}
-
-	return
+	return p.Provision(cfg, nil)
 }

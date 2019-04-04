@@ -6,12 +6,17 @@ import (
 	"io"
 	"os"
 
+	"github.com/cenkalti/backoff"
 	"github.com/martinohmann/cluster-manager/pkg/api"
 	"github.com/martinohmann/cluster-manager/pkg/config"
 	"github.com/martinohmann/cluster-manager/pkg/executor"
 	"github.com/martinohmann/cluster-manager/pkg/infra"
 	"github.com/martinohmann/cluster-manager/pkg/manifest"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	maxRetries = 3
 )
 
 type Provisioner struct {
@@ -68,10 +73,51 @@ func (p *Provisioner) Provision(cfg *config.Config, deletions *api.Deletions) er
 	return nil
 }
 
+func (p *Provisioner) Destroy(cfg *config.Config) error {
+	output, err := p.infraManager.GetOutput()
+	if err != nil {
+		return err
+	}
+
+	manifest, err := p.manifestRenderer.RenderManifest(output)
+	if err != nil {
+		return err
+	}
+
+	if err := p.deleteManifest(cfg, manifest); err != nil {
+		return err
+	}
+
+	if !cfg.OnlyManifest && !cfg.DryRun {
+		if err := p.infraManager.Destroy(); err != nil {
+			return err
+		}
+	} else if cfg.DryRun {
+		fmt.Println("would destroy infrastructure")
+	}
+
+	return nil
+}
+
 func (p *Provisioner) applyManifest(cfg *config.Config, manifest *api.Manifest) error {
+	return p.submitManifest("apply", cfg, manifest)
+}
+
+func (p *Provisioner) deleteManifest(cfg *config.Config, manifest *api.Manifest) error {
+	if cfg.DryRun {
+		fmt.Println("would delete manifest:")
+		fmt.Println(manifest)
+
+		return nil
+	}
+
+	return p.submitManifest("delete", cfg, manifest)
+}
+
+func (p *Provisioner) submitManifest(action string, cfg *config.Config, manifest *api.Manifest) error {
 	args := []string{
 		"kubectl",
-		"apply",
+		action,
 		"-f",
 		"-",
 	}
@@ -80,13 +126,22 @@ func (p *Provisioner) applyManifest(cfg *config.Config, manifest *api.Manifest) 
 		args = append(args, "--kubeconfig", cfg.Kubeconfig)
 	}
 
-	if cfg.DryRun {
+	if action != "delete" && cfg.DryRun {
 		args = append(args, "--dry-run")
 	}
 
-	in := bytes.NewBuffer(manifest.Content)
+	if action == "delete" {
+		args = append(args, "--ignore-not-found")
+	}
 
-	return executor.Pipe(in, p.w, args...)
+	err := backoff.Retry(
+		func() error {
+			in := bytes.NewBuffer(manifest.Content)
+			return executor.Pipe(in, p.w, args...)
+		},
+		backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxRetries))
+
+	return err
 }
 
 func (p *Provisioner) processDeletions(cfg *config.Config, deletions []api.Deletion) error {
@@ -103,11 +158,15 @@ func (p *Provisioner) processDeletions(cfg *config.Config, deletions []api.Delet
 	}
 
 	for _, deletion := range deletions {
+		namespace := deletion.Namespace
+		if namespace == "" {
+			namespace = "default"
+		}
 
 		args := []string{
 			"kubectl",
 			"delete",
-			fmt.Sprintf("--namespace=%s", deletion.Namespace),
+			fmt.Sprintf("--namespace=%s", namespace),
 			deletion.Kind,
 		}
 

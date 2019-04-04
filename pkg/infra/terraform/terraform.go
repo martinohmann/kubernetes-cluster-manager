@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -111,4 +112,8 @@ func (m *Manager) GetOutput() (*api.InfraOutput, error) {
 	}
 
 	return output, nil
+}
+
+func (m *Manager) Destroy() error {
+	return errors.New("destroy not implemented yet")
 }

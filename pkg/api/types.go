@@ -16,6 +16,10 @@ type Manifest struct {
 	Content []byte
 }
 
+func (m *Manifest) String() string {
+	return string(m.Content)
+}
+
 type InfraOutput struct {
 	Values     map[string]interface{}
 	HasChanges bool
