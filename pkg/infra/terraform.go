@@ -1,4 +1,4 @@
-package terraform
+package infra
 
 import (
 	"bytes"
@@ -12,36 +12,33 @@ import (
 	"github.com/martinohmann/cluster-manager/pkg/api"
 	"github.com/martinohmann/cluster-manager/pkg/config"
 	"github.com/martinohmann/cluster-manager/pkg/executor"
-	"github.com/martinohmann/cluster-manager/pkg/infra"
 )
 
-var _ infra.Manager = &Manager{}
+var _ Manager = &TerraformManager{}
 
-type terraformOutput map[string]outputValue
+type terraformOutput map[string]terraformOutputValue
 
-type outputValue struct {
-	Type      string
-	Sensitive bool
-	Value     interface{}
+type terraformOutputValue struct {
+	Value interface{} `json:"value"`
 }
 
-type Manager struct {
+type TerraformManager struct {
 	cfg *config.Config
 	w   io.Writer
 }
 
-func NewInfraManager(cfg *config.Config, w io.Writer) *Manager {
+func NewTerraformManager(cfg *config.Config, w io.Writer) *TerraformManager {
 	if w == nil {
 		w = os.Stdout
 	}
 
-	return &Manager{
+	return &TerraformManager{
 		w:   w,
 		cfg: cfg,
 	}
 }
 
-func (m *Manager) Apply() error {
+func (m *TerraformManager) Apply() error {
 	if m.cfg.DryRun {
 		return m.plan()
 	}
@@ -49,7 +46,7 @@ func (m *Manager) Apply() error {
 	return m.apply()
 }
 
-func (m *Manager) apply() error {
+func (m *TerraformManager) apply() error {
 	args := []string{
 		"terraform",
 		"apply",
@@ -66,7 +63,7 @@ func (m *Manager) apply() error {
 	return executor.Execute(m.w, args...)
 }
 
-func (m *Manager) plan() error {
+func (m *TerraformManager) plan() error {
 	args := []string{
 		"terraform",
 		"plan",
@@ -85,7 +82,7 @@ func (m *Manager) plan() error {
 	return err
 }
 
-func (m *Manager) GetOutput() (*api.InfraOutput, error) {
+func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
 	var buf bytes.Buffer
 
 	args := []string{
@@ -114,6 +111,6 @@ func (m *Manager) GetOutput() (*api.InfraOutput, error) {
 	return output, nil
 }
 
-func (m *Manager) Destroy() error {
+func (m *TerraformManager) Destroy() error {
 	return errors.New("destroy not implemented yet")
 }

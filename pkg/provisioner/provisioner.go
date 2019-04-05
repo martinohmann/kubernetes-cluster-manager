@@ -37,7 +37,7 @@ func NewClusterProvisioner(im infra.Manager, mr manifest.Renderer, w io.Writer) 
 	}
 }
 
-func (p *Provisioner) Provision(cfg *config.Config, deletions *api.Deletions) error {
+func (p *Provisioner) Provision(cfg *config.Config) error {
 	if !cfg.OnlyManifest {
 		if err := p.infraManager.Apply(); err != nil {
 			return err
@@ -54,9 +54,12 @@ func (p *Provisioner) Provision(cfg *config.Config, deletions *api.Deletions) er
 		return err
 	}
 
-	if deletions == nil {
-		deletions = &api.Deletions{}
+	deletions, err := loadDeletions(cfg.Deletions)
+	if err != nil {
+		return err
 	}
+
+	defer saveDeletions(cfg.Deletions, deletions)
 
 	if err := p.processDeletions(cfg, deletions.PreApply); err != nil {
 		return err
@@ -85,6 +88,19 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 	}
 
 	if err := p.deleteManifest(cfg, manifest); err != nil {
+		return err
+	}
+
+	deletions, err := loadDeletions(cfg.Deletions)
+	if err != nil {
+		return err
+	}
+
+	if !cfg.DryRun {
+		defer saveDeletions(cfg.Deletions, deletions)
+	}
+
+	if err := p.processDeletions(cfg, deletions.PreDestroy); err != nil {
 		return err
 	}
 
@@ -157,7 +173,7 @@ func (p *Provisioner) processDeletions(cfg *config.Config, deletions []api.Delet
 		return nil
 	}
 
-	for _, deletion := range deletions {
+	for i, deletion := range deletions {
 		namespace := deletion.Namespace
 		if namespace == "" {
 			namespace = "default"
@@ -166,7 +182,9 @@ func (p *Provisioner) processDeletions(cfg *config.Config, deletions []api.Delet
 		args := []string{
 			"kubectl",
 			"delete",
-			fmt.Sprintf("--namespace=%s", namespace),
+			"--ignore-not-found",
+			"--namespace",
+			namespace,
 			deletion.Kind,
 		}
 
@@ -184,6 +202,10 @@ func (p *Provisioner) processDeletions(cfg *config.Config, deletions []api.Delet
 
 		if err := executor.Execute(p.w, args...); err != nil {
 			return err
+		}
+
+		if !cfg.DryRun {
+			deletions = append(deletions[:i], deletions[i+1:]...)
 		}
 	}
 

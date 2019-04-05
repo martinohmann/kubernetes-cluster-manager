@@ -1,15 +1,16 @@
 package api
 
 type Deletions struct {
-	PreApply  []Deletion
-	PostApply []Deletion
+	PreApply   []Deletion `json:"preApply" yaml:"preApply"`
+	PostApply  []Deletion `json:"postApply" yaml:"postApply"`
+	PreDestroy []Deletion `json:"preDestroy" yaml:"preDestroy"`
 }
 
 type Deletion struct {
-	Kind      string
-	Name      string
-	Namespace string
-	Labels    map[string]string
+	Kind      string            `json:"kind"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Labels    map[string]string `json:"labels"`
 }
 
 type Manifest struct {

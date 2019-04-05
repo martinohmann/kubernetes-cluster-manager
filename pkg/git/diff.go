@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"io"
 	"os/exec"
 
 	"github.com/martinohmann/cluster-manager/pkg/executor"
@@ -33,4 +34,19 @@ func Diff(a, b string) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func DiffAndApply(w io.Writer, changes *FileChanges, apply bool) error {
+	diff, err := changes.Diff()
+	if err != nil {
+		return err
+	}
+
+	w.Write([]byte(diff))
+
+	if !apply {
+		return nil
+	}
+
+	return changes.Apply()
 }

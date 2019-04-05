@@ -3,8 +3,8 @@ package commands
 import (
 	"os"
 
-	"github.com/martinohmann/cluster-manager/pkg/infra/terraform"
-	"github.com/martinohmann/cluster-manager/pkg/manifest/helm"
+	"github.com/martinohmann/cluster-manager/pkg/infra"
+	"github.com/martinohmann/cluster-manager/pkg/manifest"
 	"github.com/martinohmann/cluster-manager/pkg/provisioner"
 
 	"github.com/spf13/cobra"
@@ -27,9 +27,9 @@ func init() {
 func provision(cmd *cobra.Command, args []string) error {
 	writer := os.Stdout
 
-	m := terraform.NewInfraManager(cfg, writer)
-	r := helm.NewManifestRenderer(cfg)
+	m := infra.NewTerraformManager(cfg, writer)
+	r := manifest.NewHelmRenderer(cfg)
 	p := provisioner.NewClusterProvisioner(m, r, writer)
 
-	return p.Provision(cfg, nil)
+	return p.Provision(cfg)
 }
