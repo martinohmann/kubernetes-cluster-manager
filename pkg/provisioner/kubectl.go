@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"sort"
+	"strings"
 
 	"github.com/cenkalti/backoff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
@@ -130,12 +132,24 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 	if deletion.Name != "" {
 		args = append(args, deletion.Name)
 	} else if len(deletion.Labels) > 0 {
-		args = append(args, fmt.Sprintf("--selector=%s", deletion.Labels))
+		keys := make([]string, 0, len(deletion.Labels))
+		for k := range deletion.Labels {
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+
+		pairs := make([]string, 0, len(deletion.Labels))
+		for _, k := range keys {
+			pairs = append(pairs, k+"="+deletion.Labels[k])
+		}
+
+		args = append(args, "--selector", strings.Join(pairs, ","))
 	} else {
 		return fmt.Errorf(
 			"either a name or labels must be specified for a deletion (kind=%s,namespace=%s)",
 			deletion.Kind,
-			deletion.Namespace,
+			namespace,
 		)
 	}
 
