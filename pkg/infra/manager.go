@@ -1,6 +1,6 @@
 package infra
 
-import "github.com/martinohmann/cluster-manager/pkg/api"
+import "github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 
 // Manager is the interface for a cloud infrastructure manager.
 type Manager interface {

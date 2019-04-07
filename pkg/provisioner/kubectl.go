@@ -6,9 +6,9 @@ import (
 	"os/exec"
 
 	"github.com/cenkalti/backoff"
-	"github.com/martinohmann/cluster-manager/pkg/api"
-	"github.com/martinohmann/cluster-manager/pkg/command"
-	"github.com/martinohmann/cluster-manager/pkg/config"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 

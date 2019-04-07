@@ -1,4 +1,4 @@
-module github.com/martinohmann/cluster-manager
+module github.com/martinohmann/kubernetes-cluster-manager
 
 go 1.12
 

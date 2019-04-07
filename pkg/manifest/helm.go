@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"os/exec"
 
-	"github.com/martinohmann/cluster-manager/pkg/api"
-	"github.com/martinohmann/cluster-manager/pkg/config"
-	"github.com/martinohmann/cluster-manager/pkg/git"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )

@@ -1,10 +1,10 @@
 package provisioner
 
 import (
-	"github.com/martinohmann/cluster-manager/pkg/command"
-	"github.com/martinohmann/cluster-manager/pkg/config"
-	"github.com/martinohmann/cluster-manager/pkg/infra"
-	"github.com/martinohmann/cluster-manager/pkg/manifest"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/infra"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 )
 
 type Provisioner struct {

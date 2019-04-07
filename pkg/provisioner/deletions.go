@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/martinohmann/cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"gopkg.in/yaml.v2"
 )
 

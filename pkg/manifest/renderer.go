@@ -1,7 +1,7 @@
 package manifest
 
 import (
-	"github.com/martinohmann/cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 )
 
 // Renderer is the interface for a kubernetes manifest renderer.
