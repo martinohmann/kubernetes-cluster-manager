@@ -45,9 +45,12 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	if !cfg.DryRun {
-		defer saveDeletions(cfg.Deletions, deletions)
-	}
+	defer func() {
+		if !cfg.DryRun {
+			pendingDeletions := deletions.FilterPending()
+			saveDeletions(cfg.Deletions, pendingDeletions)
+		}
+	}()
 
 	if err := processResourceDeletions(kubectl, deletions.PreApply); err != nil {
 		return err
@@ -86,9 +89,12 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
-	if !cfg.DryRun {
-		defer saveDeletions(cfg.Deletions, deletions)
-	}
+	defer func() {
+		if !cfg.DryRun {
+			pendingDeletions := deletions.FilterPending()
+			saveDeletions(cfg.Deletions, pendingDeletions)
+		}
+	}()
 
 	if err := processResourceDeletions(kubectl, deletions.PreDestroy); err != nil {
 		return err

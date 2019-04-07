@@ -30,13 +30,13 @@ func saveDeletions(deletionsFile string, deletions *api.Deletions) error {
 	return ioutil.WriteFile(deletionsFile, content, 0660)
 }
 
-func processResourceDeletions(kubectl *Kubectl, deletions []api.Deletion) error {
-	for i, deletion := range deletions {
+func processResourceDeletions(kubectl *Kubectl, deletions []*api.Deletion) error {
+	for _, deletion := range deletions {
 		if err := kubectl.DeleteResource(deletion); err != nil {
 			return err
 		}
 
-		deletions = append(deletions[:i], deletions[i+1:]...)
+		deletion.MarkDeleted()
 	}
 
 	return nil

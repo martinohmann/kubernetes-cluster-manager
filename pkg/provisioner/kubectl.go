@@ -104,7 +104,7 @@ func (k *Kubectl) DeleteManifest(manifest *api.Manifest) error {
 }
 
 // DeleteResource deletes a resource via kubectl.
-func (k *Kubectl) DeleteResource(deletion api.Deletion) error {
+func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 	if k.cfg.DryRun {
 		log.Warnf("Would delete the following resource:\n%s", deletion)
 
