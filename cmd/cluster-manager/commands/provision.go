@@ -1,12 +1,6 @@
 package commands
 
 import (
-	"os"
-
-	"github.com/martinohmann/cluster-manager/pkg/infra"
-	"github.com/martinohmann/cluster-manager/pkg/manifest"
-	"github.com/martinohmann/cluster-manager/pkg/provisioner"
-
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +19,7 @@ func init() {
 }
 
 func provision(cmd *cobra.Command, args []string) error {
-	writer := os.Stdout
+	provisioner := createProvisioner()
 
-	m := infra.NewTerraformManager(cfg, writer)
-	r := manifest.NewHelmRenderer(cfg)
-	p := provisioner.NewClusterProvisioner(m, r, writer)
-
-	return p.Provision(cfg)
+	return provisioner.Provision(cfg)
 }

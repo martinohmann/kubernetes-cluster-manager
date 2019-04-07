@@ -5,16 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 
 	"github.com/martinohmann/cluster-manager/pkg/api"
+	"github.com/martinohmann/cluster-manager/pkg/command"
 	"github.com/martinohmann/cluster-manager/pkg/config"
-	"github.com/martinohmann/cluster-manager/pkg/executor"
+	log "github.com/sirupsen/logrus"
 )
-
-var _ Manager = &TerraformManager{}
 
 type terraformOutput map[string]terraformOutputValue
 
@@ -22,19 +19,18 @@ type terraformOutputValue struct {
 	Value interface{} `json:"value"`
 }
 
+// TerraformManager is an infrastructure manager that uses terraform to manager
+// resources.
 type TerraformManager struct {
-	cfg *config.Config
-	w   io.Writer
+	cfg      *config.Config
+	executor command.Executor
 }
 
-func NewTerraformManager(cfg *config.Config, w io.Writer) *TerraformManager {
-	if w == nil {
-		w = os.Stdout
-	}
-
+// NewTerraformManager creates a new TerraformManager value.
+func NewTerraformManager(cfg *config.Config, executor command.Executor) *TerraformManager {
 	return &TerraformManager{
-		w:   w,
-		cfg: cfg,
+		cfg:      cfg,
+		executor: executor,
 	}
 }
 
@@ -50,36 +46,37 @@ func (m *TerraformManager) apply() error {
 	args := []string{
 		"terraform",
 		"apply",
+		"--auto-approve",
 	}
 
 	if m.cfg.Terraform.Parallelism != 0 {
-		args = append(args, fmt.Sprintf("-parallelism=%d", m.cfg.Terraform.Parallelism))
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Terraform.Parallelism))
 	}
 
-	if m.cfg.Terraform.AutoApprove {
-		args = append(args, "-auto-approve")
-	}
+	cmd := exec.Command(args[0], args[1:]...)
 
-	return executor.Execute(m.w, args...)
+	_, err := m.executor.Run(cmd)
+
+	return err
 }
 
-func (m *TerraformManager) plan() error {
+func (m *TerraformManager) plan() (err error) {
 	args := []string{
 		"terraform",
 		"plan",
-		"-detailed-exitcode",
+		"--detailed-exitcode",
 	}
 
-	err := executor.Execute(m.w, args...)
+	cmd := exec.Command(args[0], args[1:]...)
 
-	if err != nil {
+	if _, err = m.executor.Run(cmd); err != nil {
 		// ExitCode 2 means that there are infrastructure changes. This is not an error.
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
 			err = nil
 		}
 	}
 
-	return err
+	return
 }
 
 func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
@@ -88,11 +85,13 @@ func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
 	args := []string{
 		"terraform",
 		"output",
-		"-json",
+		"--json",
 	}
 
-	err := executor.Execute(&buf, args...)
-	if err != nil {
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
@@ -112,5 +111,10 @@ func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
 }
 
 func (m *TerraformManager) Destroy() error {
+	if m.cfg.DryRun {
+		log.Warn("Would destroy infrastructure")
+		return nil
+	}
+
 	return errors.New("destroy not implemented yet")
 }

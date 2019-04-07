@@ -1,23 +1,23 @@
 package config
 
 type Config struct {
+	Server       string `json:"server"`
+	Token        string `json:"token"`
+	Debug        bool   `json:"debug"`
 	DryRun       bool   `json:"dryRun"`
 	OnlyManifest bool   `json:"onlyManifest"`
 	WorkingDir   string `json:"workingDir"`
 	Manifest     string `json:"manifest"`
 	Kubeconfig   string `json:"kubeconfig"`
-
-	Deletions string `json:"deletions"`
+	Deletions    string `json:"deletions"`
 
 	Terraform TerraformConfig `json:"terraform"`
-
-	Helm HelmConfig `json:"helm"`
+	Helm      HelmConfig      `json:"helm"`
 }
 
 type TerraformConfig struct {
-	AutoApprove      bool `json"autoApprove"`
-	Parallelism      int  `json:"parallelism"`
-	DetailedExitCode bool `json:"detailedExitCode"`
+	AutoApprove bool `json"autoApprove"`
+	Parallelism int  `json:"parallelism"`
 }
 
 type HelmConfig struct {

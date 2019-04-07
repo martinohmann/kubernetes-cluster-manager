@@ -2,18 +2,19 @@ package provisioner
 
 import (
 	"io/ioutil"
+	"os"
 
 	"github.com/martinohmann/cluster-manager/pkg/api"
 	"gopkg.in/yaml.v2"
 )
 
 func loadDeletions(deletionsFile string) (*api.Deletions, error) {
+	deletions := api.Deletions{}
+
 	content, err := ioutil.ReadFile(deletionsFile)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-
-	deletions := api.Deletions{}
 
 	err = yaml.Unmarshal(content, &deletions)
 
@@ -27,4 +28,16 @@ func saveDeletions(deletionsFile string, deletions *api.Deletions) error {
 	}
 
 	return ioutil.WriteFile(deletionsFile, content, 0660)
+}
+
+func processResourceDeletions(kubectl *Kubectl, deletions []api.Deletion) error {
+	for i, deletion := range deletions {
+		if err := kubectl.DeleteResource(deletion); err != nil {
+			return err
+		}
+
+		deletions = append(deletions[:i], deletions[i+1:]...)
+	}
+
+	return nil
 }

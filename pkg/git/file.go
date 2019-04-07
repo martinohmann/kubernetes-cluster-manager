@@ -10,6 +10,8 @@ const (
 	fileMode os.FileMode = 0660
 )
 
+// FileChanges is a container for the current content of a file and the changes
+// that should be applied to it.
 type FileChanges struct {
 	filename string
 	f        *os.File
@@ -57,10 +59,6 @@ func (c *FileChanges) Filename() string {
 	return c.tmpf.Name()
 }
 
-func (c *FileChanges) Diff() (string, error) {
-	return Diff(c.filename, c.tmpf.Name())
-}
-
 func (c *FileChanges) Apply() error {
 	if err := ioutil.WriteFile(c.filename, c.changes, fileMode); err != nil {
 		return err
@@ -83,6 +81,7 @@ func (c *FileChanges) Close() error {
 	return err
 }
 
+// openFile opens given file if it exists or creates it otherwise.
 func openFile(path string) (*os.File, error) {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
@@ -93,6 +92,7 @@ func openFile(path string) (*os.File, error) {
 	return os.OpenFile(path, os.O_RDWR, fileMode)
 }
 
+// createTemplFile creates a temporary for with given prefix and content.
 func createTempFile(prefix string, content []byte) (*os.File, error) {
 	f, err := ioutil.TempFile("", prefix)
 	if err != nil {
