@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// MockExecutor can be used in tests to stub out command execution.
 type MockExecutor struct {
 	willError  bool
 	err        error
@@ -15,16 +16,20 @@ type MockExecutor struct {
 	ExecutedCommands []string
 }
 
+// NewMockExecutor creates a new MockExecutor value.
 func NewMockExecutor() *MockExecutor {
 	return &MockExecutor{
 		ExecutedCommands: make([]string, 0),
 	}
 }
 
+// WillError will make the executor return an error upon next invocation.
 func (e *MockExecutor) WillError() *MockExecutor {
 	return e.WillErrorWith(errors.New("error"))
 }
 
+// WillErrorWith will make the executor return the provided error upon next
+// invocation.
 func (e *MockExecutor) WillErrorWith(err error) *MockExecutor {
 	e.willError = true
 	e.err = err
@@ -32,6 +37,8 @@ func (e *MockExecutor) WillErrorWith(err error) *MockExecutor {
 	return e
 }
 
+// WillReturn will make the executor return the provided output upon next
+// invocation.
 func (e *MockExecutor) WillReturn(out string) *MockExecutor {
 	e.willReturn = true
 	e.out = out
@@ -39,6 +46,7 @@ func (e *MockExecutor) WillReturn(out string) *MockExecutor {
 	return e
 }
 
+// Run implements Run from Executor interface.
 func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
 	if e.willReturn {
 		e.willReturn = false
@@ -55,6 +63,7 @@ func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
 	return
 }
 
+// RunSilently implements RunSilently from Executor interface.
 func (e *MockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
 	return e.Run(cmd)
 }

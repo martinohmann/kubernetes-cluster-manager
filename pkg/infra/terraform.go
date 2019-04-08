@@ -110,9 +110,8 @@ func (m *TerraformManager) Destroy() error {
 }
 
 func toInfraOutput(tfout terraformOutput) *api.InfraOutput {
-	output := &api.InfraOutput{}
+	output := api.NewInfraOutput()
 
-	output.Values = make(map[string]interface{})
 	for key, ov := range tfout {
 		output.Values[key] = ov.Value
 	}

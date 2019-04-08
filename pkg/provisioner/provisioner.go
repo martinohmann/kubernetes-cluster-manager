@@ -48,8 +48,7 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 
 	defer func() {
 		if !cfg.DryRun {
-			pendingDeletions := deletions.FilterPending()
-			saveDeletions(cfg.Deletions, pendingDeletions)
+			saveDeletions(cfg.Deletions, deletions.FilterPending())
 		}
 	}()
 
@@ -92,8 +91,7 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 
 	defer func() {
 		if !cfg.DryRun {
-			pendingDeletions := deletions.FilterPending()
-			saveDeletions(cfg.Deletions, pendingDeletions)
+			saveDeletions(cfg.Deletions, deletions.FilterPending())
 		}
 	}()
 

@@ -8,6 +8,14 @@ help:
 deps: ## install go deps
 	go mod vendor
 
+.PHONY: build
+build: ## build kcm
+	go build ./cmd/kcm
+
+.PHONY: install
+install: ## install kcm
+	go install ./cmd/kcm
+
 .PHONY: test
 test: ## run tests
 	go test -race -tags="$(TAGS)" $$(go list ./... | grep -v /vendor/)

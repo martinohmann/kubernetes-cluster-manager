@@ -61,22 +61,3 @@ func (d *Deletion) MarkDeleted() {
 func (d *Deletion) Deleted() bool {
 	return d.deleted
 }
-
-// Manifest defines a Kubernetes manifest.
-type Manifest struct {
-	Content []byte `json:"content" yaml:"content"`
-}
-
-func NewManifestFromString(manifest string) *Manifest {
-	return &Manifest{Content: []byte(manifest)}
-}
-
-// String implements fmt.Stringer.
-func (m *Manifest) String() string {
-	return string(m.Content)
-}
-
-// InfraOutput contains the output variables of an infrastructure manager.
-type InfraOutput struct {
-	Values map[string]interface{} `json:"values" yaml:"values"`
-}
