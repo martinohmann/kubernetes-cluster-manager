@@ -12,6 +12,6 @@ func TestApplyDefaults(t *testing.T) {
 
 	assert.Equal(t, "/tmp/manifest.yaml", c.Manifest)
 	assert.Equal(t, "/tmp/deletions.yaml", c.Deletions)
-	assert.Equal(t, "/tmp/values.yaml", c.Helm.Values)
+	assert.Equal(t, "/tmp/values.yaml", c.Values)
 	assert.Equal(t, "/tmp/cluster", c.Helm.Chart)
 }

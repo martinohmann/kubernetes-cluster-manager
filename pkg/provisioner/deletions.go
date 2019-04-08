@@ -9,10 +9,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func loadDeletions(deletionsFile string) (*api.Deletions, error) {
+func loadDeletions(filename string) (*api.Deletions, error) {
 	deletions := api.Deletions{}
 
-	content, err := ioutil.ReadFile(deletionsFile)
+	content, err := ioutil.ReadFile(filename)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -20,15 +20,6 @@ func loadDeletions(deletionsFile string) (*api.Deletions, error) {
 	err = yaml.Unmarshal(content, &deletions)
 
 	return &deletions, err
-}
-
-func saveDeletions(deletionsFile string, deletions *api.Deletions) error {
-	content, err := yaml.Marshal(deletions)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(deletionsFile, content, 0660)
 }
 
 func processResourceDeletions(kubectl *kubernetes.Kubectl, deletions []*api.Deletion) error {

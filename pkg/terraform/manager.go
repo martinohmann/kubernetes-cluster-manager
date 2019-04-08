@@ -1,4 +1,4 @@
-package infra
+package terraform
 
 import (
 	"encoding/json"
@@ -12,28 +12,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type terraformOutput map[string]terraformOutputValue
-
-type terraformOutputValue struct {
+type outputValue struct {
 	Value interface{} `json:"value"`
 }
 
-// TerraformManager is an infrastructure manager that uses terraform to manager
+// InfraManager is an infrastructure manager that uses terraform to manage
 // resources.
-type TerraformManager struct {
+type InfraManager struct {
 	cfg      *config.Config
 	executor command.Executor
 }
 
-// NewTerraformManager creates a new TerraformManager value.
-func NewTerraformManager(cfg *config.Config, executor command.Executor) *TerraformManager {
-	return &TerraformManager{
+// NewInfraManager creates a new terraform infrastructure manager.
+func NewInfraManager(cfg *config.Config, executor command.Executor) *InfraManager {
+	return &InfraManager{
 		cfg:      cfg,
 		executor: executor,
 	}
 }
 
-func (m *TerraformManager) Apply() error {
+// Apply implements Apply from the api.InfraManager interface.
+func (m *InfraManager) Apply() error {
 	if m.cfg.DryRun {
 		return m.plan()
 	}
@@ -41,7 +40,7 @@ func (m *TerraformManager) Apply() error {
 	return m.apply()
 }
 
-func (m *TerraformManager) apply() error {
+func (m *InfraManager) apply() error {
 	args := []string{
 		"terraform",
 		"apply",
@@ -59,7 +58,7 @@ func (m *TerraformManager) apply() error {
 	return err
 }
 
-func (m *TerraformManager) plan() (err error) {
+func (m *InfraManager) plan() (err error) {
 	args := []string{
 		"terraform",
 		"plan",
@@ -78,7 +77,8 @@ func (m *TerraformManager) plan() (err error) {
 	return
 }
 
-func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
+// GetValues implements GetValues from the api.InfraManager interface.
+func (m *InfraManager) GetValues() (api.Values, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -92,29 +92,26 @@ func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
 		return nil, err
 	}
 
-	tfout := make(terraformOutput)
-	if err := json.Unmarshal([]byte(out), &tfout); err != nil {
+	outputValues := make(map[string]outputValue)
+	if err := json.Unmarshal([]byte(out), &outputValues); err != nil {
 		return nil, err
 	}
 
-	return toInfraOutput(tfout), nil
+	v := make(api.Values)
+
+	for key, ov := range outputValues {
+		v[key] = ov.Value
+	}
+
+	return v, nil
 }
 
-func (m *TerraformManager) Destroy() error {
+// Destroy implements Destroy from the api.InfraManager interface.
+func (m *InfraManager) Destroy() error {
 	if m.cfg.DryRun {
 		log.Warn("Would destroy infrastructure")
 		return nil
 	}
 
 	return errors.New("destroy not implemented yet")
-}
-
-func toInfraOutput(tfout terraformOutput) *api.InfraOutput {
-	output := api.NewInfraOutput()
-
-	for key, ov := range tfout {
-		output.Values[key] = ov.Value
-	}
-
-	return output
 }

@@ -19,7 +19,7 @@ func TestApplyManifest(t *testing.T) {
 
 	kubectl := NewKubectl(cfg, executor)
 
-	err := kubectl.ApplyManifest(&api.Manifest{})
+	err := kubectl.ApplyManifest(api.Manifest{})
 
 	assert.NoError(t, err)
 	if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -39,7 +39,7 @@ func TestDeleteManifest(t *testing.T) {
 
 	kubectl := NewKubectl(cfg, executor)
 
-	err := kubectl.DeleteManifest(&api.Manifest{})
+	err := kubectl.DeleteManifest(api.Manifest{})
 
 	assert.NoError(t, err)
 	if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -54,7 +54,7 @@ func TestDeleteManifest(t *testing.T) {
 func TestDeleteManifestDryRun(t *testing.T) {
 	executor := command.NewMockExecutor()
 	cfg := &config.Config{DryRun: true}
-	manifest := &api.Manifest{Content: []byte("---")}
+	manifest := api.Manifest("---")
 
 	kubectl := NewKubectl(cfg, executor)
 

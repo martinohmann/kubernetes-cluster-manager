@@ -12,11 +12,11 @@ func TestChartRender(t *testing.T) {
 
 	chart := NewChart("cluster", executor)
 
-	_, err := chart.Render("values.yaml")
+	_, err := chart.Render(make(map[string]interface{}))
 
 	assert.NoError(t, err)
 
 	if assert.Len(t, executor.ExecutedCommands, 1) {
-		assert.Equal(t, "helm template --values values.yaml cluster", executor.ExecutedCommands[0])
+		assert.Regexp(t, "helm template --values .*values.yaml.* cluster", executor.ExecutedCommands[0])
 	}
 }

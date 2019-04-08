@@ -1,14 +1,18 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
+	"strings"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/infra"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes/helm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/terraform"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -39,9 +43,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfg.Token, "token", "t", "", "Bearer token for authentication to the Kubernetes API server")
 	rootCmd.PersistentFlags().StringVarP(&cfg.Manifest, "manifest", "m", "", `Manifest file path (default: "manifest.yaml")`)
 	rootCmd.PersistentFlags().StringVarP(&cfg.Deletions, "deletions", "d", "", `Deletions file path (default: "deletions.yaml")`)
+	rootCmd.PersistentFlags().StringVar(&cfg.Values, "values", "", `Values file path (default: "values.yaml")`)
 	rootCmd.PersistentFlags().StringVarP(&cfg.WorkingDir, "working-dir", "w", workingDir, "Working directory")
 	rootCmd.PersistentFlags().IntVar(&cfg.Terraform.Parallelism, "terraform-parallism", 1, "Number of parallel terraform resource operations")
-	rootCmd.PersistentFlags().StringVar(&cfg.Helm.Values, "helm-values", "", `Values file path (default: "values.yaml")`)
 	rootCmd.PersistentFlags().StringVar(&cfg.Helm.Chart, "helm-chart", "", `Path to cluster helm chart (default: "cluster")`)
 }
 
@@ -56,11 +60,21 @@ func setupEnvironment() {
 func createProvisioner() *provisioner.Provisioner {
 	if cfg.Debug {
 		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
+		log.SetFormatter(&logrus.TextFormatter{
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				pkg := "github.com/martinohmann/kubernetes-cluster-manager/"
+				repopath := fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), pkg)
+				filename := strings.Replace(f.File, repopath, "", -1)
+				function := strings.Replace(f.Function, pkg, "", -1)
+				return fmt.Sprintf("%s()", function), fmt.Sprintf("%s:%d", filename, f.Line)
+			},
+		})
 	}
 
 	executor := command.NewExecutor()
-	infraManager := infra.NewTerraformManager(cfg, executor)
-	manifestRenderer := manifest.NewHelmRenderer(cfg, executor)
+	infraManager := terraform.NewInfraManager(cfg, executor)
+	manifestRenderer := helm.NewManifestRenderer(cfg, executor)
 
 	return provisioner.NewClusterProvisioner(infraManager, manifestRenderer, executor)
 }

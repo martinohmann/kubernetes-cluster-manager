@@ -1,10 +1,12 @@
 package helm
 
 import (
+	"os"
 	"os/exec"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"gopkg.in/yaml.v2"
 )
 
 // Chart defines the type for a helm chart.
@@ -24,12 +26,24 @@ func NewChart(name string, executor command.Executor) *Chart {
 
 // Render renders the helm chart using the values from passed valueFile.
 // Returns a kubernetes manifest.
-func (c *Chart) Render(valuesFile string) (*api.Manifest, error) {
+func (c *Chart) Render(values map[string]interface{}) ([]byte, error) {
+	content, err := yaml.Marshal(values)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := fs.NewTempFile("values.yaml", content)
+	if err != nil {
+		return nil, err
+	}
+
+	defer os.Remove(f.Name())
+
 	args := []string{
 		"helm",
 		"template",
 		"--values",
-		valuesFile,
+		f.Name(),
 		c.name,
 	}
 
@@ -40,5 +54,5 @@ func (c *Chart) Render(valuesFile string) (*api.Manifest, error) {
 		return nil, err
 	}
 
-	return api.NewManifestFromString(out), nil
+	return []byte(out), nil
 }

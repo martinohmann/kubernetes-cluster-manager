@@ -45,7 +45,7 @@ func NewKubectl(cfg *config.Config, executor command.Executor) *Kubectl {
 }
 
 // ApplyManifest applies the manifest via kubectl.
-func (k *Kubectl) ApplyManifest(manifest *api.Manifest) error {
+func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
 	args := []string{
 		"kubectl",
 		"apply",
@@ -63,7 +63,7 @@ func (k *Kubectl) ApplyManifest(manifest *api.Manifest) error {
 
 	err := backoff.Retry(
 		func() error {
-			cmd.Stdin = bytes.NewBuffer(manifest.Content)
+			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := k.executor.Run(cmd)
 			return err
 		},
@@ -74,7 +74,7 @@ func (k *Kubectl) ApplyManifest(manifest *api.Manifest) error {
 }
 
 // DeleteManifest deletes the manifest via kubectl.
-func (k *Kubectl) DeleteManifest(manifest *api.Manifest) error {
+func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
 	if k.cfg.DryRun {
 		log.Warnf("Would delete manifest:\n%s", manifest)
 
@@ -95,7 +95,7 @@ func (k *Kubectl) DeleteManifest(manifest *api.Manifest) error {
 
 	err := backoff.Retry(
 		func() error {
-			cmd.Stdin = bytes.NewBuffer(manifest.Content)
+			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := k.executor.Run(cmd)
 			return err
 		},

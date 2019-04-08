@@ -8,6 +8,7 @@ type Config struct {
 	OnlyManifest bool   `json:"onlyManifest"`
 	WorkingDir   string `json:"workingDir"`
 	Manifest     string `json:"manifest"`
+	Values       string `json:"values"`
 	Kubeconfig   string `json:"kubeconfig"`
 	Deletions    string `json:"deletions"`
 
@@ -20,8 +21,7 @@ type TerraformConfig struct {
 }
 
 type HelmConfig struct {
-	Values string `json:"values"`
-	Chart  string `json:"chart"`
+	Chart string `json:"chart"`
 }
 
 func (c *Config) ApplyDefaults() {
@@ -33,8 +33,8 @@ func (c *Config) ApplyDefaults() {
 		c.Deletions = c.WorkingDir + "/deletions.yaml"
 	}
 
-	if c.Helm.Values == "" {
-		c.Helm.Values = c.WorkingDir + "/values.yaml"
+	if c.Values == "" {
+		c.Values = c.WorkingDir + "/values.yaml"
 	}
 
 	if c.Helm.Chart == "" {
