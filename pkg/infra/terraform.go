@@ -1,7 +1,6 @@
 package infra
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,8 +79,6 @@ func (m *TerraformManager) plan() (err error) {
 }
 
 func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
-	var buf bytes.Buffer
-
 	args := []string{
 		"terraform",
 		"output",
@@ -89,14 +86,14 @@ func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdout = &buf
 
-	if err := cmd.Run(); err != nil {
+	out, err := m.executor.RunSilently(cmd)
+	if err != nil {
 		return nil, err
 	}
 
 	values := make(terraformOutput)
-	if err := json.Unmarshal(buf.Bytes(), &values); err != nil {
+	if err := json.Unmarshal([]byte(out), &values); err != nil {
 		return nil, err
 	}
 

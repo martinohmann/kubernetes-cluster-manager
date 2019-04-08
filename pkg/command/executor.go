@@ -14,6 +14,10 @@ import (
 type Executor interface {
 	// Run executes given command and returns its output.
 	Run(*exec.Cmd) (string, error)
+
+	// RunSilently executes the given command and returns its output. Will not
+	// write command output to stdout or stderr.
+	RunSilently(*exec.Cmd) (string, error)
 }
 
 type executor func(*exec.Cmd) (string, error)
@@ -23,9 +27,14 @@ func NewExecutor() executor {
 	return executor(Run)
 }
 
-// Run implements Executor.
+// Run implements Run from Executor interface.
 func (e executor) Run(cmd *exec.Cmd) (string, error) {
 	return Run(cmd)
+}
+
+// Run implements RunSilently from Executor interface.
+func (e executor) RunSilently(cmd *exec.Cmd) (string, error) {
+	return RunSilently(cmd)
 }
 
 // Run executes given command and returns its output. Will use the default
@@ -35,6 +44,18 @@ func Run(cmd *exec.Cmd) (string, error) {
 
 	cmd.Stdout = io.MultiWriter(&out, logWriter(log.Info))
 	cmd.Stderr = io.MultiWriter(&out, logWriter(log.Error))
+
+	log.Debugf("Executing %s", strings.Join(cmd.Args, " "))
+
+	err := cmd.Run()
+
+	return out.String(), err
+}
+
+// Run executes given command and returns its output. Will use the default
+// *logrus.Logger to log cmd's stdout and stderr.
+func RunSilently(cmd *exec.Cmd) (string, error) {
+	var out bytes.Buffer
 
 	log.Debugf("Executing %s", strings.Join(cmd.Args, " "))
 

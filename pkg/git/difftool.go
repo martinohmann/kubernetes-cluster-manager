@@ -1,8 +1,9 @@
 package git
 
 import (
-	"bytes"
 	"os/exec"
+
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 )
 
 // DiffTool is a utility for working with file changes.
@@ -27,10 +28,7 @@ func (t *DiffTool) Apply(changes *FileChanges) (string, error) {
 
 // Diff runs `git diff` on files a and b. Will return the diff and an error if
 // `git diff` fails.
-func Diff(a, b string) (string, error) {
-	var err error
-	var buf bytes.Buffer
-
+func Diff(a, b string) (out string, err error) {
 	args := []string{
 		"git",
 		"--no-pager",
@@ -43,10 +41,8 @@ func Diff(a, b string) (string, error) {
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
 
-	if err = cmd.Run(); err != nil {
+	if out, err = command.RunSilently(cmd); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// Exit code 1 means that there is a diff
 			if exitErr.ExitCode() == 1 {
@@ -55,5 +51,5 @@ func Diff(a, b string) (string, error) {
 		}
 	}
 
-	return buf.String(), err
+	return out, err
 }

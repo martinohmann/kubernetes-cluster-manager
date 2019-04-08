@@ -61,7 +61,7 @@ func createProvisioner() *provisioner.Provisioner {
 
 	executor := command.NewExecutor()
 	infraManager := infra.NewTerraformManager(cfg, executor)
-	manifestRenderer := manifest.NewHelmRenderer(cfg)
+	manifestRenderer := manifest.NewHelmRenderer(cfg, executor)
 
 	return provisioner.NewClusterProvisioner(infraManager, manifestRenderer, executor)
 }

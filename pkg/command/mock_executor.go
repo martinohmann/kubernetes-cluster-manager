@@ -54,3 +54,7 @@ func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
 
 	return
 }
+
+func (e *MockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
+	return e.Run(cmd)
+}

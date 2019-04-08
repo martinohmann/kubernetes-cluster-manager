@@ -1,10 +1,10 @@
 package manifest
 
 import (
-	"bytes"
 	"os/exec"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
 	log "github.com/sirupsen/logrus"
@@ -12,12 +12,14 @@ import (
 )
 
 type HelmRenderer struct {
-	cfg *config.Config
+	cfg      *config.Config
+	executor command.Executor
 }
 
-func NewHelmRenderer(cfg *config.Config) *HelmRenderer {
+func NewHelmRenderer(cfg *config.Config, executor command.Executor) *HelmRenderer {
 	return &HelmRenderer{
-		cfg: cfg,
+		cfg:      cfg,
+		executor: executor,
 	}
 }
 
@@ -80,14 +82,12 @@ func (r *HelmRenderer) generateManifest(values string, chart string) (*api.Manif
 		chart,
 	}
 
-	var buf bytes.Buffer
-
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdout = &buf
 
-	if err := cmd.Run(); err != nil {
+	out, err := r.executor.RunSilently(cmd)
+	if err != nil {
 		return nil, err
 	}
 
-	return &api.Manifest{Content: buf.Bytes()}, nil
+	return &api.Manifest{Content: []byte(out)}, nil
 }
