@@ -1,12 +1,11 @@
 package manifest
 
 import (
-	"os/exec"
-
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes/helm"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -24,7 +23,6 @@ func NewHelmRenderer(cfg *config.Config, executor command.Executor) *HelmRendere
 }
 
 func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, error) {
-	diffTool := &git.DiffTool{DiffOnly: r.cfg.DryRun}
 	valuesFile := r.cfg.Helm.Values
 	manifestFile := r.cfg.Manifest
 
@@ -38,9 +36,14 @@ func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, erro
 		return nil, err
 	}
 
-	defer valueChanges.Close()
+	defer func() {
+		if !r.cfg.DryRun {
+			valueChanges.Apply()
+			valueChanges.Close()
+		}
+	}()
 
-	diff, err := diffTool.Apply(valueChanges)
+	diff, err := git.DiffFileChanges(valueChanges)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +52,9 @@ func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, erro
 		log.Infof("Changes to values:\n%s", diff)
 	}
 
-	manifest, err := r.generateManifest(valueChanges.Filename(), r.cfg.Helm.Chart)
+	chart := helm.NewChart(r.cfg.Helm.Chart, r.executor)
+
+	manifest, err := chart.Render(valueChanges.Filename())
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +64,14 @@ func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, erro
 		return nil, err
 	}
 
-	defer manifestChanges.Close()
+	defer func() {
+		if !r.cfg.DryRun {
+			manifestChanges.Apply()
+			manifestChanges.Close()
+		}
+	}()
 
-	diff, err = diffTool.Apply(manifestChanges)
+	diff, err = git.DiffFileChanges(manifestChanges)
 	if err != nil {
 		return nil, err
 	}
@@ -71,23 +81,4 @@ func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, erro
 	}
 
 	return manifest, nil
-}
-
-func (r *HelmRenderer) generateManifest(values string, chart string) (*api.Manifest, error) {
-	args := []string{
-		"helm",
-		"template",
-		"--values",
-		values,
-		chart,
-	}
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	out, err := r.executor.RunSilently(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	return &api.Manifest{Content: []byte(out)}, nil
 }

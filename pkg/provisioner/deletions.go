@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"gopkg.in/yaml.v2"
 )
 
@@ -30,7 +31,7 @@ func saveDeletions(deletionsFile string, deletions *api.Deletions) error {
 	return ioutil.WriteFile(deletionsFile, content, 0660)
 }
 
-func processResourceDeletions(kubectl *Kubectl, deletions []*api.Deletion) error {
+func processResourceDeletions(kubectl *kubernetes.Kubectl, deletions []*api.Deletion) error {
 	for _, deletion := range deletions {
 		if err := kubectl.DeleteResource(deletion); err != nil {
 			return err

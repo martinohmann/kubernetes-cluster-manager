@@ -53,3 +53,7 @@ func Diff(a, b string) (out string, err error) {
 
 	return out, err
 }
+
+func DiffFileChanges(changes *FileChanges) (string, error) {
+	return Diff(changes.filename, changes.tmpf.Name())
+}

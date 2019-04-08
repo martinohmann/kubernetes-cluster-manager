@@ -4,6 +4,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/infra"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 )
 
@@ -38,7 +39,7 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	kubectl := NewKubectl(cfg, p.executor)
+	kubectl := kubernetes.NewKubectl(cfg, p.executor)
 
 	deletions, err := loadDeletions(cfg.Deletions)
 	if err != nil {
@@ -78,7 +79,7 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
-	kubectl := NewKubectl(cfg, p.executor)
+	kubectl := kubernetes.NewKubectl(cfg, p.executor)
 
 	if err := kubectl.DeleteManifest(manifest); err != nil {
 		return err
