@@ -92,19 +92,12 @@ func (m *TerraformManager) GetOutput() (*api.InfraOutput, error) {
 		return nil, err
 	}
 
-	values := make(terraformOutput)
-	if err := json.Unmarshal([]byte(out), &values); err != nil {
+	tfout := make(terraformOutput)
+	if err := json.Unmarshal([]byte(out), &tfout); err != nil {
 		return nil, err
 	}
 
-	output := &api.InfraOutput{}
-
-	output.Values = make(map[string]interface{})
-	for key, ov := range values {
-		output.Values[key] = ov.Value
-	}
-
-	return output, nil
+	return toInfraOutput(tfout), nil
 }
 
 func (m *TerraformManager) Destroy() error {
@@ -114,4 +107,15 @@ func (m *TerraformManager) Destroy() error {
 	}
 
 	return errors.New("destroy not implemented yet")
+}
+
+func toInfraOutput(tfout terraformOutput) *api.InfraOutput {
+	output := &api.InfraOutput{}
+
+	output.Values = make(map[string]interface{})
+	for key, ov := range tfout {
+		output.Values[key] = ov.Value
+	}
+
+	return output
 }

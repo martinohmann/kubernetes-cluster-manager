@@ -16,8 +16,7 @@ type Config struct {
 }
 
 type TerraformConfig struct {
-	AutoApprove bool `json:"autoApprove"`
-	Parallelism int  `json:"parallelism"`
+	Parallelism int `json:"parallelism"`
 }
 
 type HelmConfig struct {
