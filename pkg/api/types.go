@@ -58,6 +58,10 @@ func (d *Deletion) MarkDeleted() {
 	d.deleted = true
 }
 
+func (d *Deletion) Deleted() bool {
+	return d.deleted
+}
+
 // Manifest defines a Kubernetes manifest.
 type Manifest struct {
 	Content []byte `json:"content" yaml:"content"`
