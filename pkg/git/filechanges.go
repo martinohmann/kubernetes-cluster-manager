@@ -4,10 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-)
 
-const (
-	fileMode os.FileMode = 0660
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 )
 
 // FileChanges is a container for the current content of a file and the changes
@@ -21,13 +19,13 @@ type FileChanges struct {
 }
 
 func NewFileChanges(filename string, changes []byte) (*FileChanges, error) {
-	f, err := openFile(filename)
+	f, err := fs.OpenFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	prefix := filepath.Base(f.Name())
-	tmpf, err := createTempFile(prefix, changes)
+	tmpf, err := fs.NewTempFile(prefix, changes)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +58,7 @@ func (c *FileChanges) Filename() string {
 }
 
 func (c *FileChanges) Apply() error {
-	if err := ioutil.WriteFile(c.filename, c.changes, fileMode); err != nil {
+	if err := fs.WriteFile(c.filename, c.changes); err != nil {
 		return err
 	}
 
@@ -81,27 +79,7 @@ func (c *FileChanges) Close() error {
 	return err
 }
 
-// openFile opens given file if it exists or creates it otherwise.
-func openFile(path string) (*os.File, error) {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileMode)
-		}
-	}
-
-	return os.OpenFile(path, os.O_RDWR, fileMode)
-}
-
-// createTemplFile creates a temporary for with given prefix and content.
-func createTempFile(prefix string, content []byte) (*os.File, error) {
-	f, err := ioutil.TempFile("", prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := f.Write(content); err != nil {
-		return nil, err
-	}
-
-	return f, nil
+// GetDiff creates a diff for the file changes and returns it.
+func (c *FileChanges) Diff() (string, error) {
+	return Diff(c.filename, c.tmpf.Name())
 }

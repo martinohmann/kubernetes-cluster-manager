@@ -132,7 +132,7 @@ func (p *Provisioner) finalizeChanges(cfg *config.Config, filename string, conte
 
 	defer changes.Close()
 
-	diff, err := git.DiffFileChanges(changes)
+	diff, err := changes.Diff()
 	if err != nil {
 		return err
 	}

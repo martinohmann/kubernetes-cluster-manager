@@ -33,8 +33,3 @@ func Diff(a, b string) (out string, err error) {
 
 	return out, err
 }
-
-// DiffFileChanges creates a diff for the file changes and returns it.
-func DiffFileChanges(changes *FileChanges) (string, error) {
-	return Diff(changes.filename, changes.tmpf.Name())
-}
