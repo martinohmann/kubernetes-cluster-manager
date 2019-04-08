@@ -1,4 +1,4 @@
 .cover
 coverage.txt
-vendor
-kcm
+/vendor
+/kcm
