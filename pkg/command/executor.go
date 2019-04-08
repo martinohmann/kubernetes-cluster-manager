@@ -57,6 +57,9 @@ func Run(cmd *exec.Cmd) (string, error) {
 func RunSilently(cmd *exec.Cmd) (string, error) {
 	var out bytes.Buffer
 
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
 	log.Debugf("Executing %s", strings.Join(cmd.Args, " "))
 
 	err := cmd.Run()

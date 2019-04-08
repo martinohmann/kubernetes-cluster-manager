@@ -1,6 +1,10 @@
 package manifest
 
 import (
+	"io/ioutil"
+	"os"
+
+	"github.com/imdario/mergo"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
@@ -26,31 +30,26 @@ func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, erro
 	valuesFile := r.cfg.Helm.Values
 	manifestFile := r.cfg.Manifest
 
-	values, err := yaml.Marshal(out.Values)
+	values, err := loadValues(valuesFile)
 	if err != nil {
 		return nil, err
 	}
 
-	valueChanges, err := git.NewFileChanges(valuesFile, values)
+	if err := mergo.Merge(&values, out.Values, mergo.WithOverride); err != nil {
+		return nil, err
+	}
+
+	valueBytes, err := yaml.Marshal(values)
 	if err != nil {
 		return nil, err
 	}
 
-	defer func() {
-		if !r.cfg.DryRun {
-			valueChanges.Apply()
-			valueChanges.Close()
-		}
-	}()
-
-	diff, err := git.DiffFileChanges(valueChanges)
+	valueChanges, err := r.processChanges(valuesFile, valueBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(diff) > 0 {
-		log.Infof("Changes to values:\n%s", diff)
-	}
+	defer valueChanges.Close()
 
 	chart := helm.NewChart(r.cfg.Helm.Chart, r.executor)
 
@@ -59,26 +58,49 @@ func (r *HelmRenderer) RenderManifest(out *api.InfraOutput) (*api.Manifest, erro
 		return nil, err
 	}
 
-	manifestChanges, err := git.NewFileChanges(manifestFile, manifest.Content)
+	manifestChanges, err := r.processChanges(manifestFile, manifest.Content)
 	if err != nil {
 		return nil, err
 	}
 
-	defer func() {
-		if !r.cfg.DryRun {
-			manifestChanges.Apply()
-			manifestChanges.Close()
-		}
-	}()
+	defer manifestChanges.Close()
 
-	diff, err = git.DiffFileChanges(manifestChanges)
+	return manifest, nil
+}
+
+func (r *HelmRenderer) processChanges(filename string, content []byte) (*git.FileChanges, error) {
+	changes, err := git.NewFileChanges(filename, content)
+	if err != nil {
+		return nil, err
+	}
+
+	diff, err := git.DiffFileChanges(changes)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(diff) > 0 {
-		log.Infof("Changes to manifest:\n%s", diff)
+		log.Infof("Changes to %s:\n%s", filename, diff)
+	} else {
+		log.Infof("No changes to %s", filename)
 	}
 
-	return manifest, nil
+	if r.cfg.DryRun {
+		return changes, nil
+	}
+
+	return changes, changes.Apply()
+}
+
+func loadValues(valuesFile string) (map[string]interface{}, error) {
+	values := make(map[string]interface{})
+
+	content, err := ioutil.ReadFile(valuesFile)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	err = yaml.Unmarshal(content, &values)
+
+	return values, err
 }

@@ -141,7 +141,7 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 
 		pairs := make([]string, 0, len(deletion.Labels))
 		for _, k := range keys {
-			pairs = append(pairs, k+"="+deletion.Labels[k])
+			pairs = append(pairs, fmt.Sprintf("%s=%s", k, deletion.Labels[k]))
 		}
 
 		args = append(args, "--selector", strings.Join(pairs, ","))
@@ -163,14 +163,14 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 func buildGlobalKubectlArgs(cfg *config.Config) (args []string) {
 	if cfg.Kubeconfig != "" {
 		args = append(args, "--kubeconfig", cfg.Kubeconfig)
-	}
+	} else {
+		if cfg.Server != "" {
+			args = append(args, "--server", cfg.Server)
+		}
 
-	if cfg.Server != "" {
-		args = append(args, "--server", cfg.Server)
-	}
-
-	if cfg.Token != "" {
-		args = append(args, "--token", cfg.Token)
+		if cfg.Token != "" {
+			args = append(args, "--token", cfg.Token)
+		}
 	}
 
 	return args
