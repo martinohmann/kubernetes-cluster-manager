@@ -6,26 +6,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 )
 
-// DiffTool is a utility for working with file changes.
-type DiffTool struct {
-	DiffOnly bool
-}
-
-// Apply makes a diff of the FileChanges and returns it. Will apply the changes
-// to the source file unless DiffTool is configured with DiffOnly.
-func (t *DiffTool) Apply(changes *FileChanges) (string, error) {
-	diff, err := Diff(changes.filename, changes.tmpf.Name())
-	if err != nil {
-		return diff, err
-	}
-
-	if t.DiffOnly {
-		return diff, nil
-	}
-
-	return diff, changes.Apply()
-}
-
 // Diff runs `git diff` on files a and b. Will return the diff and an error if
 // `git diff` fails.
 func Diff(a, b string) (out string, err error) {
@@ -54,6 +34,7 @@ func Diff(a, b string) (out string, err error) {
 	return out, err
 }
 
+// DiffFileChanges creates a diff for the file changes and returns it.
 func DiffFileChanges(changes *FileChanges) (string, error) {
 	return Diff(changes.filename, changes.tmpf.Name())
 }
