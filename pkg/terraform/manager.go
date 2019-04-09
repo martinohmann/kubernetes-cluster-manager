@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os/exec"
 
@@ -113,5 +112,19 @@ func (m *InfraManager) Destroy() error {
 		return nil
 	}
 
-	return errors.New("destroy not implemented yet")
+	args := []string{
+		"terraform",
+		"destroy",
+		"--auto-approve",
+	}
+
+	if m.cfg.Terraform.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Terraform.Parallelism))
+	}
+
+	cmd := exec.Command(args[0], args[1:]...)
+
+	_, err := m.executor.Run(cmd)
+
+	return err
 }

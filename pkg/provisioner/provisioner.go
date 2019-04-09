@@ -82,11 +82,7 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	if err := processResourceDeletions(kubectl, deletions.PostApply); err != nil {
-		return err
-	}
-
-	return nil
+	return processResourceDeletions(kubectl, deletions.PostApply)
 }
 
 func (p *Provisioner) Destroy(cfg *config.Config) error {
@@ -155,5 +151,6 @@ func (p *Provisioner) finalizeDeletions(cfg *config.Config, deletions *api.Delet
 	if err != nil {
 		return err
 	}
+
 	return p.finalizeChanges(cfg, cfg.Deletions, buf)
 }
