@@ -60,6 +60,8 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
+	updateCredentialsFromValues(cfg, values)
+
 	kubectl := kubernetes.NewKubectl(cfg, p.executor)
 
 	deletions, err := loadDeletions(cfg.Deletions)
@@ -95,6 +97,8 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
+
+	updateCredentialsFromValues(cfg, values)
 
 	kubectl := kubernetes.NewKubectl(cfg, p.executor)
 
