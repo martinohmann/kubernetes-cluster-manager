@@ -8,8 +8,8 @@ type Config struct {
 	Manifest         string `json:"manifest"`
 	Values           string `json:"values"`
 	Deletions        string `json:"deletions"`
-	ManifestRenderer string `json:manifestRenderer`
-	InfraManager     string `json:infraManager`
+	ManifestRenderer string `json:"manifestRenderer"`
+	InfraManager     string `json:"infraManager"`
 
 	Cluster   ClusterConfig   `json:"cluster"`
 	Terraform TerraformConfig `json:"terraform"`
