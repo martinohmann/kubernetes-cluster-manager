@@ -9,7 +9,7 @@ import (
 )
 
 func TestUpdateCredentialsFromValues(t *testing.T) {
-	cfg := &config.Config{
+	cfg := config.ClusterConfig{
 		Kubeconfig: "~/.kube/config",
 		Token:      "supersecret",
 	}
@@ -19,7 +19,7 @@ func TestUpdateCredentialsFromValues(t *testing.T) {
 		"kubeconfig": "/tmp/kubeconfig",
 	}
 
-	updateCredentialsFromValues(cfg, values)
+	updateCredentialsFromValues(&cfg, values)
 
 	assert.Equal(t, "https://localhost:6443", cfg.Server)
 	assert.Equal(t, "~/.kube/config", cfg.Kubeconfig)

@@ -19,7 +19,10 @@ func init() {
 }
 
 func provision(cmd *cobra.Command, args []string) error {
-	provisioner := createProvisioner()
+	provisioner, err := createProvisioner()
+	if err != nil {
+		return err
+	}
 
 	return provisioner.Provision(cfg)
 }

@@ -13,8 +13,10 @@ func TestApplyManifest(t *testing.T) {
 	executor := command.NewMockExecutor()
 	cfg := &config.Config{
 		DryRun: true,
-		Server: "https://localhost:6443",
-		Token:  "sometoken",
+		Cluster: config.ClusterConfig{
+			Server: "https://localhost:6443",
+			Token:  "sometoken",
+		},
 	}
 
 	kubectl := NewKubectl(cfg, executor)
@@ -34,7 +36,9 @@ func TestApplyManifest(t *testing.T) {
 func TestDeleteManifest(t *testing.T) {
 	executor := command.NewMockExecutor()
 	cfg := &config.Config{
-		Kubeconfig: "/tmp/kubeconfig",
+		Cluster: config.ClusterConfig{
+			Kubeconfig: "/tmp/kubeconfig",
+		},
 	}
 
 	kubectl := NewKubectl(cfg, executor)
@@ -67,7 +71,9 @@ func TestDeleteManifestDryRun(t *testing.T) {
 func TestDeleteResource(t *testing.T) {
 	executor := command.NewMockExecutor()
 	cfg := &config.Config{
-		Kubeconfig: "/tmp/kubeconfig",
+		Cluster: config.ClusterConfig{
+			Kubeconfig: "/tmp/kubeconfig",
+		},
 	}
 
 	resource := &api.Deletion{
@@ -92,7 +98,9 @@ func TestDeleteResource(t *testing.T) {
 func TestDeleteResourceLabels(t *testing.T) {
 	executor := command.NewMockExecutor()
 	cfg := &config.Config{
-		Kubeconfig: "/tmp/kubeconfig",
+		Cluster: config.ClusterConfig{
+			Kubeconfig: "/tmp/kubeconfig",
+		},
 	}
 
 	resource := &api.Deletion{
@@ -120,7 +128,9 @@ func TestDeleteResourceLabels(t *testing.T) {
 func TestDeleteResourceMissingSelector(t *testing.T) {
 	executor := command.NewMockExecutor()
 	cfg := &config.Config{
-		Kubeconfig: "/tmp/kubeconfig",
+		Cluster: config.ClusterConfig{
+			Kubeconfig: "/tmp/kubeconfig",
+		},
 	}
 
 	resource := &api.Deletion{

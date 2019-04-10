@@ -40,7 +40,7 @@ func NewKubectl(cfg *config.Config, executor command.Executor) *Kubectl {
 	return &Kubectl{
 		cfg:        cfg,
 		executor:   executor,
-		globalArgs: buildGlobalKubectlArgs(cfg),
+		globalArgs: buildGlobalKubectlArgs(&cfg.Cluster),
 	}
 }
 
@@ -159,8 +159,22 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 	return err
 }
 
+// ClusterInfo fetches the kubernetes cluster info.
+func (k *Kubectl) ClusterInfo() (string, error) {
+	args := []string{
+		"kubectl",
+		"cluster-info",
+	}
+
+	args = append(args, k.globalArgs...)
+
+	cmd := exec.Command(args[0], args[1:]...)
+
+	return k.executor.Run(cmd)
+}
+
 // buildGlobalKubectlArgs builds global kubectl args from the config.
-func buildGlobalKubectlArgs(cfg *config.Config) (args []string) {
+func buildGlobalKubectlArgs(cfg *config.ClusterConfig) (args []string) {
 	if cfg.Kubeconfig != "" {
 		args = append(args, "--kubeconfig", cfg.Kubeconfig)
 	} else {

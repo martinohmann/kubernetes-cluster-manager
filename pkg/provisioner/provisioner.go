@@ -60,9 +60,13 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	updateCredentialsFromValues(cfg, values)
+	updateCredentialsFromValues(&cfg.Cluster, values)
 
 	kubectl := kubernetes.NewKubectl(cfg, p.executor)
+
+	if err := kubernetes.WaitForCluster(kubectl); err != nil {
+		return err
+	}
 
 	deletions, err := loadDeletions(cfg.Deletions)
 	if err != nil {
@@ -98,9 +102,13 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
-	updateCredentialsFromValues(cfg, values)
+	updateCredentialsFromValues(&cfg.Cluster, values)
 
 	kubectl := kubernetes.NewKubectl(cfg, p.executor)
+
+	if err := kubernetes.WaitForCluster(kubectl); err != nil {
+		return err
+	}
 
 	if err := kubectl.DeleteManifest(manifest); err != nil {
 		return err

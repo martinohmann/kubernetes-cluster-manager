@@ -8,7 +8,7 @@ import (
 // updateCredentialsFromValues tries to update the cluster credentials in the
 // config from values retrieved from the infrastructure manager. It will not
 // overwrite config values that are already set.
-func updateCredentialsFromValues(cfg *config.Config, values api.Values) {
+func updateCredentialsFromValues(cfg *config.ClusterConfig, values api.Values) {
 	if s, ok := values["server"].(string); ok && cfg.Server == "" {
 		cfg.Server = s
 	}
