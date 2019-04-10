@@ -12,9 +12,9 @@ import (
 func TestApply(t *testing.T) {
 	executor := command.NewMockExecutor()
 
-	cfg := &config.Config{Terraform: config.TerraformConfig{Parallelism: 4}}
+	cfg := config.TerraformConfig{Parallelism: 4}
 
-	m := NewInfraManager(cfg, executor)
+	m := NewInfraManager(&cfg, executor)
 
 	err := m.Apply()
 
@@ -31,16 +31,14 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func TestApplyDryRun(t *testing.T) {
+func TestPlan(t *testing.T) {
 	executor := command.NewMockExecutor()
 
-	cfg := &config.Config{
-		DryRun: true,
-	}
+	cfg := config.TerraformConfig{}
 
-	m := NewInfraManager(cfg, executor)
+	m := NewInfraManager(&cfg, executor)
 
-	err := m.Apply()
+	err := m.Plan()
 
 	if !assert.NoError(t, err) {
 		return
@@ -58,9 +56,9 @@ func TestApplyDryRun(t *testing.T) {
 func TestGetValues(t *testing.T) {
 	executor := command.NewMockExecutor()
 
-	cfg := &config.Config{}
+	cfg := config.TerraformConfig{}
 
-	m := NewInfraManager(cfg, executor)
+	m := NewInfraManager(&cfg, executor)
 
 	output := `
 {
@@ -99,9 +97,9 @@ func TestGetValues(t *testing.T) {
 func TestDestroy(t *testing.T) {
 	executor := command.NewMockExecutor()
 
-	cfg := &config.Config{Terraform: config.TerraformConfig{Parallelism: 4}}
+	cfg := config.TerraformConfig{Parallelism: 4}
 
-	m := NewInfraManager(cfg, executor)
+	m := NewInfraManager(&cfg, executor)
 
 	err := m.Destroy()
 
@@ -116,20 +114,4 @@ func TestDestroy(t *testing.T) {
 			executor.ExecutedCommands[0],
 		)
 	}
-}
-
-func TestDestroyDryRun(t *testing.T) {
-	executor := command.NewMockExecutor()
-
-	cfg := &config.Config{DryRun: true}
-
-	m := NewInfraManager(cfg, executor)
-
-	err := m.Destroy()
-
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	assert.Len(t, executor.ExecutedCommands, 0)
 }

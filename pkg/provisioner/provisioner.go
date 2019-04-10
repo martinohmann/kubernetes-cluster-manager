@@ -25,10 +25,15 @@ func NewClusterProvisioner(infraManager api.InfraManager, manifestRenderer api.M
 }
 
 func (p *Provisioner) Provision(cfg *config.Config) error {
-	if !cfg.OnlyManifest {
-		if err := p.infraManager.Apply(); err != nil {
-			return err
-		}
+	var err error
+	if cfg.DryRun {
+		err = p.infraManager.Plan()
+	} else if !cfg.OnlyManifest {
+		err = p.infraManager.Apply()
+	}
+
+	if err != nil {
+		return err
 	}
 
 	newValues, err := p.infraManager.GetValues()
@@ -60,11 +65,13 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	updateCredentialsFromValues(&cfg.Cluster, values)
+	updateClusterConfigFromValues(&cfg.Cluster, values)
 
-	kubectl := kubernetes.NewKubectl(cfg, p.executor)
+	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
 
-	if err := kubernetes.WaitForCluster(kubectl); err != nil {
+	if cfg.DryRun {
+		log.Debug("Would wait for cluster to become available.")
+	} else if err := kubectl.WaitForCluster(); err != nil {
 		return err
 	}
 
@@ -80,15 +87,17 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 
 	defer p.finalizeDeletions(cfg, deletions)
 
-	if err := processResourceDeletions(kubectl, deletions.PreApply); err != nil {
+	if err := processResourceDeletions(cfg, kubectl, deletions.PreApply); err != nil {
 		return err
 	}
 
-	if err := kubectl.ApplyManifest(manifest); err != nil {
+	if cfg.DryRun {
+		log.Warnf("Would apply manifest:\n%s", manifest)
+	} else if err := kubectl.ApplyManifest(manifest); err != nil {
 		return err
 	}
 
-	return processResourceDeletions(kubectl, deletions.PostApply)
+	return processResourceDeletions(cfg, kubectl, deletions.PostApply)
 }
 
 func (p *Provisioner) Destroy(cfg *config.Config) error {
@@ -102,15 +111,19 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
-	updateCredentialsFromValues(&cfg.Cluster, values)
+	updateClusterConfigFromValues(&cfg.Cluster, values)
 
-	kubectl := kubernetes.NewKubectl(cfg, p.executor)
+	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
 
-	if err := kubernetes.WaitForCluster(kubectl); err != nil {
+	if cfg.DryRun {
+		log.Debug("Would wait for cluster to become available.")
+	} else if err := kubectl.WaitForCluster(); err != nil {
 		return err
 	}
 
-	if err := kubectl.DeleteManifest(manifest); err != nil {
+	if cfg.DryRun {
+		log.Warnf("Would delete manifest:\n%s", manifest)
+	} else if err := kubectl.DeleteManifest(manifest); err != nil {
 		return err
 	}
 
@@ -121,11 +134,13 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 
 	defer p.finalizeDeletions(cfg, deletions)
 
-	if err := processResourceDeletions(kubectl, deletions.PreDestroy); err != nil {
+	if err := processResourceDeletions(cfg, kubectl, deletions.PreDestroy); err != nil {
 		return err
 	}
 
-	if !cfg.OnlyManifest {
+	if cfg.DryRun {
+		log.Warn("Would destroy infrastructure")
+	} else if !cfg.OnlyManifest {
 		return p.infraManager.Destroy()
 	}
 

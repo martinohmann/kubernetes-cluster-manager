@@ -14,10 +14,8 @@ import (
 func TestRenderManifest(t *testing.T) {
 	executor := command.NewExecutor()
 
-	cfg := &config.Config{
-		Helm: config.HelmConfig{
-			Chart: "testdata/chart",
-		},
+	cfg := &config.HelmConfig{
+		Chart: "testdata/chart",
 	}
 
 	r := NewManifestRenderer(cfg, executor)

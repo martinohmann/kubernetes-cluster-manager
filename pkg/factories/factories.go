@@ -13,7 +13,7 @@ import (
 func CreateManifestRenderer(cfg *config.Config, executor command.Executor) (api.ManifestRenderer, error) {
 	switch cfg.ManifestRenderer {
 	case "helm":
-		return helm.NewManifestRenderer(cfg, executor), nil
+		return helm.NewManifestRenderer(&cfg.Helm, executor), nil
 	default:
 		return nil, errors.Errorf("unsupported manifest renderer: %s", cfg.ManifestRenderer)
 	}
@@ -23,7 +23,7 @@ func CreateManifestRenderer(cfg *config.Config, executor command.Executor) (api.
 func CreateInfraManager(cfg *config.Config, executor command.Executor) (api.InfraManager, error) {
 	switch cfg.InfraManager {
 	case "terraform":
-		return terraform.NewInfraManager(cfg, executor), nil
+		return terraform.NewInfraManager(&cfg.Terraform, executor), nil
 	default:
 		return nil, errors.Errorf("unsupported infrastructure manager: %s", cfg.InfraManager)
 	}

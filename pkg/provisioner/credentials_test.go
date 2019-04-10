@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUpdateCredentialsFromValues(t *testing.T) {
+func TestUpdateClusterConfigFromValues(t *testing.T) {
 	cfg := config.ClusterConfig{
 		Kubeconfig: "~/.kube/config",
 		Token:      "supersecret",
@@ -19,7 +19,7 @@ func TestUpdateCredentialsFromValues(t *testing.T) {
 		"kubeconfig": "/tmp/kubeconfig",
 	}
 
-	updateCredentialsFromValues(&cfg, values)
+	updateClusterConfigFromValues(&cfg, values)
 
 	assert.Equal(t, "https://localhost:6443", cfg.Server)
 	assert.Equal(t, "~/.kube/config", cfg.Kubeconfig)

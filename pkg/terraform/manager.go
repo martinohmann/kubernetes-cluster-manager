@@ -8,7 +8,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
-	log "github.com/sirupsen/logrus"
 )
 
 type outputValue struct {
@@ -18,12 +17,12 @@ type outputValue struct {
 // InfraManager is an infrastructure manager that uses terraform to manage
 // resources.
 type InfraManager struct {
-	cfg      *config.Config
+	cfg      *config.TerraformConfig
 	executor command.Executor
 }
 
 // NewInfraManager creates a new terraform infrastructure manager.
-func NewInfraManager(cfg *config.Config, executor command.Executor) *InfraManager {
+func NewInfraManager(cfg *config.TerraformConfig, executor command.Executor) *InfraManager {
 	return &InfraManager{
 		cfg:      cfg,
 		executor: executor,
@@ -32,22 +31,14 @@ func NewInfraManager(cfg *config.Config, executor command.Executor) *InfraManage
 
 // Apply implements Apply from the api.InfraManager interface.
 func (m *InfraManager) Apply() error {
-	if m.cfg.DryRun {
-		return m.plan()
-	}
-
-	return m.apply()
-}
-
-func (m *InfraManager) apply() error {
 	args := []string{
 		"terraform",
 		"apply",
 		"--auto-approve",
 	}
 
-	if m.cfg.Terraform.Parallelism != 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Terraform.Parallelism))
+	if m.cfg.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -57,11 +48,16 @@ func (m *InfraManager) apply() error {
 	return err
 }
 
-func (m *InfraManager) plan() (err error) {
+// Plan implements Plan from the api.InfraManager interface.
+func (m *InfraManager) Plan() (err error) {
 	args := []string{
 		"terraform",
 		"plan",
 		"--detailed-exitcode",
+	}
+
+	if m.cfg.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -107,19 +103,14 @@ func (m *InfraManager) GetValues() (api.Values, error) {
 
 // Destroy implements Destroy from the api.InfraManager interface.
 func (m *InfraManager) Destroy() error {
-	if m.cfg.DryRun {
-		log.Warn("Would destroy infrastructure")
-		return nil
-	}
-
 	args := []string{
 		"terraform",
 		"destroy",
 		"--auto-approve",
 	}
 
-	if m.cfg.Terraform.Parallelism != 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Terraform.Parallelism))
+	if m.cfg.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)

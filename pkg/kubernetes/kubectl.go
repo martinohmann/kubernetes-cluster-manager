@@ -11,7 +11,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -30,17 +30,17 @@ var (
 
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
-	cfg        *config.Config
+	cfg        *config.ClusterConfig
 	executor   command.Executor
 	globalArgs []string
 }
 
 // NewKubectl create a new kubectl interactor.
-func NewKubectl(cfg *config.Config, executor command.Executor) *Kubectl {
+func NewKubectl(cfg *config.ClusterConfig, executor command.Executor) *Kubectl {
 	return &Kubectl{
 		cfg:        cfg,
 		executor:   executor,
-		globalArgs: buildGlobalKubectlArgs(&cfg.Cluster),
+		globalArgs: buildGlobalKubectlArgs(cfg),
 	}
 }
 
@@ -54,10 +54,6 @@ func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
 	}
 
 	args = append(args, k.globalArgs...)
-
-	if k.cfg.DryRun {
-		args = append(args, "--dry-run")
-	}
 
 	cmd := exec.Command(args[0], args[1:]...)
 
@@ -75,12 +71,6 @@ func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
 
 // DeleteManifest deletes the manifest via kubectl.
 func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
-	if k.cfg.DryRun {
-		log.Warnf("Would delete manifest:\n%s", manifest)
-
-		return nil
-	}
-
 	args := []string{
 		"kubectl",
 		"delete",
@@ -107,12 +97,6 @@ func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
 
 // DeleteResource deletes a resource via kubectl.
 func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
-	if k.cfg.DryRun {
-		log.Warnf("Would delete the following resource:\n%s", deletion)
-
-		return nil
-	}
-
 	namespace := deletion.Namespace
 	if namespace == "" {
 		namespace = defaultNamespace
@@ -146,7 +130,7 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 
 		args = append(args, "--selector", strings.Join(pairs, ","))
 	} else {
-		return fmt.Errorf(
+		return errors.Errorf(
 			"either a name or labels must be specified for a deletion (kind=%s,namespace=%s)",
 			deletion.Kind,
 			namespace,
@@ -170,7 +154,7 @@ func (k *Kubectl) ClusterInfo() (string, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	return k.executor.Run(cmd)
+	return k.executor.RunSilently(cmd)
 }
 
 // buildGlobalKubectlArgs builds global kubectl args from the config.

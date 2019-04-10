@@ -5,10 +5,10 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 )
 
-// updateCredentialsFromValues tries to update the cluster credentials in the
-// config from values retrieved from the infrastructure manager. It will not
-// overwrite config values that are already set.
-func updateCredentialsFromValues(cfg *config.ClusterConfig, values api.Values) {
+// updateClusterConfigFromValues tries to update the cluster config from values
+// retrieved from the infrastructure manager. It will not overwrite config
+// values that are already set.
+func updateClusterConfigFromValues(cfg *config.ClusterConfig, values api.Values) {
 	if s, ok := values["server"].(string); ok && cfg.Server == "" {
 		cfg.Server = s
 	}

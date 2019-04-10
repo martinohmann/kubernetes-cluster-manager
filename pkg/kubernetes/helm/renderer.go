@@ -7,11 +7,11 @@ import (
 )
 
 type ManifestRenderer struct {
-	cfg      *config.Config
+	cfg      *config.HelmConfig
 	executor command.Executor
 }
 
-func NewManifestRenderer(cfg *config.Config, executor command.Executor) *ManifestRenderer {
+func NewManifestRenderer(cfg *config.HelmConfig, executor command.Executor) *ManifestRenderer {
 	return &ManifestRenderer{
 		cfg:      cfg,
 		executor: executor,
@@ -20,7 +20,7 @@ func NewManifestRenderer(cfg *config.Config, executor command.Executor) *Manifes
 
 // RenderManifest implements api.ManifestRenderer.
 func (r *ManifestRenderer) RenderManifest(v api.Values) (api.Manifest, error) {
-	chart := NewChart(r.cfg.Helm.Chart, r.executor)
+	chart := NewChart(r.cfg.Chart, r.executor)
 
 	buf, err := chart.Render(v)
 	if err != nil {

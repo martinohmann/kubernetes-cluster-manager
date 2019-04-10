@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -18,11 +20,13 @@ var (
 	)
 )
 
-func WaitForCluster(kubectl *Kubectl) error {
+func (k *Kubectl) WaitForCluster() error {
+	log.Info("Waiting for cluster to become available...")
+
 	err := backoff.Retry(
 		func() error {
-			_, err := kubectl.ClusterInfo()
-			return err
+			out, err := k.ClusterInfo()
+			return errors.Wrapf(err, "failed to connect to cluster due to:\n%s", out)
 		},
 		pollingStrategy,
 	)

@@ -11,12 +11,9 @@ import (
 
 func TestApplyManifest(t *testing.T) {
 	executor := command.NewMockExecutor()
-	cfg := &config.Config{
-		DryRun: true,
-		Cluster: config.ClusterConfig{
-			Server: "https://localhost:6443",
-			Token:  "sometoken",
-		},
+	cfg := &config.ClusterConfig{
+		Server: "https://localhost:6443",
+		Token:  "sometoken",
 	}
 
 	kubectl := NewKubectl(cfg, executor)
@@ -28,17 +25,15 @@ func TestApplyManifest(t *testing.T) {
 		assert.Equal(
 			t,
 			executor.ExecutedCommands[0],
-			"kubectl apply -f - --server https://localhost:6443 --token sometoken --dry-run",
+			"kubectl apply -f - --server https://localhost:6443 --token sometoken",
 		)
 	}
 }
 
 func TestDeleteManifest(t *testing.T) {
 	executor := command.NewMockExecutor()
-	cfg := &config.Config{
-		Cluster: config.ClusterConfig{
-			Kubeconfig: "/tmp/kubeconfig",
-		},
+	cfg := &config.ClusterConfig{
+		Kubeconfig: "/tmp/kubeconfig",
 	}
 
 	kubectl := NewKubectl(cfg, executor)
@@ -55,25 +50,10 @@ func TestDeleteManifest(t *testing.T) {
 	}
 }
 
-func TestDeleteManifestDryRun(t *testing.T) {
-	executor := command.NewMockExecutor()
-	cfg := &config.Config{DryRun: true}
-	manifest := api.Manifest("---")
-
-	kubectl := NewKubectl(cfg, executor)
-
-	err := kubectl.DeleteManifest(manifest)
-
-	assert.NoError(t, err)
-	assert.Len(t, executor.ExecutedCommands, 0)
-}
-
 func TestDeleteResource(t *testing.T) {
 	executor := command.NewMockExecutor()
-	cfg := &config.Config{
-		Cluster: config.ClusterConfig{
-			Kubeconfig: "/tmp/kubeconfig",
-		},
+	cfg := &config.ClusterConfig{
+		Kubeconfig: "/tmp/kubeconfig",
 	}
 
 	resource := &api.Deletion{
@@ -97,10 +77,8 @@ func TestDeleteResource(t *testing.T) {
 
 func TestDeleteResourceLabels(t *testing.T) {
 	executor := command.NewMockExecutor()
-	cfg := &config.Config{
-		Cluster: config.ClusterConfig{
-			Kubeconfig: "/tmp/kubeconfig",
-		},
+	cfg := &config.ClusterConfig{
+		Kubeconfig: "/tmp/kubeconfig",
 	}
 
 	resource := &api.Deletion{
@@ -127,10 +105,8 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
 	executor := command.NewMockExecutor()
-	cfg := &config.Config{
-		Cluster: config.ClusterConfig{
-			Kubeconfig: "/tmp/kubeconfig",
-		},
+	cfg := &config.ClusterConfig{
+		Kubeconfig: "/tmp/kubeconfig",
 	}
 
 	resource := &api.Deletion{
@@ -143,18 +119,4 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "either a name or labels must be specified for a deletion (kind=pod,namespace=default)")
-}
-
-func TestDeleteResourceDryRun(t *testing.T) {
-	executor := command.NewMockExecutor()
-	cfg := &config.Config{
-		DryRun: true,
-	}
-
-	kubectl := NewKubectl(cfg, executor)
-
-	err := kubectl.DeleteResource(&api.Deletion{})
-
-	assert.NoError(t, err)
-	assert.Len(t, executor.ExecutedCommands, 0)
 }
