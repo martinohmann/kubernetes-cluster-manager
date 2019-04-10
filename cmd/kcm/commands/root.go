@@ -92,11 +92,18 @@ func createProvisioner() (*provisioner.Provisioner, error) {
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		code := 1
+
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			log.Printf("%+v", err)
-			os.Exit(exitErr.ExitCode())
-		} else {
-			log.Fatalf("%+v", err)
+			code = exitErr.ExitCode()
 		}
+
+		if cfg.Debug {
+			log.Fatalf("%+v", err)
+		} else {
+			log.Fatal(err)
+		}
+
+		os.Exit(code)
 	}
 }
