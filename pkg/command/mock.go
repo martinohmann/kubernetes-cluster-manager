@@ -8,13 +8,18 @@ import (
 	"strings"
 )
 
+const (
+	anyCommandPattern = "^.*$"
+)
+
+var (
+	anyCommandRegexp = regexp.MustCompile(anyCommandPattern)
+)
+
 // MockExecutor can be used in tests to stub out command execution.
 type MockExecutor struct {
-	willError  bool
-	err        error
-	willReturn bool
-	out        string
-
+	executor     Executor
+	expectation  *expectation
 	expectations []*expectation
 	index        int
 
@@ -22,70 +27,52 @@ type MockExecutor struct {
 }
 
 // NewMockExecutor creates a new MockExecutor value.
-func NewMockExecutor() *MockExecutor {
+func NewMockExecutor(executor Executor) *MockExecutor {
 	return &MockExecutor{
+		executor:         executor,
 		ExecutedCommands: make([]string, 0),
 	}
 }
 
-// WillError will make the executor return an error upon next invocation.
-func (e *MockExecutor) WillError() *MockExecutor {
-	return e.WillErrorWith(errors.New("error"))
-}
-
-// WillErrorWith will make the executor return the provided error upon next
-// invocation.
-func (e *MockExecutor) WillErrorWith(err error) *MockExecutor {
-	e.willError = true
-	e.err = err
-
-	return e
-}
-
-// WillReturn will make the executor return the provided output upon next
-// invocation.
-func (e *MockExecutor) WillReturn(out string) *MockExecutor {
-	e.willReturn = true
-	e.out = out
-
-	return e
-}
-
 // Run implements Run from Executor interface.
 func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
-	if e.expectations != nil {
+	commandLine := strings.Join(cmd.Args, " ")
+
+	var ex *expectation
+	if e.expectation != nil {
+		ex = e.expectation
+	} else if e.expectations != nil {
 		if len(e.expectations) <= e.index {
-			return "", fmt.Errorf("unexpected command %v", cmd)
+			return "", fmt.Errorf("unexpected command %q", commandLine)
 		}
 
-		expectation := e.expectations[e.index]
-		commandLine := strings.Join(cmd.Args, " ")
+		ex = e.expectations[e.index]
+		e.index++
+	}
 
-		if expectation.re != nil {
-			if !expectation.re.MatchString(commandLine) {
+	if ex != nil {
+		if err := validateExpectation(ex, cmd); err != nil {
+			return "", err
+		}
+
+		if ex.execute {
+			if e.executor == nil {
 				return "", fmt.Errorf(
-					"command %q does not match pattern %q",
+					"cannot execute command %q because there is no executor defined",
 					commandLine,
-					expectation.pattern,
 				)
 			}
-		} else if expectation.cmd != commandLine {
-			return "", fmt.Errorf(
-				"command %q does not match %q",
-				commandLine,
-				expectation.cmd,
-			)
-		}
 
-		if expectation.err != nil {
-			err = expectation.err
-		}
+			out, err = e.executor.Run(cmd)
+		} else {
+			if ex.err != nil {
+				err = ex.err
+			}
 
-		if expectation.out != "" {
-			out = expectation.out
+			if ex.out != "" {
+				out = ex.out
+			}
 		}
-
-		e.index++
 	}
 
 	e.ExecutedCommands = append(e.ExecutedCommands, strings.Join(cmd.Args, " "))
@@ -93,13 +80,53 @@ func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
 	return
 }
 
+func validateExpectation(ex *expectation, cmd *exec.Cmd) error {
+	commandLine := strings.Join(cmd.Args, " ")
+
+	if ex.re != nil {
+		if !ex.re.MatchString(commandLine) {
+			return fmt.Errorf(
+				"command %q does not match pattern %q",
+				commandLine,
+				ex.pattern,
+			)
+		}
+	} else if ex.cmd != commandLine {
+		return fmt.Errorf(
+			"command %q does not match %q",
+			commandLine,
+			ex.cmd,
+		)
+	}
+
+	return nil
+}
+
 // RunSilently implements RunSilently from Executor interface.
 func (e *MockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
 	return e.Run(cmd)
 }
 
+func (e *MockExecutor) AnyCommand() *expectation {
+	ex := &expectation{executor: e, pattern: anyCommandPattern, re: anyCommandRegexp}
+	e.expectation = ex
+	e.expectations = nil
+	e.index = 0
+
+	return ex
+}
+
+func (e *MockExecutor) NextCommand() *expectation {
+	ex := &expectation{executor: e, pattern: anyCommandPattern, re: anyCommandRegexp}
+	e.expectation = nil
+	e.addExpectation(ex)
+
+	return ex
+}
+
 func (e *MockExecutor) Command(cmd string) *expectation {
 	ex := &expectation{executor: e, cmd: cmd}
+	e.expectation = nil
 	e.addExpectation(ex)
 
 	return ex
@@ -108,6 +135,7 @@ func (e *MockExecutor) Command(cmd string) *expectation {
 func (e *MockExecutor) Pattern(pattern string) *expectation {
 	re := regexp.MustCompile(pattern)
 	ex := &expectation{executor: e, pattern: pattern, re: re}
+	e.expectation = nil
 	e.addExpectation(ex)
 
 	return ex
@@ -126,6 +154,7 @@ type expectation struct {
 	cmd      string
 	pattern  string
 	re       *regexp.Regexp
+	execute  bool
 	err      error
 	out      string
 }
@@ -134,6 +163,18 @@ func (e *expectation) WillReturnError(err error) {
 	e.err = err
 }
 
+func (e *expectation) WillError() {
+	e.err = errors.New("error")
+}
+
 func (e *expectation) WillReturn(out string) {
 	e.out = out
+}
+
+func (e *expectation) WillSucceed() {
+	e.err = nil
+}
+
+func (e *expectation) WillExecute() {
+	e.execute = true
 }

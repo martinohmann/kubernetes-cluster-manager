@@ -1,46 +1,22 @@
-// +build skip
+// +build integration
 
 package provisioner
 
 import (
-	"errors"
+	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes/helm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/terraform"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
-type mockManager struct{}
-
-func (mockManager) Apply() error {
-	return nil
-}
-
-func (mockManager) Plan() error {
-	return nil
-}
-
-func (mockManager) Destroy() error {
-	return nil
-}
-
-func (mockManager) GetValues() (api.Values, error) {
-	return api.Values{}, nil
-}
-
-type mockRenderer struct{}
-
-func (mockRenderer) RenderManifest(v api.Values) (api.Manifest, error) {
-	return api.Manifest{}, nil
-}
-
 func createProvisioner(cfg *config.Config) (*Provisioner, *command.MockExecutor) {
-	e := command.NewMockExecutor()
+	e := command.NewMockExecutor(command.NewExecutor())
 	p := NewClusterProvisioner(
 		terraform.NewInfraManager(&cfg.Terraform, e),
 		helm.NewManifestRenderer(&cfg.Helm, e),
@@ -50,21 +26,73 @@ func createProvisioner(cfg *config.Config) (*Provisioner, *command.MockExecutor)
 	return p, e
 }
 
-func TestProvisioner(t *testing.T) {
-	cfg := &config.Config{
-		DryRun:    true,
-		Values:    "testdata/values.yaml",
-		Deletions: "testdata/deletions.yaml",
-		Manifest:  "testdata/manifest.yaml",
-	}
+func TestProvision(t *testing.T) {
+	deletions, _ := fs.NewTempFile("deletions.yaml", []byte(`
+preApply:
+- kind: Pod
+  name: foo
+  namespace: kube-system
+postApply:
+- kind: Deployment
+  name: bar`))
+	defer os.Remove(deletions.Name())
+	values, _ := fs.NewTempFile("values.yaml", []byte(``))
+	defer os.Remove(values.Name())
+	manifest, _ := fs.NewTempFile("manifest.yaml", []byte(``))
+	defer os.Remove(manifest.Name())
 
-	log.SetLevel(log.DebugLevel)
+	cfg := &config.Config{
+		Helm: config.HelmConfig{
+			Chart: "testdata/testchart",
+		},
+		Values:    values.Name(),
+		Deletions: deletions.Name(),
+		Manifest:  manifest.Name(),
+	}
 
 	p, executor := createProvisioner(cfg)
 
-	executor.Pattern("terraform .*").WillReturnError(errors.New("foo"))
+	executor.Command("terraform apply --auto-approve").WillSucceed()
+	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"}}`)
+	executor.Pattern("helm template --values .*").WillExecute()
+	executor.Command("kubectl cluster-info").WillSucceed()
+	executor.Command("kubectl delete pod --ignore-not-found --namespace kube-system foo").WillSucceed()
+	executor.Pattern("kubectl apply -f -").WillSucceed()
+	executor.Command("kubectl delete deployment --ignore-not-found --namespace default bar").WillSucceed()
+
+	expectedManifest := `---
+# Source: testchart/templates/configmap.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+  namespace: kube-system
+data:
+  foo: output-from-terraform
+  bar: baz
+
+`
+	expectedDeletions := `preApply: []
+postApply: []
+preDestroy: []
+`
+	expectedValues := `foo: output-from-terraform
+`
 
 	err := p.Provision(cfg)
 
 	assert.NoError(t, err)
+
+	buf, _ := ioutil.ReadFile(manifest.Name())
+
+	assert.Equal(t, expectedManifest, string(buf))
+
+	buf, _ = ioutil.ReadFile(deletions.Name())
+
+	assert.Equal(t, expectedDeletions, string(buf))
+
+	buf, _ = ioutil.ReadFile(values.Name())
+
+	assert.Equal(t, expectedValues, string(buf))
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func TestCreateManifestRenderer(t *testing.T) {
-	e := command.NewMockExecutor()
+	e := command.NewMockExecutor(nil)
 	cfg := &config.Config{ManifestRenderer: "helm"}
 
 	r, err := CreateManifestRenderer(cfg, e)
@@ -20,7 +20,7 @@ func TestCreateManifestRenderer(t *testing.T) {
 }
 
 func TestCreateManifestRendererError(t *testing.T) {
-	e := command.NewMockExecutor()
+	e := command.NewMockExecutor(nil)
 	cfg := &config.Config{ManifestRenderer: "foo"}
 
 	_, err := CreateManifestRenderer(cfg, e)
@@ -28,7 +28,7 @@ func TestCreateManifestRendererError(t *testing.T) {
 }
 
 func TestCreateInfraManager(t *testing.T) {
-	e := command.NewMockExecutor()
+	e := command.NewMockExecutor(nil)
 	cfg := &config.Config{InfraManager: "terraform"}
 
 	r, err := CreateInfraManager(cfg, e)
@@ -37,7 +37,7 @@ func TestCreateInfraManager(t *testing.T) {
 }
 
 func TestCreateInfraManagerError(t *testing.T) {
-	e := command.NewMockExecutor()
+	e := command.NewMockExecutor(nil)
 	cfg := &config.Config{InfraManager: "foo"}
 
 	_, err := CreateInfraManager(cfg, e)

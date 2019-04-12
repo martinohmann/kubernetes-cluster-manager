@@ -15,7 +15,7 @@ import (
 
 func TestProcessResourceDeletions(t *testing.T) {
 	cfg := &config.Config{Cluster: config.ClusterConfig{}}
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor())
+	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -28,7 +28,7 @@ func TestProcessResourceDeletions(t *testing.T) {
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
 	cfg := &config.Config{DryRun: true, Cluster: config.ClusterConfig{}}
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor())
+	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -41,13 +41,13 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 
 func TestProcessResourceDeletionsFailed(t *testing.T) {
 	cfg := &config.Config{Cluster: config.ClusterConfig{}}
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 	kubectl := kubernetes.NewKubectl(&cfg.Cluster, executor)
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")
 
-	executor.WillErrorWith(expectedError)
+	executor.NextCommand().WillReturnError(expectedError)
 
 	err := processResourceDeletions(cfg, kubectl, deletions)
 

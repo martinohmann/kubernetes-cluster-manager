@@ -1,13 +1,15 @@
 package provisioner
 
 import (
+	"fmt"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type Provisioner struct {
@@ -178,6 +180,8 @@ func (p *Provisioner) finalizeDeletions(cfg *config.Config, deletions *api.Delet
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(cfg.Deletions)
 
 	return p.finalizeChanges(cfg, cfg.Deletions, buf)
 }

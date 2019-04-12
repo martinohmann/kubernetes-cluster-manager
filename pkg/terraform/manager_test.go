@@ -10,7 +10,7 @@ import (
 )
 
 func TestApply(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 
 	cfg := config.TerraformConfig{Parallelism: 4}
 
@@ -32,7 +32,7 @@ func TestApply(t *testing.T) {
 }
 
 func TestPlan(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 
 	cfg := config.TerraformConfig{}
 
@@ -54,7 +54,7 @@ func TestPlan(t *testing.T) {
 }
 
 func TestGetValues(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 
 	cfg := config.TerraformConfig{}
 
@@ -70,7 +70,7 @@ func TestGetValues(t *testing.T) {
   }
 }`
 
-	executor.WillReturn(output)
+	executor.NextCommand().WillReturn(output)
 
 	expectedValues := api.Values{
 		"foo": "bar",
@@ -95,7 +95,7 @@ func TestGetValues(t *testing.T) {
 }
 
 func TestDestroy(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 
 	cfg := config.TerraformConfig{Parallelism: 4}
 

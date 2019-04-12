@@ -10,7 +10,7 @@ import (
 )
 
 func TestApplyManifest(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 	cfg := &config.ClusterConfig{
 		Server: "https://localhost:6443",
 		Token:  "sometoken",
@@ -31,7 +31,7 @@ func TestApplyManifest(t *testing.T) {
 }
 
 func TestDeleteManifest(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 	cfg := &config.ClusterConfig{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
@@ -51,7 +51,7 @@ func TestDeleteManifest(t *testing.T) {
 }
 
 func TestDeleteResource(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 	cfg := &config.ClusterConfig{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
@@ -76,7 +76,7 @@ func TestDeleteResource(t *testing.T) {
 }
 
 func TestDeleteResourceLabels(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 	cfg := &config.ClusterConfig{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
@@ -104,7 +104,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 }
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 	cfg := &config.ClusterConfig{
 		Kubeconfig: "/tmp/kubeconfig",
 	}

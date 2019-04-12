@@ -8,7 +8,7 @@ import (
 )
 
 func TestChartRender(t *testing.T) {
-	executor := command.NewMockExecutor()
+	executor := command.NewMockExecutor(nil)
 
 	chart := NewChart("cluster", executor)
 

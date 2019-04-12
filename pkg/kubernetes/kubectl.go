@@ -105,7 +105,7 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 	args := []string{
 		"kubectl",
 		"delete",
-		deletion.Kind,
+		strings.ToLower(deletion.Kind),
 		"--ignore-not-found",
 		"--namespace",
 		namespace,

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxPollingRetries = 60
+	maxPollingRetries = 30
 	pollingTimeout    = 2 * time.Second
 )
 
