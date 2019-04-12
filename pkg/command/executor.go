@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,7 +49,7 @@ func Run(cmd *exec.Cmd) (string, error) {
 
 	err := cmd.Run()
 
-	return out.String(), errors.WithStack(err)
+	return out.String(), err
 }
 
 // Run executes given command and returns its output. Will use the default
@@ -65,7 +64,7 @@ func RunSilently(cmd *exec.Cmd) (string, error) {
 
 	err := cmd.Run()
 
-	return out.String(), errors.WithStack(err)
+	return out.String(), err
 }
 
 // logWriter wraps a logging function with an io.Writer

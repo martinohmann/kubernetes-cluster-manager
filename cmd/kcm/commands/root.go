@@ -11,7 +11,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/factories"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -61,7 +60,7 @@ func setupEnvironment() {
 	if cfg.Debug {
 		log.SetLevel(log.DebugLevel)
 		log.SetReportCaller(true)
-		log.SetFormatter(&logrus.TextFormatter{
+		log.SetFormatter(&log.TextFormatter{
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 				pkg := "github.com/martinohmann/kubernetes-cluster-manager/"
 				repopath := fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), pkg)
