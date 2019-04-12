@@ -1,7 +1,6 @@
 package provisioner
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
@@ -106,7 +105,8 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 	}
 
 	if cfg.DryRun {
-		log.Warnf("Would apply manifest:\n%s", manifest)
+		log.Warn("Would apply manifest")
+		log.Debug(string(manifest))
 	} else if err := kubectl.ApplyManifest(manifest); err != nil {
 		return err
 	}
@@ -138,7 +138,8 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
 
 	if cfg.DryRun {
-		log.Warnf("Would delete manifest:\n%s", manifest)
+		log.Warn("Would delete manifest")
+		log.Debug(string(manifest))
 	} else if err := kubectl.DeleteManifest(manifest); err != nil {
 		return err
 	}
@@ -199,8 +200,6 @@ func (p *Provisioner) finalizeDeletions(cfg *config.Config, deletions *api.Delet
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(cfg.Deletions)
 
 	return p.finalizeChanges(cfg, cfg.Deletions, buf)
 }
