@@ -3,9 +3,10 @@ language: go
 sudo: false
 go: 1.12
 env:
-  - HELM_URL=https://storage.googleapis.com/kubernetes-helm
-  - HELM_VERSION=v2.4.1
-  - GO111MODULE=on
+  global:
+    - HELM_URL=https://storage.googleapis.com/kubernetes-helm
+    - HELM_VERSION=v2.4.1
+    - GO111MODULE=on
 install:
   - wget -q ${HELM_URL}/helm-${HELM_VERSION}-linux-amd64.tar.gz
   - tar xzfv helm-${HELM_VERSION}-linux-amd64.tar.gz
