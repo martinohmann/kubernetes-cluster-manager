@@ -55,10 +55,6 @@ func init() {
 func setupEnvironment() {
 	cfg.ApplyDefaults()
 
-	if err := os.Chdir(cfg.WorkingDir); err != nil {
-		log.Fatal(err)
-	}
-
 	if cfg.Debug {
 		log.SetLevel(log.DebugLevel)
 		log.SetReportCaller(true)
@@ -71,6 +67,10 @@ func setupEnvironment() {
 				return fmt.Sprintf("%s()", function), fmt.Sprintf("%s:%d", filename, f.Line)
 			},
 		})
+	}
+
+	if err := os.Chdir(cfg.WorkingDir); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -101,9 +101,9 @@ func Execute() {
 		}
 
 		if cfg.Debug {
-			log.Fatalf("%+v", err)
+			log.Errorf("%+v", err)
 		} else {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		os.Exit(code)
