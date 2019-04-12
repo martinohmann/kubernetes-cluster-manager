@@ -1,26 +1,54 @@
-kubernetes-cluster-manager
-==========================
+kubernetes-cluster-manager (KCM)
+================================
 
 [![Build Status](https://travis-ci.com/martinohmann/kubernetes-cluster-manager.svg?token=xH5yZJpvZADxWnqXKZzW&branch=master)](https://travis-ci.com/martinohmann/kubernetes-cluster-manager)
 [![codecov](https://codecov.io/gh/martinohmann/kubernetes-cluster-manager/branch/master/graph/badge.svg?token=iimiRF2QXr)](https://codecov.io/gh/martinohmann/kubernetes-cluster-manager)
 [![Go Report Card](https://goreportcard.com/badge/github.com/martinohmann/kubernetes-cluster-manager)](https://goreportcard.com/report/github.com/martinohmann/kubernetes-cluster-manager)
 [![GoDoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager?status.svg)](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager)
 
-TODO
+Inspired by [Zalando's CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager). The Kubernetes Cluster Manager project was started because CLM is tightly coupled to AWS Cloudformation for managing the cluster infrastructure. KCM tries to provide an interface for using different infrastructure manager and manifest renderers. It also tries to provide visibility about changes by providing diffs for things like manifest changes.
 
-Inspired by [Zalando's CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager).
+**Use with caution. This project is currently alpha quality and APIs are likely to change until the first stable release.**
+
+Features:
+- Make output of infrastructure manager available to manifest renderer
+- Show diffs of changes in infrastructure output values and manifests
+- Render manifests with helm
+- Dry run, apply and destroy changes (infrastructure + kubernetes manifests)
+
+Currently supported infrastructure manager:
+- [Terraform](https://github.com/hashicorp/terraform)
+
+Currently supported manifest renderers:
+- [Helm](https://github.com/helm/helm)
 
 Installation
 ------------
 
 ```sh
-go get -u github.com/martinohmann/kubernetes-cluster-manager
+$ git clone https://github.com/martinohmann/kubernetes-cluster-manager
+$ cd kubernetes-cluster-manager
+$ make install
 ```
+
+This will install the `kcm` binary to `$GOPATH/bin/kcm`.
 
 Usage
 -----
 
-TODO
+The documentation is still work in progress. For now, refer to [godoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager) and the command line help:
+
+```sh
+$ kcm help
+```
+
+Provision infrastructure using terraform and render manifests via helm:
+
+```sh
+$ kcm provision --working-dir /path/to/terraform/repo --helm-chart /path/to/cluster/helm/chart --dry-run
+```
+
+As the bare minimum `kcm` expects the infrastructure manager to create a kubernetes cluster and to either return the path to a generated `kubeconfig` in its output, or `server` and `token` values needed for establishing a connection to the kubernetes api-server. Detailed examples will follow.
 
 License
 -------
