@@ -14,10 +14,12 @@ Features:
 - Make output of infrastructure manager available to manifest renderer
 - Show diffs of changes in infrastructure output values and manifests
 - Render manifests with helm
+- Minikube integration for local testing
 - Dry run, apply and destroy changes (infrastructure + kubernetes manifests)
 
-Currently supported infrastructure manager:
+Currently supported infrastructure managers:
 - [Terraform](https://github.com/hashicorp/terraform)
+- [Minikube](https://github.com/kubernetes/minikube) for local testing
 
 Currently supported manifest renderers:
 - [Helm](https://github.com/helm/helm)
@@ -45,7 +47,12 @@ $ kcm help
 Provision infrastructure using terraform and render manifests via helm:
 
 ```sh
-$ kcm provision --working-dir /path/to/terraform/repo --helm-chart /path/to/cluster/helm/chart --dry-run
+$ kcm provision \
+  --manager terraform \
+  --renderer helm \
+  --working-dir /path/to/terraform/repo \
+  --helm-chart /path/to/cluster/helm/chart \
+  --dry-run
 ```
 
 As the bare minimum `kcm` expects the infrastructure manager to create a kubernetes cluster and to either return the path to a generated `kubeconfig` in its output, or `server` and `token` values needed for establishing a connection to the kubernetes api-server. Detailed examples will follow.

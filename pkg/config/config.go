@@ -38,6 +38,7 @@ type ClusterConfig struct {
 	Server     string `json:"server"`
 	Token      string `json:"token"`
 	Kubeconfig string `json:"kubeconfig"`
+	Context    string `json:"context"`
 }
 
 // Update tries to update the cluster config from values retrieved from the
@@ -54,6 +55,10 @@ func (c *ClusterConfig) Update(values map[string]interface{}) {
 
 	if k, ok := values["kubeconfig"].(string); ok && c.Kubeconfig == "" {
 		c.Kubeconfig = k
+	}
+
+	if v, ok := values["context"].(string); ok && c.Context == "" {
+		c.Context = v
 	}
 }
 

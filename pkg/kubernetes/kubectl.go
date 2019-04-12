@@ -143,6 +143,25 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 	return err
 }
 
+// UseContext sets the active kubernetes context
+func (k *Kubectl) UseContext(context string) error {
+	args := []string{
+		"kubectl",
+		"config",
+		"use-context",
+		context,
+	}
+
+	cmd := exec.Command(args[0], args[1:]...)
+
+	out, err := k.executor.RunSilently(cmd)
+	if err != nil {
+		return errors.Wrapf(err, "failed to set context: %s", out)
+	}
+
+	return nil
+}
+
 // ClusterInfo fetches the kubernetes cluster info.
 func (k *Kubectl) ClusterInfo() (string, error) {
 	args := []string{
@@ -161,6 +180,10 @@ func (k *Kubectl) ClusterInfo() (string, error) {
 func buildGlobalKubectlArgs(cfg *config.ClusterConfig) (args []string) {
 	if cfg.Kubeconfig != "" {
 		args = append(args, "--kubeconfig", cfg.Kubeconfig)
+
+		if cfg.Context != "" {
+			args = append(args, "--context", cfg.Context)
+		}
 	} else {
 		if cfg.Server != "" {
 			args = append(args, "--server", cfg.Server)

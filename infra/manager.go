@@ -31,6 +31,8 @@ func CreateManager(cfg *config.Config, executor command.Executor) (Manager, erro
 	switch cfg.InfraManager {
 	case "terraform":
 		return NewTerraformManager(&cfg.Terraform, executor), nil
+	case "minikube":
+		return NewMinikubeManager(executor), nil
 	default:
 		return nil, errors.Errorf("unsupported infrastructure manager: %s", cfg.InfraManager)
 	}

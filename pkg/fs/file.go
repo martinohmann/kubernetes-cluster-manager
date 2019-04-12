@@ -24,13 +24,30 @@ func NewTempFile(prefix string, content []byte) (*os.File, error) {
 
 // OpenFile opens given file if it exists or creates it otherwise.
 func OpenFile(path string) (*os.File, error) {
+	if Exists(path) {
+		return os.OpenFile(path, os.O_RDWR, FileMode)
+	}
+
+	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, FileMode)
+}
+
+// Exists returns true if path exists.
+func Exists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, FileMode)
+			return false
 		}
 	}
 
-	return os.OpenFile(path, os.O_RDWR, FileMode)
+	return true
+}
+
+// Touch touches the file a path.
+func Touch(path string) error {
+	f, err := OpenFile(path)
+	defer f.Close()
+
+	return err
 }
 
 // WriteFile writes content to a file.

@@ -2,12 +2,14 @@ package provisioner
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -117,6 +119,15 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
+	currentValues, err := p.infraManager.GetValues()
+	if err != nil {
+		return err
+	}
+
+	if err := p.values.Merge(currentValues); err != nil {
+		return err
+	}
+
 	manifest, err := p.manifestRenderer.RenderManifest(p.values)
 	if err != nil {
 		return err
@@ -125,12 +136,6 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 	cfg.Cluster.Update(p.values)
 
 	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
-
-	if cfg.DryRun {
-		log.Debug("Would wait for cluster to become available.")
-	} else if err := kubectl.WaitForCluster(); err != nil {
-		return err
-	}
 
 	if cfg.DryRun {
 		log.Warnf("Would delete manifest:\n%s", manifest)
@@ -160,6 +165,16 @@ func (p *Provisioner) finalizeChanges(cfg *config.Config, filename string, conte
 	}
 
 	defer changes.Close()
+
+	if !fs.Exists(filename) {
+		if err := fs.Touch(filename); err != nil {
+			return err
+		}
+
+		if cfg.DryRun {
+			defer os.Remove(filename)
+		}
+	}
 
 	diff, err := changes.Diff()
 	if err != nil {
