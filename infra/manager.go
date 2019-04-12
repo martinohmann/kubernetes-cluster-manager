@@ -1,7 +1,6 @@
 package infra
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/infra/terraform"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
@@ -31,7 +30,7 @@ type Manager interface {
 func CreateManager(cfg *config.Config, executor command.Executor) (Manager, error) {
 	switch cfg.InfraManager {
 	case "terraform":
-		return terraform.NewInfraManager(&cfg.Terraform, executor), nil
+		return NewTerraformManager(&cfg.Terraform, executor), nil
 	default:
 		return nil, errors.Errorf("unsupported infrastructure manager: %s", cfg.InfraManager)
 	}

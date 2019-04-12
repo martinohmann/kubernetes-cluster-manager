@@ -1,7 +1,6 @@
 package manifest
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest/helm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
@@ -18,7 +17,7 @@ type Renderer interface {
 func CreateRenderer(cfg *config.Config, executor command.Executor) (Renderer, error) {
 	switch cfg.ManifestRenderer {
 	case "helm":
-		return helm.NewManifestRenderer(&cfg.Helm, executor), nil
+		return NewHelmRenderer(&cfg.Helm, executor), nil
 	default:
 		return nil, errors.Errorf("unsupported manifest renderer: %s", cfg.ManifestRenderer)
 	}

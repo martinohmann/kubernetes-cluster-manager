@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/infra/terraform"
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest/helm"
+	"github.com/martinohmann/kubernetes-cluster-manager/infra"
+	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
@@ -18,8 +18,8 @@ import (
 func createProvisioner(cfg *config.Config) (*Provisioner, *command.MockExecutor) {
 	e := command.NewMockExecutor(command.NewExecutor())
 	p := NewClusterProvisioner(
-		terraform.NewInfraManager(&cfg.Terraform, e),
-		helm.NewManifestRenderer(&cfg.Helm, e),
+		infra.NewTerraformManager(&cfg.Terraform, e),
+		manifest.NewHelmRenderer(&cfg.Helm, e),
 		e,
 	)
 

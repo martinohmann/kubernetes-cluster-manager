@@ -3,7 +3,6 @@ package infra
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/infra/terraform"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,7 @@ func TestCreateManager(t *testing.T) {
 
 	r, err := CreateManager(cfg, e)
 	assert.NoError(t, err)
-	assert.IsType(t, &terraform.InfraManager{}, r)
+	assert.IsType(t, &TerraformManager{}, r)
 }
 
 func TestCreateManagerError(t *testing.T) {

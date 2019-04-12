@@ -1,6 +1,6 @@
 // +build integration
 
-package helm
+package manifest
 
 import (
 	"testing"
@@ -15,10 +15,10 @@ func TestRenderManifest(t *testing.T) {
 	executor := command.NewExecutor()
 
 	cfg := &config.HelmConfig{
-		Chart: "testdata/chart",
+		Chart: "helm/testdata/chart",
 	}
 
-	r := NewManifestRenderer(cfg, executor)
+	r := NewHelmRenderer(cfg, executor)
 
 	values := api.Values{
 		"config": map[string]interface{}{

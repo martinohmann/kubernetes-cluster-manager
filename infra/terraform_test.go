@@ -1,4 +1,4 @@
-package terraform
+package infra
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ func TestApply(t *testing.T) {
 
 	cfg := config.TerraformConfig{Parallelism: 4}
 
-	m := NewInfraManager(&cfg, executor)
+	m := NewTerraformManager(&cfg, executor)
 
 	err := m.Apply()
 
@@ -36,7 +36,7 @@ func TestPlan(t *testing.T) {
 
 	cfg := config.TerraformConfig{}
 
-	m := NewInfraManager(&cfg, executor)
+	m := NewTerraformManager(&cfg, executor)
 
 	err := m.Plan()
 
@@ -58,7 +58,7 @@ func TestGetValues(t *testing.T) {
 
 	cfg := config.TerraformConfig{}
 
-	m := NewInfraManager(&cfg, executor)
+	m := NewTerraformManager(&cfg, executor)
 
 	output := `
 {
@@ -99,7 +99,7 @@ func TestDestroy(t *testing.T) {
 
 	cfg := config.TerraformConfig{Parallelism: 4}
 
-	m := NewInfraManager(&cfg, executor)
+	m := NewTerraformManager(&cfg, executor)
 
 	err := m.Destroy()
 

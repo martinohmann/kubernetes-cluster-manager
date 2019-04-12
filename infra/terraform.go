@@ -1,4 +1,4 @@
-package terraform
+package infra
 
 import (
 	"encoding/json"
@@ -10,27 +10,27 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 )
 
-type outputValue struct {
+type terraformOutputValue struct {
 	Value interface{} `json:"value"`
 }
 
-// InfraManager is an infrastructure manager that uses terraform to manage
+// TerraformManager is an infrastructure manager that uses terraform to manage
 // resources.
-type InfraManager struct {
+type TerraformManager struct {
 	cfg      *config.TerraformConfig
 	executor command.Executor
 }
 
-// NewInfraManager creates a new terraform infrastructure manager.
-func NewInfraManager(cfg *config.TerraformConfig, executor command.Executor) *InfraManager {
-	return &InfraManager{
+// NewTerraformManager creates a new terraform infrastructure manager.
+func NewTerraformManager(cfg *config.TerraformConfig, executor command.Executor) *TerraformManager {
+	return &TerraformManager{
 		cfg:      cfg,
 		executor: executor,
 	}
 }
 
-// Apply implements Apply from the api.InfraManager interface.
-func (m *InfraManager) Apply() error {
+// Apply implements Apply from the Manager interface.
+func (m *TerraformManager) Apply() error {
 	args := []string{
 		"terraform",
 		"apply",
@@ -48,8 +48,8 @@ func (m *InfraManager) Apply() error {
 	return err
 }
 
-// Plan implements Plan from the api.InfraManager interface.
-func (m *InfraManager) Plan() (err error) {
+// Plan implements Plan from the Manager interface.
+func (m *TerraformManager) Plan() (err error) {
 	args := []string{
 		"terraform",
 		"plan",
@@ -72,8 +72,8 @@ func (m *InfraManager) Plan() (err error) {
 	return
 }
 
-// GetValues implements GetValues from the api.InfraManager interface.
-func (m *InfraManager) GetValues() (api.Values, error) {
+// GetValues implements GetValues from the Manager interface.
+func (m *TerraformManager) GetValues() (api.Values, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -87,7 +87,7 @@ func (m *InfraManager) GetValues() (api.Values, error) {
 		return nil, err
 	}
 
-	outputValues := make(map[string]outputValue)
+	outputValues := make(map[string]terraformOutputValue)
 	if err := json.Unmarshal([]byte(out), &outputValues); err != nil {
 		return nil, err
 	}
@@ -101,8 +101,8 @@ func (m *InfraManager) GetValues() (api.Values, error) {
 	return v, nil
 }
 
-// Destroy implements Destroy from the api.InfraManager interface.
-func (m *InfraManager) Destroy() error {
+// Destroy implements Destroy from the Manager interface.
+func (m *TerraformManager) Destroy() error {
 	args := []string{
 		"terraform",
 		"destroy",
