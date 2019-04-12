@@ -7,11 +7,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/infra/terraform"
+	"github.com/martinohmann/kubernetes-cluster-manager/manifest/helm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes/helm"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,12 +53,12 @@ postApply:
 	p, executor := createProvisioner(cfg)
 
 	executor.Command("terraform apply --auto-approve").WillSucceed()
-	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"}}`)
+	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
 	executor.Pattern("helm template --values .*").WillExecute()
-	executor.Command("kubectl cluster-info").WillSucceed()
-	executor.Command("kubectl delete pod --ignore-not-found --namespace kube-system foo").WillSucceed()
+	executor.Pattern("kubectl cluster-info.*").WillSucceed()
+	executor.Pattern("kubectl delete pod --ignore-not-found --namespace kube-system --kubeconfig /tmp/kubeconfig foo").WillSucceed()
 	executor.Pattern("kubectl apply -f -").WillSucceed()
-	executor.Command("kubectl delete deployment --ignore-not-found --namespace default bar").WillSucceed()
+	executor.Pattern("kubectl delete deployment --ignore-not-found --namespace default --kubeconfig /tmp/kubeconfig bar").WillSucceed()
 
 	expectedManifest := `---
 # Source: testchart/templates/configmap.yaml
@@ -78,6 +78,7 @@ postApply: []
 preDestroy: []
 `
 	expectedValues := `foo: output-from-terraform
+kubeconfig: /tmp/kubeconfig
 `
 
 	err := p.Provision(cfg)

@@ -3,6 +3,8 @@ package provisioner
 import (
 	"fmt"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/infra"
+	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
@@ -13,12 +15,14 @@ import (
 )
 
 type Provisioner struct {
-	infraManager     api.InfraManager
-	manifestRenderer api.ManifestRenderer
+	infraManager     infra.Manager
+	manifestRenderer manifest.Renderer
 	executor         command.Executor
+	values           api.Values
+	deletions        *api.Deletions
 }
 
-func NewClusterProvisioner(infraManager api.InfraManager, manifestRenderer api.ManifestRenderer, executor command.Executor) *Provisioner {
+func NewClusterProvisioner(infraManager infra.Manager, manifestRenderer manifest.Renderer, executor command.Executor) *Provisioner {
 	return &Provisioner{
 		infraManager:     infraManager,
 		manifestRenderer: manifestRenderer,
@@ -26,8 +30,24 @@ func NewClusterProvisioner(infraManager api.InfraManager, manifestRenderer api.M
 	}
 }
 
+func (p *Provisioner) prepare(cfg *config.Config) (err error) {
+	p.values, err = loadValues(cfg.Values)
+	if err != nil {
+		return
+	}
+
+	p.deletions, err = loadDeletions(cfg.Deletions)
+
+	return
+}
+
 func (p *Provisioner) Provision(cfg *config.Config) error {
 	var err error
+
+	if err = p.prepare(cfg); err != nil {
+		return err
+	}
+
 	if cfg.DryRun {
 		err = p.infraManager.Plan()
 	} else if !cfg.OnlyManifest {
@@ -43,16 +63,11 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	values, err := loadValues(cfg.Values)
-	if err != nil {
+	if err := p.values.Merge(newValues); err != nil {
 		return err
 	}
 
-	if err := values.Merge(newValues); err != nil {
-		return err
-	}
-
-	valueBytes, err := yaml.Marshal(values)
+	valueBytes, err := yaml.Marshal(p.values)
 	if err != nil {
 		return err
 	}
@@ -62,12 +77,12 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	manifest, err := p.manifestRenderer.RenderManifest(values)
+	manifest, err := p.manifestRenderer.RenderManifest(p.values)
 	if err != nil {
 		return err
 	}
 
-	updateClusterConfigFromValues(&cfg.Cluster, values)
+	cfg.Cluster.Update(p.values)
 
 	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
 
@@ -77,19 +92,14 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	deletions, err := loadDeletions(cfg.Deletions)
-	if err != nil {
-		return err
-	}
-
 	err = p.finalizeChanges(cfg, cfg.Manifest, manifest)
 	if err != nil {
 		return err
 	}
 
-	defer p.finalizeDeletions(cfg, deletions)
+	defer p.finalizeDeletions(cfg, p.deletions)
 
-	if err := processResourceDeletions(cfg, kubectl, deletions.PreApply); err != nil {
+	if err := processResourceDeletions(cfg, kubectl, p.deletions.PreApply); err != nil {
 		return err
 	}
 
@@ -99,21 +109,20 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	return processResourceDeletions(cfg, kubectl, deletions.PostApply)
+	return processResourceDeletions(cfg, kubectl, p.deletions.PostApply)
 }
 
 func (p *Provisioner) Destroy(cfg *config.Config) error {
-	values, err := loadValues(cfg.Values)
+	if err := p.prepare(cfg); err != nil {
+		return err
+	}
+
+	manifest, err := p.manifestRenderer.RenderManifest(p.values)
 	if err != nil {
 		return err
 	}
 
-	manifest, err := p.manifestRenderer.RenderManifest(values)
-	if err != nil {
-		return err
-	}
-
-	updateClusterConfigFromValues(&cfg.Cluster, values)
+	cfg.Cluster.Update(p.values)
 
 	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
 
@@ -129,14 +138,9 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
-	deletions, err := loadDeletions(cfg.Deletions)
-	if err != nil {
-		return err
-	}
+	defer p.finalizeDeletions(cfg, p.deletions)
 
-	defer p.finalizeDeletions(cfg, deletions)
-
-	if err := processResourceDeletions(cfg, kubectl, deletions.PreDestroy); err != nil {
+	if err := processResourceDeletions(cfg, kubectl, p.deletions.PreDestroy); err != nil {
 		return err
 	}
 

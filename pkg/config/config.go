@@ -16,20 +16,6 @@ type Config struct {
 	Helm      HelmConfig      `json:"helm"`
 }
 
-type ClusterConfig struct {
-	Server     string `json:"server"`
-	Token      string `json:"token"`
-	Kubeconfig string `json:"kubeconfig"`
-}
-
-type TerraformConfig struct {
-	Parallelism int `json:"parallelism"`
-}
-
-type HelmConfig struct {
-	Chart string `json:"chart"`
-}
-
 func (c *Config) ApplyDefaults() {
 	if c.Manifest == "" {
 		c.Manifest = c.WorkingDir + "/manifest.yaml"
@@ -46,4 +32,35 @@ func (c *Config) ApplyDefaults() {
 	if c.Helm.Chart == "" {
 		c.Helm.Chart = c.WorkingDir + "/cluster"
 	}
+}
+
+type ClusterConfig struct {
+	Server     string `json:"server"`
+	Token      string `json:"token"`
+	Kubeconfig string `json:"kubeconfig"`
+}
+
+// Update tries to update the cluster config from values retrieved from the
+// infrastructure manager. It will not overwrite config values that are already
+// set.
+func (c *ClusterConfig) Update(values map[string]interface{}) {
+	if s, ok := values["server"].(string); ok && c.Server == "" {
+		c.Server = s
+	}
+
+	if t, ok := values["token"].(string); ok && c.Token == "" {
+		c.Token = t
+	}
+
+	if k, ok := values["kubeconfig"].(string); ok && c.Kubeconfig == "" {
+		c.Kubeconfig = k
+	}
+}
+
+type TerraformConfig struct {
+	Parallelism int `json:"parallelism"`
+}
+
+type HelmConfig struct {
+	Chart string `json:"chart"`
 }

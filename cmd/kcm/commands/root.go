@@ -7,10 +7,11 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/infra"
+	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/factories"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -74,12 +75,12 @@ func setupEnvironment() {
 
 func createProvisioner() (*provisioner.Provisioner, error) {
 	executor := command.NewExecutor()
-	infraManager, err := factories.CreateInfraManager(cfg, executor)
+	infraManager, err := infra.CreateManager(cfg, executor)
 	if err != nil {
 		return nil, err
 	}
 
-	manifestRenderer, err := factories.CreateManifestRenderer(cfg, executor)
+	manifestRenderer, err := manifest.CreateRenderer(cfg, executor)
 	if err != nil {
 		return nil, err
 	}
