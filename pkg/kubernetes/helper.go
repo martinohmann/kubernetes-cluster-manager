@@ -20,6 +20,9 @@ var (
 	)
 )
 
+// WaitForCluster waits until the api-server is reachable. Will retry every 2
+// seconds in case of error. After 30 failed attempts it will give up and
+// return the last error.
 func (k *Kubectl) WaitForCluster() error {
 	log.Info("Waiting for cluster to become available...")
 

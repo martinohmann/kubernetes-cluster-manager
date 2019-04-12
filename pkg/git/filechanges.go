@@ -35,11 +35,7 @@ func NewFileChanges(filename string, changes []byte) (*FileChanges, error) {
 
 // Apply replaces the file content with the pending changes.
 func (c *FileChanges) Apply() error {
-	if err := fs.WriteFile(c.filename, c.changes); err != nil {
-		return err
-	}
-
-	return nil
+	return fs.WriteFile(c.filename, c.changes)
 }
 
 // Close implements io.Closer. Will remove any temporary files that were

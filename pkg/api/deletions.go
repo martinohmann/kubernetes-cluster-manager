@@ -1,7 +1,7 @@
 package api
 
 import (
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Deletions defines the structure of a resource deletions file's content.
@@ -42,7 +42,7 @@ type Deletion struct {
 	Namespace string            `json:"namespace" yaml:"namespace"`
 	Labels    map[string]string `json:"labels" yaml:"labels"`
 
-	// internal marker for sucessful resource deletion.
+	// internal marker for successful resource deletion.
 	deleted bool
 }
 
@@ -58,6 +58,7 @@ func (d *Deletion) MarkDeleted() {
 	d.deleted = true
 }
 
+// Deleted returns true if the resource deletion executed successfully.
 func (d *Deletion) Deleted() bool {
 	return d.deleted
 }

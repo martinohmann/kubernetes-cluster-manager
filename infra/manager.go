@@ -14,8 +14,8 @@ type Manager interface {
 	// create or update a kubernetes cluster.
 	Apply() error
 
-	// Plan will plan changes to the infrastructure without acutally applying
-	// them..
+	// Plan will plan changes to the infrastructure without actually applying
+	// them.
 	Plan() error
 
 	// GetValues obtains output values from the infrastructure manager.

@@ -90,6 +90,7 @@ func createProvisioner() (*provisioner.Provisioner, error) {
 	return p, nil
 }
 
+// Execute executes the root command and prints eventual errors.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		code := 1

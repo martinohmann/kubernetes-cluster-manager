@@ -32,7 +32,7 @@ func (e executor) Run(cmd *exec.Cmd) (string, error) {
 	return Run(cmd)
 }
 
-// Run implements RunSilently from Executor interface.
+// RunSilently implements RunSilently from Executor interface.
 func (e executor) RunSilently(cmd *exec.Cmd) (string, error) {
 	return RunSilently(cmd)
 }
@@ -52,8 +52,8 @@ func Run(cmd *exec.Cmd) (string, error) {
 	return out.String(), err
 }
 
-// Run executes given command and returns its output. Will use the default
-// *logrus.Logger to log cmd's stdout and stderr.
+// RunSilently executes given command and returns its output. Will use the
+// default *logrus.Logger to log cmd's stdout and stderr.
 func RunSilently(cmd *exec.Cmd) (string, error) {
 	var out bytes.Buffer
 
