@@ -3,7 +3,7 @@ kubernetes-cluster-manager (KCM)
 
 [![Build Status](https://travis-ci.com/martinohmann/kubernetes-cluster-manager.svg?branch=master)](https://travis-ci.com/martinohmann/kubernetes-cluster-manager)
 [![codecov](https://codecov.io/gh/martinohmann/kubernetes-cluster-manager/branch/master/graph/badge.svg)](https://codecov.io/gh/martinohmann/kubernetes-cluster-manager)
-[![Go Report Card](https://goreportcard.com/badge/github.com/martinohmann/kubernetes-cluster-manager)](https://goreportcard.com/report/github.com/martinohmann/kubernetes-cluster-manager)
+[![Go Report Card](https://goreportcard.com/badge/github.com/martinohmann/kubernetes-cluster-manager?style=flat)](https://goreportcard.com/report/github.com/martinohmann/kubernetes-cluster-manager)
 [![GoDoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager?status.svg)](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager)
 
 Inspired by [Zalando's CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager). The Kubernetes Cluster Manager project was started because CLM is tightly coupled to AWS Cloudformation for managing the cluster infrastructure. KCM tries to provide an interface for using different infrastructure manager and manifest renderers. It also tries to provide visibility about changes by providing diffs for things like manifest changes.
