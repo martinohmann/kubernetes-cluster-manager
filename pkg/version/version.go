@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	// set via build args
 	gitVersion, gitCommit, buildDate string
 )
 

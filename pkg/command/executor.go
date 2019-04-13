@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,10 +43,10 @@ func (e executor) RunSilently(cmd *exec.Cmd) (string, error) {
 func Run(cmd *exec.Cmd) (string, error) {
 	var out bytes.Buffer
 
-	cmd.Stdout = io.MultiWriter(&out, logWriter(log.Info))
-	cmd.Stderr = io.MultiWriter(&out, logWriter(log.Error))
+	cmd.Stdout = io.MultiWriter(&out, newLogWriter(cmd, log.Info))
+	cmd.Stderr = io.MultiWriter(&out, newLogWriter(cmd, log.Error))
 
-	log.Debugf("Executing %s", strings.Join(cmd.Args, " "))
+	log.Debugf("Executing %s", color.YellowString(commandLine(cmd)))
 
 	err := cmd.Run()
 
@@ -60,15 +61,25 @@ func RunSilently(cmd *exec.Cmd) (string, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 
-	log.Debugf("Executing %s", strings.Join(cmd.Args, " "))
+	log.Debugf("Executing %s", color.YellowString(commandLine(cmd)))
 
 	err := cmd.Run()
 
 	return out.String(), err
 }
 
+func newLogWriter(cmd *exec.Cmd, f func(...interface{})) logWriter {
+	return logWriter{
+		prefix: color.BlueString("[%s] ", cmd.Args[0]),
+		f:      f,
+	}
+}
+
 // logWriter wraps a logging function with an io.Writer
-type logWriter func(args ...interface{})
+type logWriter struct {
+	prefix string
+	f      func(args ...interface{})
+}
 
 // Write implements io.Writer.
 func (w logWriter) Write(p []byte) (n int, err error) {
@@ -76,8 +87,12 @@ func (w logWriter) Write(p []byte) (n int, err error) {
 	s.Split(bufio.ScanLines)
 
 	for s.Scan() {
-		w(s.Text())
+		w.f(w.prefix + s.Text())
 	}
 
 	return len(p), nil
+}
+
+func commandLine(cmd *exec.Cmd) string {
+	return strings.Join(cmd.Args, " ")
 }
