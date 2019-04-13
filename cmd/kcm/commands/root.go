@@ -12,6 +12,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -95,8 +96,9 @@ func createProvisioner() (*provisioner.Provisioner, error) {
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		code := 1
+		cause := errors.Cause(err)
 
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr, ok := cause.(*exec.ExitError); ok {
 			code = exitErr.ExitCode()
 		}
 
