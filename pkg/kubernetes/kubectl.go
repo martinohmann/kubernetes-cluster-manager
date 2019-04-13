@@ -16,7 +16,7 @@ import (
 
 const (
 	// maxRetries defines the number of retries for kubectl commands.
-	maxRetries = 3
+	maxRetries = 10
 
 	// defaultNamespace is the namespace that should be used where namespace is
 	// omitted.
@@ -55,10 +55,9 @@ func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
 
 	args = append(args, k.globalArgs...)
 
-	cmd := exec.Command(args[0], args[1:]...)
-
 	err := backoff.Retry(
 		func() error {
+			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := k.executor.Run(cmd)
 			return err
@@ -81,10 +80,9 @@ func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
 
 	args = append(args, k.globalArgs...)
 
-	cmd := exec.Command(args[0], args[1:]...)
-
 	err := backoff.Retry(
 		func() error {
+			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := k.executor.Run(cmd)
 			return err
@@ -140,6 +138,7 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 	cmd := exec.Command(args[0], args[1:]...)
 
 	_, err := k.executor.Run(cmd)
+
 	return err
 }
 
