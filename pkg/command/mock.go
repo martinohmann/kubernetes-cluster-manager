@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
-	"strings"
 )
 
 const (
@@ -36,7 +35,7 @@ func NewMockExecutor(executor Executor) *MockExecutor {
 
 // Run implements Run from Executor interface.
 func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
-	commandLine := strings.Join(cmd.Args, " ")
+	commandLine := commandLine(cmd)
 
 	var ex *expectation
 	if e.expectation != nil {
@@ -75,13 +74,13 @@ func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
 		}
 	}
 
-	e.ExecutedCommands = append(e.ExecutedCommands, strings.Join(cmd.Args, " "))
+	e.ExecutedCommands = append(e.ExecutedCommands, commandLine)
 
 	return
 }
 
 func validateExpectation(ex *expectation, cmd *exec.Cmd) error {
-	commandLine := strings.Join(cmd.Args, " ")
+	commandLine := commandLine(cmd)
 
 	if ex.re != nil {
 		if !ex.re.MatchString(commandLine) {
