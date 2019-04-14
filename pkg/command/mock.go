@@ -107,7 +107,7 @@ func (e *MockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
 }
 
 func (e *MockExecutor) AnyCommand() *expectation {
-	ex := &expectation{executor: e, pattern: anyCommandPattern, re: anyCommandRegexp}
+	ex := &expectation{pattern: anyCommandPattern, re: anyCommandRegexp}
 	e.expectation = ex
 	e.expectations = nil
 	e.index = 0
@@ -116,7 +116,7 @@ func (e *MockExecutor) AnyCommand() *expectation {
 }
 
 func (e *MockExecutor) NextCommand() *expectation {
-	ex := &expectation{executor: e, pattern: anyCommandPattern, re: anyCommandRegexp}
+	ex := &expectation{pattern: anyCommandPattern, re: anyCommandRegexp}
 	e.expectation = nil
 	e.addExpectation(ex)
 
@@ -124,7 +124,7 @@ func (e *MockExecutor) NextCommand() *expectation {
 }
 
 func (e *MockExecutor) Command(cmd string) *expectation {
-	ex := &expectation{executor: e, cmd: cmd}
+	ex := &expectation{cmd: cmd}
 	e.expectation = nil
 	e.addExpectation(ex)
 
@@ -133,7 +133,7 @@ func (e *MockExecutor) Command(cmd string) *expectation {
 
 func (e *MockExecutor) Pattern(pattern string) *expectation {
 	re := regexp.MustCompile(pattern)
-	ex := &expectation{executor: e, pattern: pattern, re: re}
+	ex := &expectation{pattern: pattern, re: re}
 	e.expectation = nil
 	e.addExpectation(ex)
 
@@ -149,13 +149,12 @@ func (e *MockExecutor) addExpectation(ex *expectation) {
 }
 
 type expectation struct {
-	executor *MockExecutor
-	cmd      string
-	pattern  string
-	re       *regexp.Regexp
-	execute  bool
-	err      error
-	out      string
+	cmd     string
+	pattern string
+	re      *regexp.Regexp
+	execute bool
+	err     error
+	out     string
 }
 
 func (e *expectation) WillReturnError(err error) {

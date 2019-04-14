@@ -21,47 +21,57 @@ type Executor interface {
 	RunSilently(*exec.Cmd) (string, error)
 }
 
-type executor func(*exec.Cmd) (string, error)
+// DefaultExecutor is the default executor used in the package level Run and
+// RunSilently funcs.
+var DefaultExecutor = NewExecutor()
 
-// NewExecutor creates a new command executor.
-func NewExecutor() executor {
-	return executor(Run)
+// Run runs a command using the default executor.
+func Run(cmd *exec.Cmd) (string, error) {
+	return DefaultExecutor.Run(cmd)
+}
+
+// RunSilently runs cmd silently using the default executor.
+func RunSilently(cmd *exec.Cmd) (string, error) {
+	return DefaultExecutor.RunSilently(cmd)
+}
+
+type executor struct {
+	logger *log.Logger
+}
+
+// NewExecutor creates a new command executor. Optionally accepts a logger for
+// logging command output. If not provided logrus.StandardLogger() will be used.
+func NewExecutor(logger ...*log.Logger) Executor {
+	l := log.StandardLogger()
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	}
+
+	return &executor{logger: l}
 }
 
 // Run implements Run from Executor interface.
-func (e executor) Run(cmd *exec.Cmd) (string, error) {
-	return Run(cmd)
+func (e *executor) Run(cmd *exec.Cmd) (string, error) {
+	var out bytes.Buffer
+
+	cmd.Stdout = io.MultiWriter(&out, newLogWriter(cmd, e.logger.Info))
+	cmd.Stderr = io.MultiWriter(&out, newLogWriter(cmd, e.logger.Error))
+
+	return e.run(&out, cmd)
 }
 
 // RunSilently implements RunSilently from Executor interface.
-func (e executor) RunSilently(cmd *exec.Cmd) (string, error) {
-	return RunSilently(cmd)
-}
-
-// Run executes given command and returns its output. Will use the default
-// *logrus.Logger to log cmd's stdout and stderr.
-func Run(cmd *exec.Cmd) (string, error) {
-	var out bytes.Buffer
-
-	cmd.Stdout = io.MultiWriter(&out, newLogWriter(cmd, log.Info))
-	cmd.Stderr = io.MultiWriter(&out, newLogWriter(cmd, log.Error))
-
-	log.Debugf("Executing %s", color.YellowString(commandLine(cmd)))
-
-	err := cmd.Run()
-
-	return out.String(), err
-}
-
-// RunSilently executes given command and returns its output. Will use the
-// default *logrus.Logger to log cmd's stdout and stderr.
-func RunSilently(cmd *exec.Cmd) (string, error) {
+func (e *executor) RunSilently(cmd *exec.Cmd) (string, error) {
 	var out bytes.Buffer
 
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 
-	log.Debugf("Executing %s", color.YellowString(commandLine(cmd)))
+	return e.run(&out, cmd)
+}
+
+func (e *executor) run(out *bytes.Buffer, cmd *exec.Cmd) (string, error) {
+	e.logger.Debugf("Executing %s", color.YellowString(commandLine(cmd)))
 
 	err := cmd.Run()
 
