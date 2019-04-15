@@ -16,6 +16,9 @@ var (
 	versionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "Displays the version",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return validateOutput(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			v := version.Get()
 
