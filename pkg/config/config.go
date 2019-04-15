@@ -1,21 +1,32 @@
 package config
 
-type Config struct {
-	Debug            bool   `json:"debug"`
-	DryRun           bool   `json:"dryRun"`
-	OnlyManifest     bool   `json:"onlyManifest"`
-	WorkingDir       string `json:"workingDir"`
-	Manifest         string `json:"manifest"`
-	Values           string `json:"values"`
-	Deletions        string `json:"deletions"`
-	ManifestRenderer string `json:"manifestRenderer"`
-	InfraManager     string `json:"infraManager"`
+import "github.com/imdario/mergo"
 
-	Cluster   ClusterConfig   `json:"cluster"`
-	Terraform TerraformConfig `json:"terraform"`
-	Helm      HelmConfig      `json:"helm"`
+// Config holds the configuration for kcm.
+type Config struct {
+	Debug            bool   `json:"debug" yaml:"debug"`
+	DryRun           bool   `json:"dryRun" yaml:"dryRun"`
+	OnlyManifest     bool   `json:"onlyManifest" yaml:"onlyManifest"`
+	WorkingDir       string `json:"workingDir" yaml:"workingDir"`
+	Manifest         string `json:"manifest" yaml:"manifest"`
+	Values           string `json:"values" yaml:"values"`
+	Deletions        string `json:"deletions" yaml:"deletions"`
+	ManifestRenderer string `json:"manifestRenderer" yaml:"maniestRenderer"`
+	InfraManager     string `json:"infraManager" yaml:"infraManager"`
+
+	Cluster   ClusterConfig   `json:"cluster" yaml:"cluster"`
+	Terraform TerraformConfig `json:"terraform" yaml:"terraform"`
+	Helm      HelmConfig      `json:"helm" yaml:"helm"`
 }
 
+// Merge merges other into c. Fields in c that do not have their default value
+// will not be overwritten.
+func (c *Config) Merge(other *Config) error {
+	return mergo.Merge(c, other)
+}
+
+// ApplyDefaults applies sane default values to fields that are not explicitly
+// set.
 func (c *Config) ApplyDefaults() {
 	if c.Manifest == "" {
 		c.Manifest = c.WorkingDir + "/manifest.yaml"
@@ -34,11 +45,12 @@ func (c *Config) ApplyDefaults() {
 	}
 }
 
+// ClusterConfig holds configuration accessing a kubernetes cluster.
 type ClusterConfig struct {
-	Server     string `json:"server"`
-	Token      string `json:"token"`
-	Kubeconfig string `json:"kubeconfig"`
-	Context    string `json:"context"`
+	Server     string `json:"server" yaml:"server"`
+	Token      string `json:"token" yaml:"token"`
+	Kubeconfig string `json:"kubeconfig" yaml:"kubeconfig"`
+	Context    string `json:"context" yaml:"context"`
 }
 
 // Update tries to update the cluster config from values retrieved from the
@@ -62,10 +74,12 @@ func (c *ClusterConfig) Update(values map[string]interface{}) {
 	}
 }
 
+// TerraformConfig holds flags for terraform commands.
 type TerraformConfig struct {
-	Parallelism int `json:"parallelism"`
+	Parallelism int `json:"parallelism" yaml:"parallelism"`
 }
 
+// HelmConfig holds the chart to be used by helm.
 type HelmConfig struct {
-	Chart string `json:"chart"`
+	Chart string `json:"chart" yaml:"chart"`
 }

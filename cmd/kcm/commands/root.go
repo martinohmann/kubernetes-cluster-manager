@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
@@ -12,13 +13,16 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
-	cfg = &config.Config{}
+	cfg     = &config.Config{}
+	cfgFile string
 
 	rootCmd = &cobra.Command{
 		Use:           "kcm",
@@ -29,13 +33,9 @@ var (
 )
 
 func init() {
-	workingDir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	cobra.OnInitialize(setupEnvironment)
 
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config file path")
 	rootCmd.PersistentFlags().BoolVar(&cfg.Debug, "debug", false, "Enable debug output")
 	rootCmd.PersistentFlags().BoolVar(&cfg.DryRun, "dry-run", false, "Do not make any changes")
 	rootCmd.PersistentFlags().BoolVar(&cfg.OnlyManifest, "only-manifest", false, "Only render manifest, skip infrastructure changes")
@@ -46,7 +46,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfg.Manifest, "manifest", "m", "", `Manifest file path (default: "manifest.yaml")`)
 	rootCmd.PersistentFlags().StringVarP(&cfg.Deletions, "deletions", "d", "", `Deletions file path (default: "deletions.yaml")`)
 	rootCmd.PersistentFlags().StringVar(&cfg.Values, "values", "", `Values file path (default: "values.yaml")`)
-	rootCmd.PersistentFlags().StringVarP(&cfg.WorkingDir, "working-dir", "w", workingDir, "Working directory")
+	rootCmd.PersistentFlags().StringVarP(&cfg.WorkingDir, "working-dir", "w", "", "Working directory")
 	rootCmd.PersistentFlags().IntVar(&cfg.Terraform.Parallelism, "terraform-parallism", 1, "Number of parallel terraform resource operations")
 	rootCmd.PersistentFlags().StringVar(&cfg.Helm.Chart, "helm-chart", "", `Path to cluster helm chart (default: "cluster")`)
 	rootCmd.PersistentFlags().StringVar(&cfg.InfraManager, "manager", "terraform", `Infrastructure manager to use`)
@@ -54,6 +54,35 @@ func init() {
 }
 
 func setupEnvironment() {
+	var err error
+
+	if cfgFile != "" {
+		f, err := ioutil.ReadFile(cfgFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				log.Warnf("config file %s does not exist", cfgFile)
+			} else {
+				log.Fatalf("error loading config file %s: %s", cfgFile, err)
+			}
+		}
+
+		fileConfig := &config.Config{}
+		if err = yaml.Unmarshal(f, fileConfig); err != nil {
+			log.Fatalf("error unmarshalling config: %s", err)
+		}
+
+		if err = cfg.Merge(fileConfig); err != nil {
+			log.Fatalf("error merging config: %s", err)
+		}
+	}
+
+	if cfg.WorkingDir == "" {
+		cfg.WorkingDir, err = os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	cfg.ApplyDefaults()
 
 	if cfg.Debug {
@@ -70,7 +99,12 @@ func setupEnvironment() {
 		})
 	}
 
-	if err := os.Chdir(cfg.WorkingDir); err != nil {
+	workingDir, err := homedir.Expand(cfg.WorkingDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = os.Chdir(workingDir); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -110,4 +144,17 @@ func Execute() {
 
 		os.Exit(code)
 	}
+}
+
+func validateOutput(cmd *cobra.Command) error {
+	output, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return err
+	}
+
+	if output != "" && output != "yaml" && output != "json" {
+		return errors.New("--output must be 'yaml' or 'json'")
+	}
+
+	return nil
 }

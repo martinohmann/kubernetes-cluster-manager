@@ -6,6 +6,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMerge(t *testing.T) {
+	one := &Config{Manifest: "foo.yaml"}
+	two := &Config{Manifest: "bar.yaml", Values: "baz.yaml"}
+
+	one.Merge(two)
+
+	assert.Equal(t, "foo.yaml", one.Manifest)
+	assert.Equal(t, "baz.yaml", one.Values)
+}
+
 func TestApplyDefaults(t *testing.T) {
 	c := &Config{WorkingDir: "/tmp"}
 	c.ApplyDefaults()
@@ -25,6 +35,7 @@ func TestUpdateClusterConfig(t *testing.T) {
 	values := map[string]interface{}{
 		"server":     "https://localhost:6443",
 		"kubeconfig": "/tmp/kubeconfig",
+		"context":    "minikube",
 	}
 
 	cfg.Update(values)
@@ -32,4 +43,5 @@ func TestUpdateClusterConfig(t *testing.T) {
 	assert.Equal(t, "https://localhost:6443", cfg.Server)
 	assert.Equal(t, "~/.kube/config", cfg.Kubeconfig)
 	assert.Equal(t, "supersecret", cfg.Token)
+	assert.Equal(t, "minikube", cfg.Context)
 }
