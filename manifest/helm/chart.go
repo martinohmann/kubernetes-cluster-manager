@@ -3,11 +3,9 @@ package helm
 import (
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
-	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -53,7 +51,7 @@ func (c *Chart) Render(values map[string]interface{}) ([]byte, error) {
 
 	out, err := c.executor.RunSilently(cmd)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to render manifest: %s", strings.Trim(out, "\n"))
+		return nil, err
 	}
 
 	return []byte(out), nil

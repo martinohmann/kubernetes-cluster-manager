@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,13 +62,23 @@ func (e *executor) Run(cmd *exec.Cmd) (string, error) {
 }
 
 // RunSilently implements RunSilently from Executor interface.
-func (e *executor) RunSilently(cmd *exec.Cmd) (string, error) {
-	var out bytes.Buffer
+func (e *executor) RunSilently(cmd *exec.Cmd) (out string, err error) {
+	var buf bytes.Buffer
 
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
 
-	return e.run(&out, cmd)
+	out, err = e.run(&buf, cmd)
+	if err != nil {
+		err = errors.Wrapf(
+			err,
+			"command %s failed with output: %s",
+			color.YellowString(commandLine(cmd)),
+			strings.Trim(out, "\n"),
+		)
+	}
+
+	return
 }
 
 func (e *executor) run(out *bytes.Buffer, cmd *exec.Cmd) (string, error) {

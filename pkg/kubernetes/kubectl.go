@@ -153,9 +153,9 @@ func (k *Kubectl) UseContext(context string) error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	out, err := k.executor.RunSilently(cmd)
+	_, err := k.executor.RunSilently(cmd)
 	if err != nil {
-		return errors.Wrapf(err, "failed to set context: %s", out)
+		return err
 	}
 
 	return nil

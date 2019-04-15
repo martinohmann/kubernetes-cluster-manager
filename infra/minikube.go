@@ -8,7 +8,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
 )
 
 // MinikubeManager uses minikube instead of an actual infrastructure manager.
@@ -75,7 +74,7 @@ func (m *MinikubeManager) GetValues() (api.Values, error) {
 
 	out, err := m.executor.RunSilently(cmd)
 	if err != nil {
-		return nil, errors.Wrapf(err, out)
+		return nil, err
 	}
 
 	home, _ := homedir.Dir()

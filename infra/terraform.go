@@ -8,6 +8,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
+	"github.com/pkg/errors"
 )
 
 type terraformOutputValue struct {
@@ -64,7 +65,7 @@ func (m *TerraformManager) Plan() (err error) {
 
 	if _, err = m.executor.Run(cmd); err != nil {
 		// ExitCode 2 means that there are infrastructure changes. This is not an error.
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
+		if exitErr, ok := errors.Cause(err).(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
 			err = nil
 		}
 	}
