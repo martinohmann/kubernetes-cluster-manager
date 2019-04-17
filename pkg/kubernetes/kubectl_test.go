@@ -5,18 +5,17 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApplyManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	cfg := &config.ClusterConfig{
+	opts := &ClusterOptions{
 		Server: "https://localhost:6443",
 		Token:  "sometoken",
 	}
 
-	kubectl := NewKubectl(cfg, executor)
+	kubectl := NewKubectl(opts, executor)
 
 	err := kubectl.ApplyManifest(api.Manifest{})
 
@@ -32,11 +31,11 @@ func TestApplyManifest(t *testing.T) {
 
 func TestDeleteManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	cfg := &config.ClusterConfig{
+	opts := &ClusterOptions{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	kubectl := NewKubectl(cfg, executor)
+	kubectl := NewKubectl(opts, executor)
 
 	err := kubectl.DeleteManifest(api.Manifest{})
 
@@ -52,7 +51,7 @@ func TestDeleteManifest(t *testing.T) {
 
 func TestDeleteResource(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	cfg := &config.ClusterConfig{
+	opts := &ClusterOptions{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
@@ -61,7 +60,7 @@ func TestDeleteResource(t *testing.T) {
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(cfg, executor)
+	kubectl := NewKubectl(opts, executor)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -77,7 +76,7 @@ func TestDeleteResource(t *testing.T) {
 
 func TestDeleteResourceLabels(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	cfg := &config.ClusterConfig{
+	opts := &ClusterOptions{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
@@ -89,7 +88,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 		},
 	}
 
-	kubectl := NewKubectl(cfg, executor)
+	kubectl := NewKubectl(opts, executor)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -105,7 +104,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	cfg := &config.ClusterConfig{
+	opts := &ClusterOptions{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
@@ -113,7 +112,7 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(cfg, executor)
+	kubectl := NewKubectl(opts, executor)
 
 	err := kubectl.DeleteResource(resource)
 

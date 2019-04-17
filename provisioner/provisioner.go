@@ -7,7 +7,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
@@ -15,43 +14,72 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+type Options struct {
+	DryRun       bool   `json:"dryRun" yaml:"dryRun"`
+	Manifest     string `json:"manifest" yaml:"manifest"`
+	Values       string `json:"values" yaml:"values"`
+	Deletions    string `json:"deletions" yaml:"deletions"`
+	OnlyManifest bool   `json:"onlyManifest" yaml:"onlyManifest"`
+}
+
+func (o *Options) ApplyDefaults() {
+	if o.Manifest == "" {
+		o.Manifest = "./manifest.yaml"
+	}
+
+	if o.Deletions == "" {
+		o.Deletions = "./deletions.yaml"
+	}
+
+	if o.Values == "" {
+		o.Values = "./values.yaml"
+	}
+}
+
 type Provisioner struct {
 	infraManager     infra.Manager
 	manifestRenderer manifest.Renderer
+	clusterOptions   *kubernetes.ClusterOptions
 	executor         command.Executor
 	values           api.Values
 	deletions        *api.Deletions
 }
 
-func NewClusterProvisioner(infraManager infra.Manager, manifestRenderer manifest.Renderer, executor command.Executor) *Provisioner {
+func NewClusterProvisioner(
+	clusterOptions *kubernetes.ClusterOptions,
+	infraManager infra.Manager,
+	manifestRenderer manifest.Renderer,
+	executor command.Executor,
+) *Provisioner {
 	return &Provisioner{
+		clusterOptions:   clusterOptions,
 		infraManager:     infraManager,
 		manifestRenderer: manifestRenderer,
 		executor:         executor,
 	}
 }
 
-func (p *Provisioner) prepare(cfg *config.Config) (err error) {
-	p.values, err = loadValues(cfg.Values)
+func (p *Provisioner) prepare(o *Options) (err error) {
+	p.values, err = loadValues(o.Values)
 	if err != nil {
 		return
 	}
 
-	p.deletions, err = loadDeletions(cfg.Deletions)
+	p.deletions, err = loadDeletions(o.Deletions)
 
 	return
 }
 
-func (p *Provisioner) Provision(cfg *config.Config) error {
+func (p *Provisioner) Provision(o *Options) error {
 	var err error
 
-	if err = p.prepare(cfg); err != nil {
+	if err = p.prepare(o); err != nil {
 		return err
 	}
 
-	if cfg.DryRun {
+	if o.DryRun {
 		err = p.infraManager.Plan()
-	} else if !cfg.OnlyManifest {
+	} else if !o.OnlyManifest {
 		err = p.infraManager.Apply()
 	}
 
@@ -73,7 +101,7 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	err = p.finalizeChanges(cfg, cfg.Values, valueBytes)
+	err = p.finalizeChanges(o, o.Values, valueBytes)
 	if err != nil {
 		return err
 	}
@@ -83,39 +111,39 @@ func (p *Provisioner) Provision(cfg *config.Config) error {
 		return err
 	}
 
-	cfg.Cluster.Update(p.values)
+	p.clusterOptions.Update(p.values)
 
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
+	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
 
-	if cfg.DryRun {
+	if o.DryRun {
 		log.Debug("Would wait for cluster to become available.")
 	} else if err := kubectl.WaitForCluster(); err != nil {
 		return err
 	}
 
-	err = p.finalizeChanges(cfg, cfg.Manifest, manifest)
+	err = p.finalizeChanges(o, o.Manifest, manifest)
 	if err != nil {
 		return err
 	}
 
-	defer p.finalizeDeletions(cfg, p.deletions)
+	defer p.finalizeDeletions(o, p.deletions)
 
-	if err := processResourceDeletions(cfg, kubectl, p.deletions.PreApply); err != nil {
+	if err := processResourceDeletions(o, kubectl, p.deletions.PreApply); err != nil {
 		return err
 	}
 
-	if cfg.DryRun {
+	if o.DryRun {
 		log.Warn("Would apply manifest")
 		log.Debug(string(manifest))
 	} else if err := kubectl.ApplyManifest(manifest); err != nil {
 		return err
 	}
 
-	return processResourceDeletions(cfg, kubectl, p.deletions.PostApply)
+	return processResourceDeletions(o, kubectl, p.deletions.PostApply)
 }
 
-func (p *Provisioner) Destroy(cfg *config.Config) error {
-	if err := p.prepare(cfg); err != nil {
+func (p *Provisioner) Destroy(o *Options) error {
+	if err := p.prepare(o); err != nil {
 		return err
 	}
 
@@ -133,33 +161,33 @@ func (p *Provisioner) Destroy(cfg *config.Config) error {
 		return err
 	}
 
-	cfg.Cluster.Update(p.values)
+	p.clusterOptions.Update(p.values)
 
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, p.executor)
+	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
 
-	if cfg.DryRun {
+	if o.DryRun {
 		log.Warn("Would delete manifest")
 		log.Debug(string(manifest))
 	} else if err := kubectl.DeleteManifest(manifest); err != nil {
 		return err
 	}
 
-	defer p.finalizeDeletions(cfg, p.deletions)
+	defer p.finalizeDeletions(o, p.deletions)
 
-	if err := processResourceDeletions(cfg, kubectl, p.deletions.PreDestroy); err != nil {
+	if err := processResourceDeletions(o, kubectl, p.deletions.PreDestroy); err != nil {
 		return err
 	}
 
-	if cfg.DryRun {
+	if o.DryRun {
 		log.Warn("Would destroy infrastructure")
-	} else if !cfg.OnlyManifest {
+	} else if !o.OnlyManifest {
 		return p.infraManager.Destroy()
 	}
 
 	return nil
 }
 
-func (p *Provisioner) finalizeChanges(cfg *config.Config, filename string, content []byte) error {
+func (p *Provisioner) finalizeChanges(o *Options, filename string, content []byte) error {
 	changes, err := git.NewFileChanges(filename, content)
 	if err != nil {
 		return err
@@ -172,7 +200,7 @@ func (p *Provisioner) finalizeChanges(cfg *config.Config, filename string, conte
 			return err
 		}
 
-		if cfg.DryRun {
+		if o.DryRun {
 			defer os.Remove(filename)
 		}
 	}
@@ -188,18 +216,18 @@ func (p *Provisioner) finalizeChanges(cfg *config.Config, filename string, conte
 		log.Infof("No changes to %s", filename)
 	}
 
-	if cfg.DryRun {
+	if o.DryRun {
 		return nil
 	}
 
 	return changes.Apply()
 }
 
-func (p *Provisioner) finalizeDeletions(cfg *config.Config, deletions *api.Deletions) error {
+func (p *Provisioner) finalizeDeletions(o *Options, deletions *api.Deletions) error {
 	buf, err := yaml.Marshal(deletions.FilterPending())
 	if err != nil {
 		return err
 	}
 
-	return p.finalizeChanges(cfg, cfg.Deletions, buf)
+	return p.finalizeChanges(o, o.Deletions, buf)
 }

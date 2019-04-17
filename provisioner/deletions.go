@@ -5,10 +5,9 @@ import (
 	"os"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func loadDeletions(filename string) (*api.Deletions, error) {
@@ -24,9 +23,9 @@ func loadDeletions(filename string) (*api.Deletions, error) {
 	return &deletions, err
 }
 
-func processResourceDeletions(cfg *config.Config, kubectl *kubernetes.Kubectl, deletions []*api.Deletion) error {
+func processResourceDeletions(o *Options, kubectl *kubernetes.Kubectl, deletions []*api.Deletion) error {
 	for _, deletion := range deletions {
-		if cfg.DryRun {
+		if o.DryRun {
 			log.Warnf("Would delete the following resource:\n%s", deletion)
 			continue
 		}

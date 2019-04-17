@@ -1,9 +1,10 @@
 package infra
 
 import (
+	"reflect"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/pkg/errors"
 )
 
@@ -26,14 +27,30 @@ type Manager interface {
 	Destroy() error
 }
 
-// CreateManager creates an infrastructure manager based on the config.
-func CreateManager(cfg *config.Config, executor command.Executor) (Manager, error) {
-	switch cfg.InfraManager {
-	case "terraform":
-		return NewTerraformManager(&cfg.Terraform, executor), nil
-	case "minikube":
-		return NewMinikubeManager(executor), nil
-	default:
-		return nil, errors.Errorf("unsupported infrastructure manager: %s", cfg.InfraManager)
+type ManagerOptions struct {
+	Terraform TerraformOptions `json:"terraform" yaml:"terraform"`
+}
+
+// ManagerFactory defines a factory func to create an infrastructure manager.
+type ManagerFactory func(*ManagerOptions, command.Executor) (Manager, error)
+
+var managers = make(map[string]ManagerFactory)
+
+// RegisterManager registers a factory for an infrastructure manager with given
+// name.
+func RegisterManager(name string, factory ManagerFactory) {
+	managers[name] = factory
+}
+
+// CreateManager creates an infrastructure manager.
+func CreateManager(name string, o *ManagerOptions, executor command.Executor) (Manager, error) {
+	if factory, ok := managers[name]; ok {
+		return factory(o, executor)
 	}
+
+	return nil, errors.Errorf(
+		"unsupported infrastructure manager %q. Available managers: %s",
+		name,
+		reflect.ValueOf(managers).MapKeys(),
+	)
 }

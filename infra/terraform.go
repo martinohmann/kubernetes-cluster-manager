@@ -7,25 +7,34 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/pkg/errors"
 )
+
+func init() {
+	RegisterManager("terraform", func(o *ManagerOptions, e command.Executor) (Manager, error) {
+		return NewTerraformManager(&o.Terraform, e), nil
+	})
+}
 
 type terraformOutputValue struct {
 	Value interface{} `json:"value"`
 }
 
+type TerraformOptions struct {
+	Parallelism int `json:"parallelism" yaml:"parallelism"`
+}
+
 // TerraformManager is an infrastructure manager that uses terraform to manage
 // resources.
 type TerraformManager struct {
-	cfg      *config.TerraformConfig
+	options  *TerraformOptions
 	executor command.Executor
 }
 
 // NewTerraformManager creates a new terraform infrastructure manager.
-func NewTerraformManager(cfg *config.TerraformConfig, executor command.Executor) *TerraformManager {
+func NewTerraformManager(o *TerraformOptions, executor command.Executor) *TerraformManager {
 	return &TerraformManager{
-		cfg:      cfg,
+		options:  o,
 		executor: executor,
 	}
 }
@@ -38,8 +47,8 @@ func (m *TerraformManager) Apply() error {
 		"--auto-approve",
 	}
 
-	if m.cfg.Parallelism != 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Parallelism))
+	if m.options.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -57,8 +66,8 @@ func (m *TerraformManager) Plan() (err error) {
 		"--detailed-exitcode",
 	}
 
-	if m.cfg.Parallelism != 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Parallelism))
+	if m.options.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -110,8 +119,8 @@ func (m *TerraformManager) Destroy() error {
 		"--auto-approve",
 	}
 
-	if m.cfg.Parallelism != 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.cfg.Parallelism))
+	if m.options.Parallelism != 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)

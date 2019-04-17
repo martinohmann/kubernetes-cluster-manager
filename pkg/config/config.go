@@ -1,6 +1,11 @@
 package config
 
-import "github.com/imdario/mergo"
+import (
+	"io/ioutil"
+
+	"github.com/imdario/mergo"
+	yaml "gopkg.in/yaml.v2"
+)
 
 // Config holds the configuration for kcm.
 type Config struct {
@@ -23,6 +28,24 @@ type Config struct {
 // will not be overwritten.
 func (c *Config) Merge(other *Config) error {
 	return mergo.Merge(c, other)
+}
+
+func (c *Config) MergeFile(filename string) error {
+	cfg := &Config{}
+
+	if filename != "" {
+		buf, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+
+		err = yaml.Unmarshal(buf, cfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Merge(cfg)
 }
 
 // ApplyDefaults applies sane default values to fields that are not explicitly

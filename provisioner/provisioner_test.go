@@ -10,16 +10,17 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/stretchr/testify/assert"
 )
 
-func createProvisioner(cfg *config.Config) (*Provisioner, *command.MockExecutor) {
+func createProvisioner() (*Provisioner, *command.MockExecutor) {
 	e := command.NewMockExecutor(command.NewExecutor())
 	p := NewClusterProvisioner(
-		infra.NewTerraformManager(&cfg.Terraform, e),
-		manifest.NewHelmRenderer(&cfg.Helm, e),
+		&kubernetes.ClusterOptions{},
+		infra.NewTerraformManager(&infra.TerraformOptions{}, e),
+		manifest.NewHelmRenderer(&manifest.HelmOptions{Chart: "testdata/testchart"}, e),
 		e,
 	)
 
@@ -41,16 +42,13 @@ postApply:
 	manifest, _ := fs.NewTempFile("manifest.yaml", []byte(``))
 	defer os.Remove(manifest.Name())
 
-	cfg := &config.Config{
-		Helm: config.HelmConfig{
-			Chart: "testdata/testchart",
-		},
+	o := &Options{
 		Values:    values.Name(),
 		Deletions: deletions.Name(),
 		Manifest:  manifest.Name(),
 	}
 
-	p, executor := createProvisioner(cfg)
+	p, executor := createProvisioner()
 
 	executor.Command("terraform apply --auto-approve").WillSucceed()
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
@@ -81,7 +79,7 @@ preDestroy: []
 kubeconfig: /tmp/kubeconfig
 `
 
-	err := p.Provision(cfg)
+	err := p.Provision(o)
 
 	assert.NoError(t, err)
 

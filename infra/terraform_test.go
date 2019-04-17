@@ -5,16 +5,15 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApply(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	cfg := config.TerraformConfig{Parallelism: 4}
+	options := TerraformOptions{Parallelism: 4}
 
-	m := NewTerraformManager(&cfg, executor)
+	m := NewTerraformManager(&options, executor)
 
 	err := m.Apply()
 
@@ -34,9 +33,9 @@ func TestApply(t *testing.T) {
 func TestPlan(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	cfg := config.TerraformConfig{}
+	options := TerraformOptions{}
 
-	m := NewTerraformManager(&cfg, executor)
+	m := NewTerraformManager(&options, executor)
 
 	err := m.Plan()
 
@@ -56,9 +55,9 @@ func TestPlan(t *testing.T) {
 func TestGetValues(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	cfg := config.TerraformConfig{}
+	options := TerraformOptions{}
 
-	m := NewTerraformManager(&cfg, executor)
+	m := NewTerraformManager(&options, executor)
 
 	output := `
 {
@@ -97,9 +96,9 @@ func TestGetValues(t *testing.T) {
 func TestDestroy(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	cfg := config.TerraformConfig{Parallelism: 4}
+	options := TerraformOptions{Parallelism: 4}
 
-	m := NewTerraformManager(&cfg, executor)
+	m := NewTerraformManager(&options, executor)
 
 	err := m.Destroy()
 

@@ -7,15 +7,14 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessResourceDeletions(t *testing.T) {
-	cfg := &config.Config{Cluster: config.ClusterConfig{}}
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor(nil))
+	cfg := &Options{}
+	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -27,8 +26,8 @@ func TestProcessResourceDeletions(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
-	cfg := &config.Config{DryRun: true, Cluster: config.ClusterConfig{}}
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor(nil))
+	cfg := &Options{DryRun: true}
+	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -40,9 +39,9 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsFailed(t *testing.T) {
-	cfg := &config.Config{Cluster: config.ClusterConfig{}}
+	cfg := &Options{}
 	executor := command.NewMockExecutor(nil)
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, executor)
+	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, executor)
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")
@@ -51,7 +50,7 @@ func TestProcessResourceDeletionsFailed(t *testing.T) {
 
 	err := processResourceDeletions(cfg, kubectl, deletions)
 
-	if assert.Equal(t, err, expectedError) {
+	if assert.Equal(t, expectedError, err) {
 		assert.False(t, deletions[0].Deleted())
 	}
 }

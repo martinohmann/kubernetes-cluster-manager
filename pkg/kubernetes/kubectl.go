@@ -10,7 +10,6 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/pkg/errors"
 )
 
@@ -30,17 +29,17 @@ var (
 
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
-	cfg        *config.ClusterConfig
+	options    *ClusterOptions
 	executor   command.Executor
 	globalArgs []string
 }
 
 // NewKubectl create a new kubectl interactor.
-func NewKubectl(cfg *config.ClusterConfig, executor command.Executor) *Kubectl {
+func NewKubectl(o *ClusterOptions, executor command.Executor) *Kubectl {
 	return &Kubectl{
-		cfg:        cfg,
+		options:    o,
 		executor:   executor,
-		globalArgs: buildGlobalKubectlArgs(cfg),
+		globalArgs: buildGlobalKubectlArgs(o),
 	}
 }
 
@@ -175,21 +174,21 @@ func (k *Kubectl) ClusterInfo() (string, error) {
 	return k.executor.RunSilently(cmd)
 }
 
-// buildGlobalKubectlArgs builds global kubectl args from the config.
-func buildGlobalKubectlArgs(cfg *config.ClusterConfig) (args []string) {
-	if cfg.Kubeconfig != "" {
-		args = append(args, "--kubeconfig", cfg.Kubeconfig)
+// buildGlobalKubectlArgs builds global kubectl args from options.
+func buildGlobalKubectlArgs(o *ClusterOptions) (args []string) {
+	if o.Kubeconfig != "" {
+		args = append(args, "--kubeconfig", o.Kubeconfig)
 
-		if cfg.Context != "" {
-			args = append(args, "--context", cfg.Context)
+		if o.Context != "" {
+			args = append(args, "--context", o.Context)
 		}
 	} else {
-		if cfg.Server != "" {
-			args = append(args, "--server", cfg.Server)
+		if o.Server != "" {
+			args = append(args, "--server", o.Server)
 		}
 
-		if cfg.Token != "" {
-			args = append(args, "--token", cfg.Token)
+		if o.Token != "" {
+			args = append(args, "--token", o.Token)
 		}
 	}
 
