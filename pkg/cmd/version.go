@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/version"
@@ -14,10 +15,12 @@ import (
 type VersionOptions struct {
 	Short  bool
 	Output string
+
+	w io.Writer
 }
 
-func NewVersionCommand() *cobra.Command {
-	o := &VersionOptions{}
+func NewVersionCommand(w io.Writer) *cobra.Command {
+	o := &VersionOptions{w: w}
 
 	cmd := &cobra.Command{
 		Use:   "version",
@@ -46,7 +49,7 @@ func (o *VersionOptions) Run() error {
 	v := version.Get()
 
 	if o.Short {
-		fmt.Println(v.GitVersion)
+		fmt.Fprintln(o.w, v.GitVersion)
 		return nil
 	}
 
@@ -57,16 +60,16 @@ func (o *VersionOptions) Run() error {
 			return err
 		}
 
-		fmt.Println(string(buf))
+		fmt.Fprintln(o.w, string(buf))
 	case "yaml":
 		buf, err := yaml.Marshal(v)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(string(buf))
+		fmt.Fprintln(o.w, string(buf))
 	default:
-		fmt.Printf("%#v\n", v)
+		fmt.Fprintf(o.w, "%#v\n", v)
 	}
 
 	return nil

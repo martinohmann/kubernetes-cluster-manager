@@ -12,6 +12,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +23,7 @@ func createProvisioner() (*Provisioner, *command.MockExecutor) {
 		infra.NewTerraformManager(&infra.TerraformOptions{}, e),
 		manifest.NewHelmRenderer(&manifest.HelmOptions{Chart: "testdata/testchart"}, e),
 		e,
+		log.StandardLogger(),
 	)
 
 	return p, e
@@ -37,7 +39,7 @@ postApply:
 - kind: Deployment
   name: bar`))
 	defer os.Remove(deletions.Name())
-	values, _ := fs.NewTempFile("values.yaml", []byte(``))
+	values, _ := fs.NewTempFile("values.yaml", []byte(`baz: somevalue`))
 	defer os.Remove(values.Name())
 	manifest, _ := fs.NewTempFile("manifest.yaml", []byte(``))
 	defer os.Remove(manifest.Name())
@@ -69,13 +71,15 @@ metadata:
 data:
   foo: output-from-terraform
   bar: baz
+  baz: somevalue
 
 `
 	expectedDeletions := `preApply: []
 postApply: []
 preDestroy: []
 `
-	expectedValues := `foo: output-from-terraform
+	expectedValues := `baz: somevalue
+foo: output-from-terraform
 kubeconfig: /tmp/kubeconfig
 `
 

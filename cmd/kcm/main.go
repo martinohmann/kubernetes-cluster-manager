@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmd"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	log "github.com/sirupsen/logrus"
@@ -17,14 +19,17 @@ var (
 )
 
 func init() {
-	cobra.OnInitialize(cmdutil.SetupLogger)
+	logger := log.New()
 
+	cmdutil.SetLogger(logger)
 	cmdutil.AddGlobalDebugFlag(rootCmd)
 
-	rootCmd.AddCommand(cmd.NewProvisionCommand())
-	rootCmd.AddCommand(cmd.NewDestroyCommand())
-	rootCmd.AddCommand(cmd.NewDumpConfigCommand())
-	rootCmd.AddCommand(cmd.NewVersionCommand())
+	rootCmd.AddCommand(cmd.NewProvisionCommand(logger))
+	rootCmd.AddCommand(cmd.NewDestroyCommand(logger))
+	rootCmd.AddCommand(cmd.NewDumpConfigCommand(os.Stdout))
+	rootCmd.AddCommand(cmd.NewVersionCommand(os.Stdout))
+
+	cobra.OnInitialize(cmdutil.SetupLogger)
 }
 
 func main() {

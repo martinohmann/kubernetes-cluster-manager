@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
@@ -14,10 +15,12 @@ import (
 type DumpConfigOptions struct {
 	Filename string
 	Output   string
+
+	w io.Writer
 }
 
-func NewDumpConfigCommand() *cobra.Command {
-	o := &DumpConfigOptions{}
+func NewDumpConfigCommand(w io.Writer) *cobra.Command {
+	o := &DumpConfigOptions{w: w}
 
 	cmd := &cobra.Command{
 		Use:   "dump-config",
@@ -67,16 +70,16 @@ func (o *DumpConfigOptions) Run() error {
 			return err
 		}
 
-		fmt.Println(string(buf))
+		fmt.Fprintln(o.w, string(buf))
 	case "yaml":
 		buf, err := yaml.Marshal(opts)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(string(buf))
+		fmt.Fprintln(o.w, string(buf))
 	default:
-		fmt.Printf("%#v\n", opts)
+		fmt.Fprintf(o.w, "%#v\n", opts)
 	}
 
 	return nil

@@ -11,7 +11,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var debug = false
+var (
+	debug  = false
+	logger = log.StandardLogger()
+)
+
+func SetLogger(l *log.Logger) {
+	logger = l
+}
 
 func CheckErr(err error) {
 	if err == nil {
@@ -26,9 +33,9 @@ func CheckErr(err error) {
 	}
 
 	if debug {
-		log.Errorf("%+v", err)
+		logger.Errorf("%+v", err)
 	} else {
-		log.Error(err)
+		logger.Error(err)
 	}
 
 	os.Exit(code)
@@ -39,9 +46,9 @@ func SetupLogger() {
 		return
 	}
 
-	log.SetLevel(log.DebugLevel)
-	log.SetReportCaller(true)
-	log.SetFormatter(&log.TextFormatter{
+	logger.SetLevel(log.DebugLevel)
+	logger.SetReportCaller(true)
+	logger.SetFormatter(&log.TextFormatter{
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			pkg := "github.com/martinohmann/kubernetes-cluster-manager/"
 			repopath := fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), pkg)

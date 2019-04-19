@@ -43,6 +43,7 @@ type Provisioner struct {
 	executor         command.Executor
 	values           api.Values
 	deletions        *api.Deletions
+	logger           *log.Logger
 }
 
 func NewClusterProvisioner(
@@ -50,12 +51,14 @@ func NewClusterProvisioner(
 	infraManager infra.Manager,
 	manifestRenderer manifest.Renderer,
 	executor command.Executor,
+	logger *log.Logger,
 ) *Provisioner {
 	return &Provisioner{
 		clusterOptions:   clusterOptions,
 		infraManager:     infraManager,
 		manifestRenderer: manifestRenderer,
 		executor:         executor,
+		logger:           logger,
 	}
 }
 
@@ -115,8 +118,10 @@ func (p *Provisioner) Provision(o *Options) error {
 
 	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
 
+	p.logger.Info("Waiting for cluster to become available...")
+
 	if o.DryRun {
-		log.Debug("Would wait for cluster to become available.")
+		p.logger.Debug("Would wait for cluster to become available.")
 	} else if err := kubectl.WaitForCluster(); err != nil {
 		return err
 	}
@@ -128,18 +133,18 @@ func (p *Provisioner) Provision(o *Options) error {
 
 	defer p.finalizeDeletions(o, p.deletions)
 
-	if err := processResourceDeletions(o, kubectl, p.deletions.PreApply); err != nil {
+	if err := processResourceDeletions(o, p.logger, kubectl, p.deletions.PreApply); err != nil {
 		return err
 	}
 
 	if o.DryRun {
-		log.Warn("Would apply manifest")
-		log.Debug(string(manifest))
+		p.logger.Warn("Would apply manifest")
+		p.logger.Debug(string(manifest))
 	} else if err := kubectl.ApplyManifest(manifest); err != nil {
 		return err
 	}
 
-	return processResourceDeletions(o, kubectl, p.deletions.PostApply)
+	return processResourceDeletions(o, p.logger, kubectl, p.deletions.PostApply)
 }
 
 func (p *Provisioner) Destroy(o *Options) error {
@@ -166,20 +171,20 @@ func (p *Provisioner) Destroy(o *Options) error {
 	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
 
 	if o.DryRun {
-		log.Warn("Would delete manifest")
-		log.Debug(string(manifest))
+		p.logger.Warn("Would delete manifest")
+		p.logger.Debug(string(manifest))
 	} else if err := kubectl.DeleteManifest(manifest); err != nil {
 		return err
 	}
 
 	defer p.finalizeDeletions(o, p.deletions)
 
-	if err := processResourceDeletions(o, kubectl, p.deletions.PreDestroy); err != nil {
+	if err := processResourceDeletions(o, p.logger, kubectl, p.deletions.PreDestroy); err != nil {
 		return err
 	}
 
 	if o.DryRun {
-		log.Warn("Would destroy infrastructure")
+		p.logger.Warn("Would destroy infrastructure")
 	} else if !o.OnlyManifest {
 		return p.infraManager.Destroy()
 	}
@@ -211,9 +216,9 @@ func (p *Provisioner) finalizeChanges(o *Options, filename string, content []byt
 	}
 
 	if len(diff) > 0 {
-		log.Infof("Changes to %s:\n%s", filename, diff)
+		p.logger.Infof("Changes to %s:\n%s", filename, diff)
 	} else {
-		log.Infof("No changes to %s", filename)
+		p.logger.Infof("No changes to %s", filename)
 	}
 
 	if o.DryRun {

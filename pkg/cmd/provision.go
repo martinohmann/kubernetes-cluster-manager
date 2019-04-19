@@ -12,6 +12,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
 	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -27,11 +28,13 @@ type Options struct {
 	ManifestRendererOptions manifest.RendererOptions  `json:"manifestRenderer,omitempty" yaml:"manifestRenderer,omitempty"`
 
 	destroy bool
+	l       *log.Logger
 }
 
-func NewProvisionCommand() *cobra.Command {
+func NewProvisionCommand(l *log.Logger) *cobra.Command {
 	o := &Options{
 		destroy: false,
+		l:       l,
 	}
 
 	cmd := &cobra.Command{
@@ -117,7 +120,7 @@ func (o *Options) MergeConfig(filename string) error {
 }
 
 func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
-	executor := command.NewExecutor()
+	executor := command.NewExecutor(o.l)
 	infraManager, err := infra.CreateManager(o.Manager, &o.InfraManagerOptions, executor)
 	if err != nil {
 		return nil, err
@@ -128,7 +131,13 @@ func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
 		return nil, err
 	}
 
-	p := provisioner.NewClusterProvisioner(&o.ClusterOptions, infraManager, manifestRenderer, executor)
+	p := provisioner.NewClusterProvisioner(
+		&o.ClusterOptions,
+		infraManager,
+		manifestRenderer,
+		executor,
+		o.l,
+	)
 
 	return p, nil
 }

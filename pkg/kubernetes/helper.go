@@ -5,7 +5,6 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,8 +23,6 @@ var (
 // seconds in case of error. After 30 failed attempts it will give up and
 // return the last error.
 func (k *Kubectl) WaitForCluster() error {
-	log.Info("Waiting for cluster to become available...")
-
 	err := backoff.Retry(
 		func() error {
 			out, err := k.ClusterInfo()

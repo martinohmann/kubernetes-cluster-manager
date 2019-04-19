@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func NewDestroyCommand() *cobra.Command {
+func NewDestroyCommand(l *log.Logger) *cobra.Command {
 	o := &Options{
 		destroy: true,
+		l:       l,
 	}
 
 	cmd := &cobra.Command{

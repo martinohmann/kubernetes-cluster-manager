@@ -23,10 +23,10 @@ func loadDeletions(filename string) (*api.Deletions, error) {
 	return &deletions, err
 }
 
-func processResourceDeletions(o *Options, kubectl *kubernetes.Kubectl, deletions []*api.Deletion) error {
+func processResourceDeletions(o *Options, l *log.Logger, kubectl *kubernetes.Kubectl, deletions []*api.Deletion) error {
 	for _, deletion := range deletions {
 		if o.DryRun {
-			log.Warnf("Would delete the following resource:\n%s", deletion)
+			l.Warnf("Would delete the following resource:\n%s", deletion)
 			continue
 		}
 
