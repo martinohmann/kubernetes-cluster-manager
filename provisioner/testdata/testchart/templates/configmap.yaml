@@ -7,3 +7,4 @@ metadata:
 data:
   foo: {{ .Values.foo }}
   bar: {{ .Values.bar }}
+  baz: {{ .Values.baz }}

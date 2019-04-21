@@ -10,6 +10,12 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 )
 
+func init() {
+	RegisterManager("minikube", func(_ *ManagerOptions, e command.Executor) (Manager, error) {
+		return NewMinikubeManager(e), nil
+	})
+}
+
 // MinikubeManager uses minikube instead of an actual infrastructure manager.
 // This is useful for local testing.
 type MinikubeManager struct {

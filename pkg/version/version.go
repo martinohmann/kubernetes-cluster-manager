@@ -7,7 +7,9 @@ import (
 
 var (
 	// set via build args
-	gitVersion, gitCommit, buildDate string
+	gitVersion = "v0.0.0-master"
+	gitCommit  string
+	buildDate  string
 )
 
 // Info is a container for version information.

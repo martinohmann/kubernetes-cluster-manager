@@ -7,19 +7,20 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessResourceDeletions(t *testing.T) {
-	cfg := &config.Config{Cluster: config.ClusterConfig{}}
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor(nil))
+	o := &Options{}
+	l := log.New()
+	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
-	err := processResourceDeletions(cfg, kubectl, deletions)
+	err := processResourceDeletions(o, l, kubectl, deletions)
 
 	if assert.NoError(t, err) {
 		assert.True(t, deletions[0].Deleted())
@@ -27,12 +28,13 @@ func TestProcessResourceDeletions(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
-	cfg := &config.Config{DryRun: true, Cluster: config.ClusterConfig{}}
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, command.NewMockExecutor(nil))
+	o := &Options{DryRun: true}
+	l := log.New()
+	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
-	err := processResourceDeletions(cfg, kubectl, deletions)
+	err := processResourceDeletions(o, l, kubectl, deletions)
 
 	if assert.NoError(t, err) {
 		assert.False(t, deletions[0].Deleted())
@@ -40,18 +42,19 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsFailed(t *testing.T) {
-	cfg := &config.Config{Cluster: config.ClusterConfig{}}
+	o := &Options{}
+	l := log.New()
 	executor := command.NewMockExecutor(nil)
-	kubectl := kubernetes.NewKubectl(&cfg.Cluster, executor)
+	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, executor)
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")
 
 	executor.NextCommand().WillReturnError(expectedError)
 
-	err := processResourceDeletions(cfg, kubectl, deletions)
+	err := processResourceDeletions(o, l, kubectl, deletions)
 
-	if assert.Equal(t, err, expectedError) {
+	if assert.Equal(t, expectedError, err) {
 		assert.False(t, deletions[0].Deleted())
 	}
 }

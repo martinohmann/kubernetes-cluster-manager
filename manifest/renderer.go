@@ -1,9 +1,10 @@
 package manifest
 
 import (
+	"reflect"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/pkg/errors"
 )
 
@@ -13,12 +14,30 @@ type Renderer interface {
 	RenderManifest(api.Values) (api.Manifest, error)
 }
 
-// CreateRenderer creates a manifest renderer based on the config.
-func CreateRenderer(cfg *config.Config, executor command.Executor) (Renderer, error) {
-	switch cfg.ManifestRenderer {
-	case "helm":
-		return NewHelmRenderer(&cfg.Helm, executor), nil
-	default:
-		return nil, errors.Errorf("unsupported manifest renderer: %s", cfg.ManifestRenderer)
+type RendererOptions struct {
+	Helm HelmOptions `json:"helm" yaml:"helm"`
+}
+
+// RendererFactory defines a factory func to create a manifest renderer.
+type RendererFactory func(*RendererOptions, command.Executor) (Renderer, error)
+
+var renderers = make(map[string]RendererFactory)
+
+// RegisterRenderer registers a factory for a manifest renderer with given
+// name.
+func RegisterRenderer(name string, factory RendererFactory) {
+	renderers[name] = factory
+}
+
+// CreateRenderer creates a manifest renderer.
+func CreateRenderer(name string, o *RendererOptions, executor command.Executor) (Renderer, error) {
+	if factory, ok := renderers[name]; ok {
+		return factory(o, executor)
 	}
+
+	return nil, errors.Errorf(
+		"unsupported manifest renderer %q. Available renderers: %s",
+		name,
+		reflect.ValueOf(renderers).MapKeys(),
+	)
 }

@@ -7,18 +7,17 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderManifest(t *testing.T) {
 	executor := command.NewExecutor()
 
-	cfg := &config.HelmConfig{
+	o := &HelmOptions{
 		Chart: "helm/testdata/chart",
 	}
 
-	r := NewHelmRenderer(cfg, executor)
+	r := NewHelmRenderer(o, executor)
 
 	values := api.Values{
 		"config": map[string]interface{}{
