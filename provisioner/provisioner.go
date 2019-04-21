@@ -118,12 +118,12 @@ func (p *Provisioner) Provision(o *Options) error {
 
 	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
 
-	p.logger.Info("Waiting for cluster to become available...")
+	if !o.DryRun {
+		p.logger.Info("Waiting for cluster to become available...")
 
-	if o.DryRun {
-		p.logger.Debug("Would wait for cluster to become available.")
-	} else if err := kubectl.WaitForCluster(); err != nil {
-		return err
+		if err := kubectl.WaitForCluster(); err != nil {
+			return err
+		}
 	}
 
 	err = p.finalizeChanges(o, o.Manifest, manifest)
