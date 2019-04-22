@@ -9,7 +9,7 @@ import (
 func NewDestroyCommand(l *log.Logger) *cobra.Command {
 	o := &Options{
 		destroy: true,
-		l:       l,
+		logger:  l,
 	}
 
 	cmd := &cobra.Command{

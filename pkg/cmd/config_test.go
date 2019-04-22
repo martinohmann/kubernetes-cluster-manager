@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
@@ -35,6 +36,7 @@ infraManager:
 `
 
 	f, err := fs.NewTempFile("config.yaml", []byte(config))
+	defer os.Remove(f.Name())
 
 	assert.NoError(t, err)
 

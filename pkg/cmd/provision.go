@@ -28,13 +28,13 @@ type Options struct {
 	ManifestRendererOptions manifest.RendererOptions  `json:"manifestRenderer,omitempty" yaml:"manifestRenderer,omitempty"`
 
 	destroy bool
-	l       *log.Logger
+	logger  *log.Logger
 }
 
 func NewProvisionCommand(l *log.Logger) *cobra.Command {
 	o := &Options{
 		destroy: false,
-		l:       l,
+		logger:  l,
 	}
 
 	cmd := &cobra.Command{
@@ -54,7 +54,7 @@ func NewProvisionCommand(l *log.Logger) *cobra.Command {
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&o.Manager, "manager", "terraform", `Infrastructure manager to use`)
+	cmd.Flags().StringVar(&o.Manager, "manager", "", `Infrastructure manager to use`)
 	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
@@ -68,15 +68,15 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 func (o *Options) Complete(cmd *cobra.Command) error {
 	var err error
 
-	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
-	if err != nil {
-		return err
-	}
-
 	if config := cmdutil.GetString(cmd, "config"); config != "" {
 		if err = o.MergeConfig(config); err != nil {
 			return err
 		}
+	}
+
+	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -116,11 +116,11 @@ func (o *Options) MergeConfig(filename string) error {
 		}
 	}
 
-	return mergo.Merge(o, fileOpts)
+	return mergo.Merge(o, fileOpts, mergo.WithOverride)
 }
 
 func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
-	executor := command.NewExecutor(o.l)
+	executor := command.NewExecutor(o.logger)
 	infraManager, err := infra.CreateManager(o.Manager, &o.InfraManagerOptions, executor)
 	if err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
 		infraManager,
 		manifestRenderer,
 		executor,
-		o.l,
+		o.logger,
 	)
 
 	return p, nil

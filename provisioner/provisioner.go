@@ -22,20 +22,6 @@ type Options struct {
 	OnlyManifest bool   `json:"onlyManifest" yaml:"onlyManifest"`
 }
 
-func (o *Options) ApplyDefaults() {
-	if o.Manifest == "" {
-		o.Manifest = "./manifest.yaml"
-	}
-
-	if o.Deletions == "" {
-		o.Deletions = "./deletions.yaml"
-	}
-
-	if o.Values == "" {
-		o.Values = "./values.yaml"
-	}
-}
-
 type Provisioner struct {
 	infraManager     infra.Manager
 	manifestRenderer manifest.Renderer

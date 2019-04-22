@@ -21,26 +21,10 @@ func (d *Deletions) FilterPending() *Deletions {
 	}
 }
 
-// FilterProcessed filters for all preApply, postApply and preDestroy deletions
-// that have been processed and returns them.
-func (d *Deletions) FilterProcessed() *Deletions {
-	return &Deletions{
-		PreApply:   filterProcessedDeletions(d.PreApply),
-		PostApply:  filterProcessedDeletions(d.PostApply),
-		PreDestroy: filterProcessedDeletions(d.PreDestroy),
-	}
-}
-
 // filterPendingDeletions filters for deletions that are still pending and
 // returns them.
 func filterPendingDeletions(deletions []*Deletion) []*Deletion {
 	return filterDeletions(deletions, func(d *Deletion) bool { return !d.deleted })
-}
-
-// filterProcessedDeletions filters for deletions that have been processed and
-// returns them.
-func filterProcessedDeletions(deletions []*Deletion) []*Deletion {
-	return filterDeletions(deletions, func(d *Deletion) bool { return d.deleted })
 }
 
 // filterDeletions filters deletions using a filter func.
