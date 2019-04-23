@@ -5,7 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -32,7 +32,7 @@ func (c *Chart) Render(values map[string]interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	f, err := fs.NewTempFile("values.yaml", content)
+	f, err := file.NewTempFile("values.yaml", content)
 	if err != nil {
 		return nil, err
 	}

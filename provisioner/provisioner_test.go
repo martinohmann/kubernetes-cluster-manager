@@ -10,7 +10,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ func createProvisioner() (*Provisioner, *command.MockExecutor) {
 }
 
 func TestProvision(t *testing.T) {
-	deletions, _ := fs.NewTempFile("deletions.yaml", []byte(`
+	deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
 preApply:
 - kind: Pod
   name: foo
@@ -39,9 +39,9 @@ postApply:
 - kind: Deployment
   name: bar`))
 	defer os.Remove(deletions.Name())
-	values, _ := fs.NewTempFile("values.yaml", []byte(`baz: somevalue`))
+	values, _ := file.NewTempFile("values.yaml", []byte(`baz: somevalue`))
 	defer os.Remove(values.Name())
-	manifest, _ := fs.NewTempFile("manifest.yaml", []byte(``))
+	manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
 	defer os.Remove(manifest.Name())
 
 	o := &Options{

@@ -1,14 +1,11 @@
 package provisioner
 
 import (
-	"os"
-
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/git"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -179,22 +176,7 @@ func (p *Provisioner) Destroy(o *Options) error {
 }
 
 func (p *Provisioner) finalizeChanges(o *Options, filename string, content []byte) error {
-	changes, err := git.NewFileChanges(filename, content)
-	if err != nil {
-		return err
-	}
-
-	defer changes.Close()
-
-	if !fs.Exists(filename) {
-		if err := fs.Touch(filename); err != nil {
-			return err
-		}
-
-		if o.DryRun {
-			defer os.Remove(filename)
-		}
-	}
+	changes := file.NewChanges(filename, content)
 
 	diff, err := changes.Diff()
 	if err != nil {

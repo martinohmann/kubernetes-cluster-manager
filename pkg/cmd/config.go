@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
@@ -49,7 +49,7 @@ func (o *DumpConfigOptions) Validate() error {
 		return errors.New("--output must be 'yaml' or 'json'")
 	}
 
-	if o.Filename != "" && !fs.Exists(o.Filename) {
+	if o.Filename != "" && !file.Exists(o.Filename) {
 		return errors.Errorf("File %q does not exist", o.Filename)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ cluster:
   kubeconfig: /tmp/kubeconfig
 `
 
-	f, err := fs.NewTempFile("config.yaml", []byte(config))
+	f, err := file.NewTempFile("config.yaml", []byte(config))
 	defer os.Remove(f.Name())
 
 	assert.NoError(t, err)

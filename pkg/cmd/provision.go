@@ -54,7 +54,7 @@ func NewProvisionCommand(l *log.Logger) *cobra.Command {
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&o.Manager, "manager", "", `Infrastructure manager to use`)
+	cmd.Flags().StringVar(&o.Manager, "manager", "terraform", `Infrastructure manager to use`)
 	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
