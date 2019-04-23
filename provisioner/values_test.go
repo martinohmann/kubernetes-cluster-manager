@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadValues(t *testing.T) {
 	content := []byte("---\nfoo: bar")
-	f, err := fs.NewTempFile("values.yaml", content)
+	f, err := file.NewTempFile("values.yaml", content)
 	if !assert.NoError(t, err) {
 		return
 	}

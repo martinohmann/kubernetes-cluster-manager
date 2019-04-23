@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +35,7 @@ infraManager:
 
 `
 
-	f, err := fs.NewTempFile("config.yaml", []byte(config))
+	f, err := file.NewTempFile("config.yaml", []byte(config))
 	defer os.Remove(f.Name())
 
 	assert.NoError(t, err)

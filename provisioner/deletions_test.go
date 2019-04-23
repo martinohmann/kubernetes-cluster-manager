@@ -7,7 +7,7 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/fs"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -61,7 +61,7 @@ func TestProcessResourceDeletionsFailed(t *testing.T) {
 
 func TestLoadDeletions(t *testing.T) {
 	content := []byte("---\npreApply:\n- kind: pod\n  name: foo")
-	f, err := fs.NewTempFile("deletions.yaml", content)
+	f, err := file.NewTempFile("deletions.yaml", content)
 	if !assert.NoError(t, err) {
 		return
 	}
