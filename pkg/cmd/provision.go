@@ -1,20 +1,20 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/imdario/mergo"
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
 	homedir "github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	yaml "gopkg.in/yaml.v2"
 )
 
 type Options struct {
@@ -72,6 +72,9 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 		if err = o.MergeConfig(config); err != nil {
 			return err
 		}
+
+		o.logger.Infof("Using config %s, config values take precedence over command line flags", color.YellowString(config))
+
 	}
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
@@ -102,21 +105,13 @@ func (o *Options) Run() error {
 }
 
 func (o *Options) MergeConfig(filename string) error {
-	fileOpts := &Options{}
+	opts := &Options{}
 
-	if filename != "" {
-		buf, err := ioutil.ReadFile(filename)
-		if err != nil {
-			return err
-		}
-
-		err = yaml.Unmarshal(buf, fileOpts)
-		if err != nil {
-			return err
-		}
+	if err := file.LoadYAML(filename, opts); err != nil {
+		return err
 	}
 
-	return mergo.Merge(o, fileOpts, mergo.WithOverride)
+	return mergo.Merge(o, opts, mergo.WithOverride)
 }
 
 func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {

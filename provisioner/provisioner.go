@@ -42,18 +42,17 @@ func NewClusterProvisioner(
 		manifestRenderer: manifestRenderer,
 		executor:         executor,
 		logger:           logger,
+		deletions:        &api.Deletions{},
+		values:           make(api.Values),
 	}
 }
 
-func (p *Provisioner) prepare(o *Options) (err error) {
-	p.values, err = loadValues(o.Values)
-	if err != nil {
-		return
+func (p *Provisioner) prepare(o *Options) error {
+	if err := file.LoadYAML(o.Values, &p.values); err != nil {
+		return err
 	}
 
-	p.deletions, err = loadDeletions(o.Deletions)
-
-	return
+	return file.LoadYAML(o.Deletions, &p.deletions)
 }
 
 func (p *Provisioner) Provision(o *Options) error {

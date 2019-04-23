@@ -3,6 +3,8 @@ package file
 import (
 	"io/ioutil"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 // NewTempFile creates a temporary file with given prefix and content.
@@ -28,4 +30,14 @@ func Exists(path string) bool {
 	}
 
 	return true
+}
+
+// LoadYAML loads the contents of filename and unmarshals it into v.
+func LoadYAML(filename string, v interface{}) error {
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	return yaml.Unmarshal(buf, v)
 }

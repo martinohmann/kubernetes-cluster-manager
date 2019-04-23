@@ -6,12 +6,13 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOptionsComplete(t *testing.T) {
-	o := &Options{}
+	o := &Options{logger: log.StandardLogger()}
 
 	config := `---
 workingDir: ~/foo
@@ -31,8 +32,14 @@ cluster:
 	cmd := &cobra.Command{}
 	o.AddFlags(cmd)
 
-	assert.NoError(t, cmd.ParseFlags([]string{"--config", f.Name(), "--values", "/tmp/values.yaml", "--dry-run"}))
+	flags := []string{
+		"--config", f.Name(),
+		"--values", "/tmp/values.yaml",
+		"--dry-run",
+		"--manager", "foo",
+	}
 
+	assert.NoError(t, cmd.ParseFlags(flags))
 	assert.NoError(t, o.Complete(cmd))
 
 	home, _ := homedir.Dir()

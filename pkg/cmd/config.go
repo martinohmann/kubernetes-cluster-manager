@@ -32,8 +32,9 @@ func NewDumpConfigCommand(w io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&o.Output, "output", "", "Output format")
 	cmdutil.AddConfigFlag(cmd)
+	cmd.MarkFlagRequired("config")
+	cmd.Flags().StringVar(&o.Output, "output", "", "Output format")
 
 	return cmd
 }
@@ -50,7 +51,7 @@ func (o *DumpConfigOptions) Validate() error {
 	}
 
 	if o.Filename != "" && !file.Exists(o.Filename) {
-		return errors.Errorf("File %q does not exist", o.Filename)
+		return errors.Errorf("file %q does not exist", o.Filename)
 	}
 
 	return nil
@@ -59,7 +60,7 @@ func (o *DumpConfigOptions) Validate() error {
 func (o *DumpConfigOptions) Run() error {
 	opts := &Options{}
 
-	if err := opts.MergeConfig(o.Filename); err != nil {
+	if err := file.LoadYAML(o.Filename, opts); err != nil {
 		return err
 	}
 
