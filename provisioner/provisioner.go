@@ -62,10 +62,12 @@ func (p *Provisioner) Provision(o *Options) error {
 		return err
 	}
 
-	if o.DryRun {
-		err = p.infraManager.Plan()
-	} else if !o.OnlyManifest {
-		err = p.infraManager.Apply()
+	if !o.OnlyManifest {
+		if o.DryRun {
+			err = p.infraManager.Plan()
+		} else {
+			err = p.infraManager.Apply()
+		}
 	}
 
 	if err != nil {
@@ -165,10 +167,12 @@ func (p *Provisioner) Destroy(o *Options) error {
 		return err
 	}
 
-	if o.DryRun {
-		p.logger.Warn("Would destroy infrastructure")
-	} else if !o.OnlyManifest {
-		return p.infraManager.Destroy()
+	if !o.OnlyManifest {
+		if o.DryRun {
+			p.logger.Warn("Would destroy infrastructure")
+		} else {
+			return p.infraManager.Destroy()
+		}
 	}
 
 	return nil
