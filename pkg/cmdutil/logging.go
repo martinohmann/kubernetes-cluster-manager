@@ -3,42 +3,16 @@ package cmdutil
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	debug  = false
-	logger = log.StandardLogger()
-)
+var logger = log.StandardLogger()
 
 func SetLogger(l *log.Logger) {
 	logger = l
-}
-
-func CheckErr(err error) {
-	if err == nil {
-		return
-	}
-
-	code := 1
-	cause := errors.Cause(err)
-
-	if exitErr, ok := cause.(*exec.ExitError); ok {
-		code = exitErr.ExitCode()
-	}
-
-	if debug {
-		logger.Errorf("%+v", err)
-	} else {
-		logger.Error(err)
-	}
-
-	os.Exit(code)
 }
 
 func SetupLogger() {

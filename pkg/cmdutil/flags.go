@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var debug bool
+
 func AddGlobalDebugFlag(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug output")
 }

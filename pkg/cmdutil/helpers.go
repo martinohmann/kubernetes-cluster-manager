@@ -1,9 +1,34 @@
 package cmdutil
 
 import (
+	"os"
+	"os/exec"
+
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+func CheckErr(err error) {
+	if err == nil {
+		return
+	}
+
+	code := 1
+	cause := errors.Cause(err)
+
+	if exitErr, ok := cause.(*exec.ExitError); ok {
+		code = exitErr.ExitCode()
+	}
+
+	if debug {
+		logger.Errorf("%+v", err)
+	} else {
+		logger.Error(err)
+	}
+
+	os.Exit(code)
+}
 
 func GetBool(cmd *cobra.Command, flag string) bool {
 	v, err := cmd.Flags().GetBool(flag)

@@ -33,7 +33,5 @@ func init() {
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
-	}
+	cmdutil.CheckErr(rootCmd.Execute())
 }
