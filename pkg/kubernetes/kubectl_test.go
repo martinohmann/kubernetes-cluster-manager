@@ -10,12 +10,12 @@ import (
 
 func TestApplyManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &Credentials{
 		Server: "https://localhost:6443",
 		Token:  "sometoken",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.ApplyManifest(api.Manifest{})
 
@@ -31,11 +31,11 @@ func TestApplyManifest(t *testing.T) {
 
 func TestDeleteManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteManifest(api.Manifest{})
 
@@ -51,7 +51,7 @@ func TestDeleteManifest(t *testing.T) {
 
 func TestDeleteResource(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
@@ -60,7 +60,7 @@ func TestDeleteResource(t *testing.T) {
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -76,7 +76,7 @@ func TestDeleteResource(t *testing.T) {
 
 func TestDeleteResourceLabels(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
@@ -88,7 +88,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 		},
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -104,7 +104,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
@@ -112,7 +112,7 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteResource(resource)
 

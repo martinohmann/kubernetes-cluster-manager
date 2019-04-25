@@ -9,6 +9,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
@@ -17,15 +18,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ClusterOptions struct {
+	Server     string `json:"server" yaml:"server"`
+	Token      string `json:"token" yaml:"token"`
+	Kubeconfig string `json:"kubeconfig" yaml:"kubeconfig"`
+	Context    string `json:"context" yaml:"context"`
+}
+
 type Options struct {
 	Manager    string `json:"manager,omitempty" yaml:"manager,omitempty"`
 	Renderer   string `json:"renderer,omitempty" yaml:"renderer,omitempty"`
 	WorkingDir string `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`
 
-	ProvisionerOptions      provisioner.Options       `json:"provisioner,omitempty" yaml:"provisioner,omitempty"`
-	ClusterOptions          kubernetes.ClusterOptions `json:"cluster,omitempty" yaml:"cluster,omitempty"`
-	InfraManagerOptions     infra.ManagerOptions      `json:"infraManager,omitempty" yaml:"infraManager,omitempty"`
-	ManifestRendererOptions manifest.RendererOptions  `json:"manifestRenderer,omitempty" yaml:"manifestRenderer,omitempty"`
+	ProvisionerOptions      provisioner.Options      `json:"provisioner,omitempty" yaml:"provisioner,omitempty"`
+	ClusterOptions          ClusterOptions           `json:"cluster,omitempty" yaml:"cluster,omitempty"`
+	InfraManagerOptions     infra.ManagerOptions     `json:"infraManager,omitempty" yaml:"infraManager,omitempty"`
+	ManifestRendererOptions manifest.RendererOptions `json:"manifestRenderer,omitempty" yaml:"manifestRenderer,omitempty"`
 
 	destroy bool
 	logger  *log.Logger
@@ -58,9 +66,13 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
+	cmd.Flags().StringVar(&o.ClusterOptions.Kubeconfig, "cluster-kubeconfig", "", "Path to kubeconfig file")
+	cmd.Flags().StringVar(&o.ClusterOptions.Context, "cluster-context", "", "Kubeconfig context")
+	cmd.Flags().StringVar(&o.ClusterOptions.Server, "cluster-server", "", "Kubernetes API server address")
+	cmd.Flags().StringVar(&o.ClusterOptions.Token, "cluster-token", "", "Bearer token for authentication to the Kubernetes API server")
+
 	cmdutil.AddConfigFlag(cmd)
 	cmdutil.BindProvisionerFlags(cmd, &o.ProvisionerOptions)
-	cmdutil.BindClusterFlags(cmd, &o.ClusterOptions)
 	cmdutil.BindInfraManagerOptions(cmd, &o.InfraManagerOptions)
 	cmdutil.BindManifestRendererFlags(cmd, &o.ManifestRendererOptions)
 }
@@ -126,8 +138,20 @@ func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
 		return nil, err
 	}
 
+	var credentialProvider credentials.Provider
+	if o.ClusterOptions.Kubeconfig == "" && (o.ClusterOptions.Server == "" || o.ClusterOptions.Token == "") {
+		credentialProvider = credentials.NewInfraProvider(infraManager)
+	} else {
+		credentialProvider = credentials.NewStaticProvider(&kubernetes.Credentials{
+			Server:     o.ClusterOptions.Server,
+			Token:      o.ClusterOptions.Token,
+			Kubeconfig: o.ClusterOptions.Kubeconfig,
+			Context:    o.ClusterOptions.Context,
+		})
+	}
+
 	p := provisioner.NewClusterProvisioner(
-		&o.ClusterOptions,
+		credentialProvider,
 		infraManager,
 		manifestRenderer,
 		executor,

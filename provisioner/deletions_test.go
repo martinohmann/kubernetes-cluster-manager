@@ -14,7 +14,7 @@ import (
 func TestProcessResourceDeletions(t *testing.T) {
 	o := &Options{}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
+	kubectl := kubernetes.NewKubectl(&kubernetes.Credentials{}, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -28,7 +28,7 @@ func TestProcessResourceDeletions(t *testing.T) {
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
 	o := &Options{DryRun: true}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
+	kubectl := kubernetes.NewKubectl(&kubernetes.Credentials{}, command.NewMockExecutor(nil))
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -43,7 +43,7 @@ func TestProcessResourceDeletionsFailed(t *testing.T) {
 	o := &Options{}
 	l := log.New()
 	executor := command.NewMockExecutor(nil)
-	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, executor)
+	kubectl := kubernetes.NewKubectl(&kubernetes.Credentials{}, executor)
 
 	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")

@@ -10,17 +10,18 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func createProvisioner() (*Provisioner, *command.MockExecutor) {
 	e := command.NewMockExecutor(command.NewExecutor())
+	m := infra.NewTerraformManager(&infra.TerraformOptions{}, e)
 	p := NewClusterProvisioner(
-		&kubernetes.ClusterOptions{},
-		infra.NewTerraformManager(&infra.TerraformOptions{}, e),
+		credentials.NewInfraProvider(m),
+		m,
 		manifest.NewHelmRenderer(&manifest.HelmOptions{Chart: "testdata/testchart"}, e),
 		e,
 		log.StandardLogger(),
@@ -55,6 +56,7 @@ postApply:
 	executor.Command("terraform apply --auto-approve").WillSucceed()
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
 	executor.Pattern("helm template --values .*").WillExecute()
+	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
 	executor.Pattern("kubectl cluster-info.*").WillSucceed()
 	executor.Pattern("kubectl delete pod --ignore-not-found --namespace kube-system --kubeconfig /tmp/kubeconfig foo").WillSucceed()
 	executor.Pattern("kubectl apply -f -").WillSucceed()

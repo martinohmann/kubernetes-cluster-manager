@@ -27,19 +27,26 @@ var (
 	backoffStrategy = backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxRetries)
 )
 
+// Credentials contains the credentials needed to communicate with a Kubernetes
+// cluster.
+type Credentials struct {
+	Server     string
+	Token      string
+	Kubeconfig string
+	Context    string
+}
+
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
-	options    *ClusterOptions
-	executor   command.Executor
-	globalArgs []string
+	credentials *Credentials
+	executor    command.Executor
 }
 
 // NewKubectl create a new kubectl interactor.
-func NewKubectl(o *ClusterOptions, executor command.Executor) *Kubectl {
+func NewKubectl(c *Credentials, executor command.Executor) *Kubectl {
 	return &Kubectl{
-		options:    o,
-		executor:   executor,
-		globalArgs: buildGlobalKubectlArgs(o),
+		credentials: c,
+		executor:    executor,
 	}
 }
 
@@ -52,7 +59,7 @@ func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
 		"-",
 	}
 
-	args = append(args, k.globalArgs...)
+	args = append(args, k.buildCredentialArgs()...)
 
 	err := backoff.Retry(
 		func() error {
@@ -77,7 +84,7 @@ func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
 		"--ignore-not-found",
 	}
 
-	args = append(args, k.globalArgs...)
+	args = append(args, k.buildCredentialArgs()...)
 
 	err := backoff.Retry(
 		func() error {
@@ -108,7 +115,7 @@ func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
 		namespace,
 	}
 
-	args = append(args, k.globalArgs...)
+	args = append(args, k.buildCredentialArgs()...)
 
 	if deletion.Name != "" {
 		args = append(args, deletion.Name)
@@ -167,28 +174,28 @@ func (k *Kubectl) ClusterInfo() (string, error) {
 		"cluster-info",
 	}
 
-	args = append(args, k.globalArgs...)
+	args = append(args, k.buildCredentialArgs()...)
 
 	cmd := exec.Command(args[0], args[1:]...)
 
 	return k.executor.RunSilently(cmd)
 }
 
-// buildGlobalKubectlArgs builds global kubectl args from options.
-func buildGlobalKubectlArgs(o *ClusterOptions) (args []string) {
-	if o.Kubeconfig != "" {
-		args = append(args, "--kubeconfig", o.Kubeconfig)
+// buildCredentialArgs builds kubectl args from credentials.
+func (k *Kubectl) buildCredentialArgs() (args []string) {
+	if k.credentials.Kubeconfig != "" {
+		args = append(args, "--kubeconfig", k.credentials.Kubeconfig)
 
-		if o.Context != "" {
-			args = append(args, "--context", o.Context)
+		if k.credentials.Context != "" {
+			args = append(args, "--context", k.credentials.Context)
 		}
 	} else {
-		if o.Server != "" {
-			args = append(args, "--server", o.Server)
+		if k.credentials.Server != "" {
+			args = append(args, "--server", k.credentials.Server)
 		}
 
-		if o.Token != "" {
-			args = append(args, "--token", o.Token)
+		if k.credentials.Token != "" {
+			args = append(args, "--token", k.credentials.Token)
 		}
 	}
 

@@ -5,6 +5,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -20,30 +21,30 @@ type Options struct {
 }
 
 type Provisioner struct {
-	infraManager     infra.Manager
-	manifestRenderer manifest.Renderer
-	clusterOptions   *kubernetes.ClusterOptions
-	executor         command.Executor
-	values           api.Values
-	deletions        *api.Deletions
-	logger           *log.Logger
+	credentialProvider credentials.Provider
+	infraManager       infra.Manager
+	manifestRenderer   manifest.Renderer
+	executor           command.Executor
+	values             api.Values
+	deletions          *api.Deletions
+	logger             *log.Logger
 }
 
 func NewClusterProvisioner(
-	clusterOptions *kubernetes.ClusterOptions,
+	credentialProvider credentials.Provider,
 	infraManager infra.Manager,
 	manifestRenderer manifest.Renderer,
 	executor command.Executor,
 	logger *log.Logger,
 ) *Provisioner {
 	return &Provisioner{
-		clusterOptions:   clusterOptions,
-		infraManager:     infraManager,
-		manifestRenderer: manifestRenderer,
-		executor:         executor,
-		logger:           logger,
-		deletions:        &api.Deletions{},
-		values:           make(api.Values),
+		credentialProvider: credentialProvider,
+		infraManager:       infraManager,
+		manifestRenderer:   manifestRenderer,
+		executor:           executor,
+		logger:             logger,
+		deletions:          &api.Deletions{},
+		values:             make(api.Values),
 	}
 }
 
@@ -98,9 +99,12 @@ func (p *Provisioner) Provision(o *Options) error {
 		return err
 	}
 
-	p.clusterOptions.Update(p.values)
+	creds, err := p.credentialProvider.GetCredentials()
+	if err != nil {
+		return err
+	}
 
-	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
+	kubectl := kubernetes.NewKubectl(creds, p.executor)
 
 	if !o.DryRun {
 		p.logger.Info("Waiting for cluster to become available...")
@@ -150,9 +154,12 @@ func (p *Provisioner) Destroy(o *Options) error {
 		return err
 	}
 
-	p.clusterOptions.Update(p.values)
+	creds, err := p.credentialProvider.GetCredentials()
+	if err != nil {
+		return err
+	}
 
-	kubectl := kubernetes.NewKubectl(p.clusterOptions, p.executor)
+	kubectl := kubernetes.NewKubectl(creds, p.executor)
 
 	if o.DryRun {
 		p.logger.Warn("Would delete manifest")
