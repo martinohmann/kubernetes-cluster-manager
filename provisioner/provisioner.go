@@ -3,10 +3,10 @@ package provisioner
 import (
 	"github.com/martinohmann/kubernetes-cluster-manager/infra"
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -25,8 +25,8 @@ type Provisioner struct {
 	infraManager       infra.Manager
 	manifestRenderer   manifest.Renderer
 	executor           command.Executor
-	values             api.Values
-	deletions          *api.Deletions
+	values             kcm.Values
+	deletions          *kcm.Deletions
 	logger             *log.Logger
 }
 
@@ -43,8 +43,8 @@ func NewClusterProvisioner(
 		manifestRenderer:   manifestRenderer,
 		executor:           executor,
 		logger:             logger,
-		deletions:          &api.Deletions{},
-		values:             make(api.Values),
+		deletions:          &kcm.Deletions{},
+		values:             make(kcm.Values),
 	}
 }
 
@@ -206,7 +206,7 @@ func (p *Provisioner) finalizeChanges(o *Options, filename string, content []byt
 	return changes.Apply()
 }
 
-func (p *Provisioner) finalizeDeletions(o *Options, deletions *api.Deletions) error {
+func (p *Provisioner) finalizeDeletions(o *Options, deletions *kcm.Deletions) error {
 	buf, err := yaml.Marshal(deletions.FilterPending())
 	if err != nil {
 		return err

@@ -5,8 +5,8 @@ package manifest
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestRenderManifest(t *testing.T) {
 
 	r := NewHelmRenderer(o, executor)
 
-	values := api.Values{
+	values := kcm.Values{
 		"config": map[string]interface{}{
 			"bar": "baz",
 		},

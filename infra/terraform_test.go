@@ -3,8 +3,8 @@ package infra
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,7 +71,7 @@ func TestGetValues(t *testing.T) {
 
 	executor.NextCommand().WillReturn(output)
 
-	expectedValues := api.Values{
+	expectedValues := kcm.Values{
 		"foo": "bar",
 		"bar": []interface{}{"baz"},
 	}

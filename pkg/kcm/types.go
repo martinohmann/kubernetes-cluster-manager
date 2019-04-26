@@ -1,6 +1,7 @@
-package api
+package kcm
 
 import (
+	"github.com/imdario/mergo"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -66,4 +67,16 @@ func (d *Deletion) MarkDeleted() {
 // Deleted returns true if the resource deletion executed successfully.
 func (d *Deletion) Deleted() bool {
 	return d.deleted
+}
+
+// Manifest defines a Kubernetes manifest.
+type Manifest []byte
+
+// Values contains the output values of an infrastructure manager.
+type Values map[string]interface{}
+
+// Merge deep merges other on top of v and overrides values already present in
+// v.
+func (v Values) Merge(other Values) error {
+	return mergo.Merge(&v, other, mergo.WithOverride)
 }

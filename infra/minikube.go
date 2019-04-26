@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
@@ -70,7 +70,7 @@ func (m *MinikubeManager) Plan() error {
 }
 
 // GetValues implements GetValues from the Manager interface.
-func (m *MinikubeManager) GetValues() (api.Values, error) {
+func (m *MinikubeManager) GetValues() (kcm.Values, error) {
 	args := []string{
 		"minikube",
 		"ip",
@@ -85,7 +85,7 @@ func (m *MinikubeManager) GetValues() (api.Values, error) {
 
 	home, _ := homedir.Dir()
 
-	v := api.Values{
+	v := kcm.Values{
 		"server":     fmt.Sprintf("https://%s:8443", strings.Trim(out, "\n")),
 		"kubeconfig": fmt.Sprintf("%s/.kube/config", home),
 		// this will force the correct kubectl kubeconfig context

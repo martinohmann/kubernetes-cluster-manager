@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
@@ -51,7 +51,7 @@ func NewKubectl(c *Credentials, executor command.Executor) *Kubectl {
 }
 
 // ApplyManifest applies the manifest via kubectl.
-func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
+func (k *Kubectl) ApplyManifest(manifest kcm.Manifest) error {
 	args := []string{
 		"kubectl",
 		"apply",
@@ -75,7 +75,7 @@ func (k *Kubectl) ApplyManifest(manifest api.Manifest) error {
 }
 
 // DeleteManifest deletes the manifest via kubectl.
-func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
+func (k *Kubectl) DeleteManifest(manifest kcm.Manifest) error {
 	args := []string{
 		"kubectl",
 		"delete",
@@ -100,7 +100,7 @@ func (k *Kubectl) DeleteManifest(manifest api.Manifest) error {
 }
 
 // DeleteResource deletes a resource via kubectl.
-func (k *Kubectl) DeleteResource(deletion *api.Deletion) error {
+func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
 	namespace := deletion.Namespace
 	if namespace == "" {
 		namespace = defaultNamespace

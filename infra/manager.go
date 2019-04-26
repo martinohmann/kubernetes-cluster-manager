@@ -3,8 +3,8 @@ package infra
 import (
 	"reflect"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +21,7 @@ type Manager interface {
 	// GetValues obtains output values from the infrastructure manager.
 	// These values are made available during kubernetes manifest
 	// renderering.
-	GetValues() (api.Values, error)
+	GetValues() (kcm.Values, error)
 
 	// Destroy performs all actions needed to destroy a kubernetes cluster.
 	Destroy() error

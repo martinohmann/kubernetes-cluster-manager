@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestApplyManifest(t *testing.T) {
 
 	kubectl := NewKubectl(creds, executor)
 
-	err := kubectl.ApplyManifest(api.Manifest{})
+	err := kubectl.ApplyManifest(kcm.Manifest{})
 
 	assert.NoError(t, err)
 	if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -37,7 +37,7 @@ func TestDeleteManifest(t *testing.T) {
 
 	kubectl := NewKubectl(creds, executor)
 
-	err := kubectl.DeleteManifest(api.Manifest{})
+	err := kubectl.DeleteManifest(kcm.Manifest{})
 
 	assert.NoError(t, err)
 	if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -55,7 +55,7 @@ func TestDeleteResource(t *testing.T) {
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	resource := &api.Deletion{
+	resource := &kcm.Deletion{
 		Name: "foo",
 		Kind: "pod",
 	}
@@ -80,7 +80,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	resource := &api.Deletion{
+	resource := &kcm.Deletion{
 		Kind: "pod",
 		Labels: map[string]string{
 			"app.kubernetes.io/name":    "foo",
@@ -108,7 +108,7 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	resource := &api.Deletion{
+	resource := &kcm.Deletion{
 		Kind: "pod",
 	}
 

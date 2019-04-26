@@ -3,8 +3,8 @@ package infra
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func TestMinikubeGetValues(t *testing.T) {
 
 	home, _ := homedir.Dir()
 
-	expectedValues := api.Values{
+	expectedValues := kcm.Values{
 		"context":    "minikube",
 		"kubeconfig": home + "/.kube/config",
 		"server":     "https://127.0.0.1:8443",

@@ -1,8 +1,8 @@
 package infra
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
 func init() {
@@ -28,8 +28,8 @@ func (*NullManager) Plan() error {
 }
 
 // GetValues implements GetValues from the Manager interface.
-func (*NullManager) GetValues() (api.Values, error) {
-	return api.Values{}, nil
+func (*NullManager) GetValues() (kcm.Values, error) {
+	return kcm.Values{}, nil
 }
 
 // Destroy implements Destroy from the Manager interface.

@@ -3,15 +3,15 @@ package manifest
 import (
 	"reflect"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
 // Renderer is the interface for a kubernetes manifest renderer.
 type Renderer interface {
 	// RenderManifest renders a kubernetes manifest.
-	RenderManifest(api.Values) (api.Manifest, error)
+	RenderManifest(kcm.Values) (kcm.Manifest, error)
 }
 
 type RendererOptions struct {

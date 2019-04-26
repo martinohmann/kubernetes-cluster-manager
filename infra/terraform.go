@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
@@ -83,7 +83,7 @@ func (m *TerraformManager) Plan() (err error) {
 }
 
 // GetValues implements GetValues from the Manager interface.
-func (m *TerraformManager) GetValues() (api.Values, error) {
+func (m *TerraformManager) GetValues() (kcm.Values, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -102,7 +102,7 @@ func (m *TerraformManager) GetValues() (api.Values, error) {
 		return nil, err
 	}
 
-	v := make(api.Values)
+	v := make(kcm.Values)
 
 	for key, ov := range outputValues {
 		v[key] = ov.Value

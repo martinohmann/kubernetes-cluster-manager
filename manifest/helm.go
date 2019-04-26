@@ -2,8 +2,8 @@ package manifest
 
 import (
 	"github.com/martinohmann/kubernetes-cluster-manager/manifest/helm"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
 func init() {
@@ -32,7 +32,7 @@ func NewHelmRenderer(o *HelmOptions, executor command.Executor) *HelmRenderer {
 }
 
 // RenderManifest implements Renderer.
-func (r *HelmRenderer) RenderManifest(v api.Values) (api.Manifest, error) {
+func (r *HelmRenderer) RenderManifest(v kcm.Values) (kcm.Manifest, error) {
 	chart := helm.NewChart(r.options.Chart, r.executor)
 
 	buf, err := chart.Render(v)
@@ -40,5 +40,5 @@ func (r *HelmRenderer) RenderManifest(v api.Values) (api.Manifest, error) {
 		return nil, err
 	}
 
-	return api.Manifest(buf), nil
+	return kcm.Manifest(buf), nil
 }
