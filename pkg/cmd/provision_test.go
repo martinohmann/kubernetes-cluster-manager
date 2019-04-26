@@ -16,11 +16,11 @@ func TestOptionsComplete(t *testing.T) {
 
 	config := `---
 workingDir: ~/foo
-manager: minikube
-provisioner:
+provisioner: minikube
+managerOptions:
   values: /values.yaml
   deletions: /deletions.yaml
-cluster:
+clusterOptions:
   kubeconfig: /tmp/kubeconfig
 `
 
@@ -36,7 +36,7 @@ cluster:
 		"--config", f.Name(),
 		"--values", "/tmp/values.yaml",
 		"--dry-run",
-		"--manager", "foo",
+		"--provisioner", "foo",
 	}
 
 	assert.NoError(t, cmd.ParseFlags(flags))
@@ -45,9 +45,9 @@ cluster:
 	home, _ := homedir.Dir()
 
 	assert.Equal(t, home+"/foo", o.WorkingDir)
-	assert.Equal(t, "minikube", o.Manager)
+	assert.Equal(t, "minikube", o.Provisioner)
 	assert.Equal(t, "/tmp/kubeconfig", o.ClusterOptions.Kubeconfig)
-	assert.Equal(t, true, o.ProvisionerOptions.DryRun)
-	assert.Equal(t, "/values.yaml", o.ProvisionerOptions.Values)
-	assert.Equal(t, "/deletions.yaml", o.ProvisionerOptions.Deletions)
+	assert.Equal(t, true, o.ManagerOptions.DryRun)
+	assert.Equal(t, "/values.yaml", o.ManagerOptions.Values)
+	assert.Equal(t, "/deletions.yaml", o.ManagerOptions.Deletions)
 }

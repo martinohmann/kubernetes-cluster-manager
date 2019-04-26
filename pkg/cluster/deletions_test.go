@@ -1,4 +1,4 @@
-package provisioner
+package cluster
 
 import (
 	"errors"
@@ -12,9 +12,9 @@ import (
 )
 
 func TestProcessResourceDeletions(t *testing.T) {
-	o := &Options{}
+	o := &kcm.Options{}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kubernetes.Credentials{}, command.NewMockExecutor(nil))
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, command.NewMockExecutor(nil))
 
 	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -26,9 +26,9 @@ func TestProcessResourceDeletions(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
-	o := &Options{DryRun: true}
+	o := &kcm.Options{DryRun: true}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kubernetes.Credentials{}, command.NewMockExecutor(nil))
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, command.NewMockExecutor(nil))
 
 	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -40,10 +40,10 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsFailed(t *testing.T) {
-	o := &Options{}
+	o := &kcm.Options{}
 	l := log.New()
 	executor := command.NewMockExecutor(nil)
-	kubectl := kubernetes.NewKubectl(&kubernetes.Credentials{}, executor)
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, executor)
 
 	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")

@@ -1,9 +1,7 @@
 package cmdutil
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/infra"
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
-	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/spf13/cobra"
 )
 
@@ -17,15 +15,15 @@ func AddConfigFlag(cmd *cobra.Command) {
 	cmd.Flags().String("config", "", "Config file path")
 }
 
-func BindInfraManagerOptions(cmd *cobra.Command, o *infra.ManagerOptions) {
+func BindProvisionerFlags(cmd *cobra.Command, o *kcm.ProvisionerOptions) {
 	cmd.Flags().IntVar(&o.Terraform.Parallelism, "terraform-parallelism", 1, "Number of parallel terraform resource operations")
 }
 
-func BindManifestRendererFlags(cmd *cobra.Command, o *manifest.RendererOptions) {
+func BindRendererFlags(cmd *cobra.Command, o *kcm.RendererOptions) {
 	cmd.Flags().StringVar(&o.Helm.Chart, "helm-chart", "./cluster", "Path to cluster helm chart")
 }
 
-func BindProvisionerFlags(cmd *cobra.Command, o *provisioner.Options) {
+func BindManagerFlags(cmd *cobra.Command, o *kcm.Options) {
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Do not make any changes")
 	cmd.Flags().BoolVar(&o.OnlyManifest, "only-manifest", false, "Only render manifest, skip infrastructure changes")
 	cmd.Flags().StringVarP(&o.Manifest, "manifest", "m", "manifest.yaml", `Manifest file path`)

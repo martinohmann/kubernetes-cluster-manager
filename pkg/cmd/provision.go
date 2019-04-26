@@ -5,14 +5,14 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/imdario/mergo"
-	"github.com/martinohmann/kubernetes-cluster-manager/infra"
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
-	"github.com/martinohmann/kubernetes-cluster-manager/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	homedir "github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -26,14 +26,14 @@ type ClusterOptions struct {
 }
 
 type Options struct {
-	Manager    string `json:"manager,omitempty" yaml:"manager,omitempty"`
-	Renderer   string `json:"renderer,omitempty" yaml:"renderer,omitempty"`
-	WorkingDir string `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`
+	Provisioner string `json:"provisioner,omitempty" yaml:"provisioner,omitempty"`
+	Renderer    string `json:"renderer,omitempty" yaml:"renderer,omitempty"`
+	WorkingDir  string `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`
 
-	ProvisionerOptions      provisioner.Options      `json:"provisioner,omitempty" yaml:"provisioner,omitempty"`
-	ClusterOptions          ClusterOptions           `json:"cluster,omitempty" yaml:"cluster,omitempty"`
-	InfraManagerOptions     infra.ManagerOptions     `json:"infraManager,omitempty" yaml:"infraManager,omitempty"`
-	ManifestRendererOptions manifest.RendererOptions `json:"manifestRenderer,omitempty" yaml:"manifestRenderer,omitempty"`
+	ClusterOptions     ClusterOptions         `json:"clusterCredentials,omitempty" yaml:"clusterOptions,omitempty"`
+	ManagerOptions     kcm.Options            `json:"managerOptions,omitempty" yaml:"managerOptions,omitempty"`
+	ProvisionerOptions kcm.ProvisionerOptions `json:"provisionerOptions,omitempty" yaml:"provisionerOptions,omitempty"`
+	RendererOptions    kcm.RendererOptions    `json:"rendererOptions,omitempty" yaml:"rendererOptions,omitempty"`
 
 	destroy bool
 	logger  *log.Logger
@@ -62,7 +62,7 @@ func NewProvisionCommand(l *log.Logger) *cobra.Command {
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&o.Manager, "manager", "terraform", `Infrastructure manager to use`)
+	cmd.Flags().StringVar(&o.Provisioner, "provisioner", "terraform", `Infrastructure provisioner to use`)
 	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
@@ -72,9 +72,9 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.ClusterOptions.Token, "cluster-token", "", "Bearer token for authentication to the Kubernetes API server")
 
 	cmdutil.AddConfigFlag(cmd)
+	cmdutil.BindManagerFlags(cmd, &o.ManagerOptions)
 	cmdutil.BindProvisionerFlags(cmd, &o.ProvisionerOptions)
-	cmdutil.BindInfraManagerOptions(cmd, &o.InfraManagerOptions)
-	cmdutil.BindManifestRendererFlags(cmd, &o.ManifestRendererOptions)
+	cmdutil.BindRendererFlags(cmd, &o.RendererOptions)
 }
 
 func (o *Options) Complete(cmd *cobra.Command) error {
@@ -104,16 +104,16 @@ func (o *Options) Run() error {
 		}
 	}
 
-	p, err := o.createProvisioner()
+	m, err := o.createManager()
 	if err != nil {
 		return err
 	}
 
 	if o.destroy {
-		return p.Destroy(&o.ProvisionerOptions)
+		return m.Destroy(&o.ManagerOptions)
 	}
 
-	return p.Provision(&o.ProvisionerOptions)
+	return m.Provision(&o.ManagerOptions)
 }
 
 func (o *Options) MergeConfig(filename string) error {
@@ -126,23 +126,23 @@ func (o *Options) MergeConfig(filename string) error {
 	return mergo.Merge(o, opts, mergo.WithOverride)
 }
 
-func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
+func (o *Options) createManager() (*cluster.Manager, error) {
 	executor := command.NewExecutor(o.logger)
-	infraManager, err := infra.CreateManager(o.Manager, &o.InfraManagerOptions, executor)
+	infraProvisioner, err := provisioner.Create(o.Provisioner, &o.ProvisionerOptions, executor)
 	if err != nil {
 		return nil, err
 	}
 
-	manifestRenderer, err := manifest.CreateRenderer(o.Renderer, &o.ManifestRendererOptions, executor)
+	manifestRenderer, err := renderer.Create(o.Renderer, &o.RendererOptions, executor)
 	if err != nil {
 		return nil, err
 	}
 
-	var credentialProvider credentials.Provider
+	var credentialSource kcm.CredentialSource
 	if o.ClusterOptions.Kubeconfig == "" && (o.ClusterOptions.Server == "" || o.ClusterOptions.Token == "") {
-		credentialProvider = credentials.NewInfraProvider(infraManager)
+		credentialSource = credentials.NewProvisionerSource(infraProvisioner)
 	} else {
-		credentialProvider = credentials.NewStaticProvider(&kubernetes.Credentials{
+		credentialSource = credentials.NewStaticCredentials(&kcm.Credentials{
 			Server:     o.ClusterOptions.Server,
 			Token:      o.ClusterOptions.Token,
 			Kubeconfig: o.ClusterOptions.Kubeconfig,
@@ -150,13 +150,13 @@ func (o *Options) createProvisioner() (*provisioner.Provisioner, error) {
 		})
 	}
 
-	p := provisioner.NewClusterProvisioner(
-		credentialProvider,
-		infraManager,
+	m := cluster.NewManager(
+		credentialSource,
+		infraProvisioner,
 		manifestRenderer,
 		executor,
 		o.logger,
 	)
 
-	return p, nil
+	return m, nil
 }

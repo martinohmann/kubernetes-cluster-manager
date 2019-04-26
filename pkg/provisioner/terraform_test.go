@@ -1,4 +1,4 @@
-package infra
+package provisioner
 
 import (
 	"testing"
@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApply(t *testing.T) {
+func TestTerraformProvision(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	options := TerraformOptions{Parallelism: 4}
+	options := kcm.TerraformOptions{Parallelism: 4}
 
-	m := NewTerraformManager(&options, executor)
+	m := NewTerraform(&options, executor)
 
-	err := m.Apply()
+	err := m.Provision()
 
 	if !assert.NoError(t, err) {
 		return
@@ -30,14 +30,12 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func TestPlan(t *testing.T) {
+func TestTerraformPlan(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	options := TerraformOptions{}
+	m := NewTerraform(&kcm.TerraformOptions{}, executor)
 
-	m := NewTerraformManager(&options, executor)
-
-	err := m.Plan()
+	err := m.Reconcile()
 
 	if !assert.NoError(t, err) {
 		return
@@ -52,12 +50,10 @@ func TestPlan(t *testing.T) {
 	}
 }
 
-func TestGetValues(t *testing.T) {
+func TestTerraformFetch(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	options := TerraformOptions{}
-
-	m := NewTerraformManager(&options, executor)
+	m := NewTerraform(&kcm.TerraformOptions{}, executor)
 
 	output := `
 {
@@ -76,7 +72,7 @@ func TestGetValues(t *testing.T) {
 		"bar": []interface{}{"baz"},
 	}
 
-	values, err := m.GetValues()
+	values, err := m.Fetch()
 
 	if !assert.NoError(t, err) {
 		return
@@ -93,12 +89,12 @@ func TestGetValues(t *testing.T) {
 	}
 }
 
-func TestDestroy(t *testing.T) {
+func TestTerraformDestroy(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
 
-	options := TerraformOptions{Parallelism: 4}
+	options := kcm.TerraformOptions{Parallelism: 4}
 
-	m := NewTerraformManager(&options, executor)
+	m := NewTerraform(&options, executor)
 
 	err := m.Destroy()
 

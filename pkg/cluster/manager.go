@@ -1,10 +1,7 @@
-package provisioner
+package cluster
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/infra"
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
@@ -12,43 +9,35 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type Options struct {
-	DryRun       bool   `json:"dryRun" yaml:"dryRun"`
-	Manifest     string `json:"manifest" yaml:"manifest"`
-	Values       string `json:"values" yaml:"values"`
-	Deletions    string `json:"deletions" yaml:"deletions"`
-	OnlyManifest bool   `json:"onlyManifest" yaml:"onlyManifest"`
+type Manager struct {
+	credentialSource kcm.CredentialSource
+	provisioner      kcm.Provisioner
+	renderer         kcm.Renderer
+	executor         command.Executor
+	values           kcm.Values
+	deletions        *kcm.Deletions
+	logger           *log.Logger
 }
 
-type Provisioner struct {
-	credentialProvider credentials.Provider
-	infraManager       infra.Manager
-	manifestRenderer   manifest.Renderer
-	executor           command.Executor
-	values             kcm.Values
-	deletions          *kcm.Deletions
-	logger             *log.Logger
-}
-
-func NewClusterProvisioner(
-	credentialProvider credentials.Provider,
-	infraManager infra.Manager,
-	manifestRenderer manifest.Renderer,
+func NewManager(
+	credentialSource kcm.CredentialSource,
+	provisioner kcm.Provisioner,
+	renderer kcm.Renderer,
 	executor command.Executor,
 	logger *log.Logger,
-) *Provisioner {
-	return &Provisioner{
-		credentialProvider: credentialProvider,
-		infraManager:       infraManager,
-		manifestRenderer:   manifestRenderer,
-		executor:           executor,
-		logger:             logger,
-		deletions:          &kcm.Deletions{},
-		values:             make(kcm.Values),
+) *Manager {
+	return &Manager{
+		credentialSource: credentialSource,
+		provisioner:      provisioner,
+		renderer:         renderer,
+		executor:         executor,
+		logger:           logger,
+		deletions:        &kcm.Deletions{},
+		values:           make(kcm.Values),
 	}
 }
 
-func (p *Provisioner) prepare(o *Options) error {
+func (p *Manager) prepare(o *kcm.Options) error {
 	if err := file.LoadYAML(o.Values, &p.values); err != nil {
 		return err
 	}
@@ -56,7 +45,7 @@ func (p *Provisioner) prepare(o *Options) error {
 	return file.LoadYAML(o.Deletions, &p.deletions)
 }
 
-func (p *Provisioner) Provision(o *Options) error {
+func (p *Manager) Provision(o *kcm.Options) error {
 	var err error
 
 	if err = p.prepare(o); err != nil {
@@ -65,9 +54,9 @@ func (p *Provisioner) Provision(o *Options) error {
 
 	if !o.OnlyManifest {
 		if o.DryRun {
-			err = p.infraManager.Plan()
+			err = p.provisioner.Reconcile()
 		} else {
-			err = p.infraManager.Apply()
+			err = p.provisioner.Provision()
 		}
 	}
 
@@ -75,7 +64,7 @@ func (p *Provisioner) Provision(o *Options) error {
 		return err
 	}
 
-	newValues, err := p.infraManager.GetValues()
+	newValues, err := p.provisioner.Fetch()
 	if err != nil {
 		return err
 	}
@@ -94,12 +83,12 @@ func (p *Provisioner) Provision(o *Options) error {
 		return err
 	}
 
-	manifest, err := p.manifestRenderer.RenderManifest(p.values)
+	manifest, err := p.renderer.RenderManifest(p.values)
 	if err != nil {
 		return err
 	}
 
-	creds, err := p.credentialProvider.GetCredentials()
+	creds, err := p.credentialSource.GetCredentials()
 	if err != nil {
 		return err
 	}
@@ -135,12 +124,12 @@ func (p *Provisioner) Provision(o *Options) error {
 	return processResourceDeletions(o, p.logger, kubectl, p.deletions.PostApply)
 }
 
-func (p *Provisioner) Destroy(o *Options) error {
+func (p *Manager) Destroy(o *kcm.Options) error {
 	if err := p.prepare(o); err != nil {
 		return err
 	}
 
-	currentValues, err := p.infraManager.GetValues()
+	currentValues, err := p.provisioner.Fetch()
 	if err != nil {
 		return err
 	}
@@ -149,12 +138,12 @@ func (p *Provisioner) Destroy(o *Options) error {
 		return err
 	}
 
-	manifest, err := p.manifestRenderer.RenderManifest(p.values)
+	manifest, err := p.renderer.RenderManifest(p.values)
 	if err != nil {
 		return err
 	}
 
-	creds, err := p.credentialProvider.GetCredentials()
+	creds, err := p.credentialSource.GetCredentials()
 	if err != nil {
 		return err
 	}
@@ -178,14 +167,14 @@ func (p *Provisioner) Destroy(o *Options) error {
 		if o.DryRun {
 			p.logger.Warn("Would destroy infrastructure")
 		} else {
-			return p.infraManager.Destroy()
+			return p.provisioner.Destroy()
 		}
 	}
 
 	return nil
 }
 
-func (p *Provisioner) finalizeChanges(o *Options, filename string, content []byte) error {
+func (p *Manager) finalizeChanges(o *kcm.Options, filename string, content []byte) error {
 	changes := file.NewChanges(filename, content)
 
 	diff, err := changes.Diff()
@@ -206,7 +195,7 @@ func (p *Provisioner) finalizeChanges(o *Options, filename string, content []byt
 	return changes.Apply()
 }
 
-func (p *Provisioner) finalizeDeletions(o *Options, deletions *kcm.Deletions) error {
+func (p *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) error {
 	buf, err := yaml.Marshal(deletions.FilterPending())
 	if err != nil {
 		return err

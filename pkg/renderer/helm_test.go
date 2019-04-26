@@ -1,6 +1,6 @@
 // +build integration
 
-package manifest
+package renderer
 
 import (
 	"testing"
@@ -10,14 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRenderManifest(t *testing.T) {
+func TestHelmRenderManifest(t *testing.T) {
 	executor := command.NewExecutor()
 
-	o := &HelmOptions{
-		Chart: "helm/testdata/chart",
+	o := &kcm.HelmOptions{
+		Chart: "testdata/helm/chart",
 	}
 
-	r := NewHelmRenderer(o, executor)
+	r := NewHelm(o, executor)
 
 	values := kcm.Values{
 		"config": map[string]interface{}{

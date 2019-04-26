@@ -27,23 +27,14 @@ var (
 	backoffStrategy = backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxRetries)
 )
 
-// Credentials contains the credentials needed to communicate with a Kubernetes
-// cluster.
-type Credentials struct {
-	Server     string
-	Token      string
-	Kubeconfig string
-	Context    string
-}
-
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
-	credentials *Credentials
+	credentials *kcm.Credentials
 	executor    command.Executor
 }
 
 // NewKubectl create a new kubectl interactor.
-func NewKubectl(c *Credentials, executor command.Executor) *Kubectl {
+func NewKubectl(c *kcm.Credentials, executor command.Executor) *Kubectl {
 	return &Kubectl{
 		credentials: c,
 		executor:    executor,

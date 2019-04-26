@@ -1,33 +1,34 @@
-// +build integration
+// build +integration
 
-package provisioner
+package cluster
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/infra"
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
-func createProvisioner() (*Provisioner, *command.MockExecutor) {
+func createManager() (*Manager, *command.MockExecutor) {
 	e := command.NewMockExecutor(command.NewExecutor())
-	m := infra.NewTerraformManager(&infra.TerraformOptions{}, e)
-	p := NewClusterProvisioner(
-		credentials.NewInfraProvider(m),
-		m,
-		manifest.NewHelmRenderer(&manifest.HelmOptions{Chart: "testdata/testchart"}, e),
+	p := provisioner.NewTerraform(&kcm.TerraformOptions{}, e)
+	m := NewManager(
+		credentials.NewProvisionerSource(p),
+		p,
+		renderer.NewHelm(&kcm.HelmOptions{Chart: "testdata/testchart"}, e),
 		e,
 		log.StandardLogger(),
 	)
 
-	return p, e
+	return m, e
 }
 
 func TestProvision(t *testing.T) {
@@ -45,13 +46,13 @@ postApply:
 	manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
 	defer os.Remove(manifest.Name())
 
-	o := &Options{
+	o := &kcm.Options{
 		Values:    values.Name(),
 		Deletions: deletions.Name(),
 		Manifest:  manifest.Name(),
 	}
 
-	p, executor := createProvisioner()
+	p, executor := createManager()
 
 	executor.Command("terraform apply --auto-approve").WillSucceed()
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)

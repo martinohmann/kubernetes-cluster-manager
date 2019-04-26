@@ -1,4 +1,4 @@
-package provisioner
+package cluster
 
 import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func processResourceDeletions(o *Options, l *log.Logger, kubectl *kubernetes.Kubectl, deletions []*kcm.Deletion) error {
+func processResourceDeletions(o *kcm.Options, l *log.Logger, kubectl *kubernetes.Kubectl, deletions []*kcm.Deletion) error {
 	for _, deletion := range deletions {
 		if o.DryRun {
 			l.Warnf("Would delete the following resource:\n%s", deletion)
