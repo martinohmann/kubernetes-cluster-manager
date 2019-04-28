@@ -18,7 +18,7 @@ import (
 )
 
 func createManager() (*Manager, *command.MockExecutor) {
-	e := command.NewMockExecutor(command.NewExecutor())
+	e := command.NewMockExecutor(command.NewExecutor(nil))
 	p := provisioner.NewTerraform(&kcm.TerraformOptions{}, e)
 	m := NewManager(
 		credentials.NewProvisionerSource(p),

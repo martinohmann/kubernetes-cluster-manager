@@ -11,7 +11,7 @@ import (
 )
 
 func TestHelmRenderManifest(t *testing.T) {
-	executor := command.NewExecutor()
+	executor := command.NewExecutor(nil)
 
 	o := &kcm.HelmOptions{
 		Chart: "testdata/helm/chart",
