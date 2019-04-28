@@ -9,8 +9,10 @@ import (
 
 func TestChartRender(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
-	chart := NewChart("cluster", executor)
+	chart := NewChart("cluster")
 
 	_, err := chart.Render(make(map[string]interface{}))
 

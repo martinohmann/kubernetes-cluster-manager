@@ -14,7 +14,12 @@ import (
 func TestProcessResourceDeletions(t *testing.T) {
 	o := &kcm.Options{}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, command.NewMockExecutor(nil))
+
+	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{})
 
 	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -28,7 +33,12 @@ func TestProcessResourceDeletions(t *testing.T) {
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
 	o := &kcm.Options{DryRun: true}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, command.NewMockExecutor(nil))
+
+	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{})
 
 	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 
@@ -42,8 +52,12 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 func TestProcessResourceDeletionsFailed(t *testing.T) {
 	o := &kcm.Options{}
 	l := log.New()
+
 	executor := command.NewMockExecutor(nil)
-	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, executor)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{})
 
 	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")

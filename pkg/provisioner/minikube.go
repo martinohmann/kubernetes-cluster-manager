@@ -11,23 +11,14 @@ import (
 )
 
 func init() {
-	Register("minikube", func(_ *kcm.ProvisionerOptions, e command.Executor) (kcm.Provisioner, error) {
-		return NewMinikube(e), nil
+	Register("minikube", func(_ *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
+		return &Minikube{}, nil
 	})
 }
 
 // Minikube uses minikube instead of an actual infrastructure provisioner.
 // This is useful for local testing.
-type Minikube struct {
-	executor command.Executor
-}
-
-// NewMinikube creates a new minikube manager.
-func NewMinikube(executor command.Executor) *Minikube {
-	return &Minikube{
-		executor: executor,
-	}
-}
+type Minikube struct{}
 
 func (m *Minikube) status() error {
 	args := []string{
@@ -37,7 +28,7 @@ func (m *Minikube) status() error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := m.executor.Run(cmd)
+	_, err := command.Run(cmd)
 
 	return err
 }
@@ -54,7 +45,7 @@ func (m *Minikube) start() error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := m.executor.Run(cmd)
+	_, err := command.Run(cmd)
 
 	return err
 }
@@ -78,7 +69,7 @@ func (m *Minikube) Fetch() (kcm.Values, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	out, err := m.executor.RunSilently(cmd)
+	out, err := command.RunSilently(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +99,7 @@ func (m *Minikube) Destroy() error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := m.executor.Run(cmd)
+	_, err := command.Run(cmd)
 
 	return err
 }

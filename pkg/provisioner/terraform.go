@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	Register("terraform", func(o *kcm.ProvisionerOptions, e command.Executor) (kcm.Provisioner, error) {
-		return NewTerraform(&o.Terraform, e), nil
+	Register("terraform", func(o *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
+		return NewTerraform(&o.Terraform), nil
 	})
 }
 
@@ -23,15 +23,13 @@ type terraformOutputValue struct {
 // Terraform is an infrastructure manager that uses terraform to manage
 // resources.
 type Terraform struct {
-	options  *kcm.TerraformOptions
-	executor command.Executor
+	options *kcm.TerraformOptions
 }
 
 // NewTerraform creates a new terraform infrastructure manager.
-func NewTerraform(o *kcm.TerraformOptions, executor command.Executor) *Terraform {
+func NewTerraform(o *kcm.TerraformOptions) *Terraform {
 	return &Terraform{
-		options:  o,
-		executor: executor,
+		options: o,
 	}
 }
 
@@ -49,7 +47,7 @@ func (m *Terraform) Provision() error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := m.executor.Run(cmd)
+	_, err := command.Run(cmd)
 
 	return err
 }
@@ -68,7 +66,7 @@ func (m *Terraform) Reconcile() (err error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	if _, err = m.executor.Run(cmd); err != nil {
+	if _, err = command.Run(cmd); err != nil {
 		// ExitCode 2 means that there are infrastructure changes. This is not an error.
 		if exitErr, ok := errors.Cause(err).(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
 			err = nil
@@ -88,7 +86,7 @@ func (m *Terraform) Fetch() (kcm.Values, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	out, err := m.executor.RunSilently(cmd)
+	out, err := command.RunSilently(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +119,7 @@ func (m *Terraform) Destroy() error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := m.executor.Run(cmd)
+	_, err := command.Run(cmd)
 
 	return err
 }

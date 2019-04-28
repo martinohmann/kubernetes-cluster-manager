@@ -117,3 +117,21 @@ func (w logWriter) Write(p []byte) (n int, err error) {
 func commandLine(cmd *exec.Cmd) string {
 	return strings.Join(cmd.Args, " ")
 }
+
+// SetExecutor sets the default executor.
+func SetExecutor(e Executor) {
+	DefaultExecutor = e
+}
+
+// SetExecutorWithRestore sets the default executor and returns a function that
+// restores the previously set executor. Can be used to temporarly mock out the
+// executor in tests.
+func SetExecutorWithRestore(e Executor) func() {
+	prevExecutor := DefaultExecutor
+
+	DefaultExecutor = e
+
+	return func() {
+		DefaultExecutor = prevExecutor
+	}
+}

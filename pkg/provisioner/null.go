@@ -1,12 +1,11 @@
 package provisioner
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
 func init() {
-	Register("null", func(_ *kcm.ProvisionerOptions, _ command.Executor) (kcm.Provisioner, error) {
+	Register("null", func(_ *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
 		return &Null{}, nil
 	})
 }

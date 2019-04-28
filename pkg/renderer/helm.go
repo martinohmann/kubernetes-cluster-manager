@@ -1,14 +1,13 @@
 package renderer
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes/helm"
 )
 
 func init() {
-	Register("helm", func(o *kcm.RendererOptions, e command.Executor) (kcm.Renderer, error) {
-		return NewHelm(&o.Helm, e), nil
+	Register("helm", func(o *kcm.RendererOptions) (kcm.Renderer, error) {
+		return NewHelm(&o.Helm), nil
 	})
 }
 
@@ -17,11 +16,10 @@ type Helm struct {
 	chart *helm.Chart
 }
 
-// NewHelm creates a new helm manifest renderer with given options
-// and command executor.
-func NewHelm(o *kcm.HelmOptions, executor command.Executor) *Helm {
+// NewHelm creates a new helm manifest renderer with given options.
+func NewHelm(o *kcm.HelmOptions) *Helm {
 	return &Helm{
-		chart: helm.NewChart(o.Chart, executor),
+		chart: helm.NewChart(o.Chart),
 	}
 }
 

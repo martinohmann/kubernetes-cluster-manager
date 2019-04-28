@@ -5,19 +5,16 @@ package renderer
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHelmRenderManifest(t *testing.T) {
-	executor := command.NewExecutor()
-
 	o := &kcm.HelmOptions{
 		Chart: "testdata/helm/chart",
 	}
 
-	r := NewHelm(o, executor)
+	r := NewHelm(o)
 
 	values := kcm.Values{
 		"config": map[string]interface{}{

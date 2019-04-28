@@ -11,16 +11,13 @@ import (
 
 // Chart defines the type for a helm chart.
 type Chart struct {
-	name     string
-	executor command.Executor
+	name string
 }
 
-// NewChart creates a new Chart value for helm chart with name. Passed in
-// executor will be used to run helm commands.
-func NewChart(name string, executor command.Executor) *Chart {
+// NewChart creates a new Chart value for helm chart with name.
+func NewChart(name string) *Chart {
 	return &Chart{
-		name:     name,
-		executor: executor,
+		name: name,
 	}
 }
 
@@ -49,7 +46,7 @@ func (c *Chart) Render(values map[string]interface{}) ([]byte, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	out, err := c.executor.RunSilently(cmd)
+	out, err := command.RunSilently(cmd)
 	if err != nil {
 		return nil, err
 	}

@@ -11,8 +11,10 @@ import (
 
 func TestMinikubeProvision(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
-	m := NewMinikube(executor)
+	m := &Minikube{}
 
 	executor.Command("minikube status").WillError()
 	executor.Command("minikube start").WillSucceed()
@@ -24,8 +26,10 @@ func TestMinikubeProvision(t *testing.T) {
 
 func TestMinikubeFetch(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
-	m := NewMinikube(executor)
+	m := &Minikube{}
 
 	output := `127.0.0.1`
 
@@ -47,8 +51,10 @@ func TestMinikubeFetch(t *testing.T) {
 
 func TestMinikubeDestroy(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
-	m := NewMinikube(executor)
+	m := &Minikube{}
 
 	executor.Command("minikube status").WillSucceed()
 	executor.Command("minikube delete").WillSucceed()

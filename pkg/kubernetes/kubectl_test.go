@@ -10,12 +10,15 @@ import (
 
 func TestApplyManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
 	creds := &kcm.Credentials{
 		Server: "https://localhost:6443",
 		Token:  "sometoken",
 	}
 
-	kubectl := NewKubectl(creds, executor)
+	kubectl := NewKubectl(creds)
 
 	err := kubectl.ApplyManifest(kcm.Manifest{})
 
@@ -31,11 +34,14 @@ func TestApplyManifest(t *testing.T) {
 
 func TestDeleteManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
 	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	kubectl := NewKubectl(creds, executor)
+	kubectl := NewKubectl(creds)
 
 	err := kubectl.DeleteManifest(kcm.Manifest{})
 
@@ -51,6 +57,9 @@ func TestDeleteManifest(t *testing.T) {
 
 func TestDeleteResource(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
 	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
@@ -60,7 +69,7 @@ func TestDeleteResource(t *testing.T) {
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(creds, executor)
+	kubectl := NewKubectl(creds)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -76,6 +85,9 @@ func TestDeleteResource(t *testing.T) {
 
 func TestDeleteResourceLabels(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
 	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
@@ -88,7 +100,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 		},
 	}
 
-	kubectl := NewKubectl(creds, executor)
+	kubectl := NewKubectl(creds)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -103,7 +115,9 @@ func TestDeleteResourceLabels(t *testing.T) {
 }
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
-	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(command.NewMockExecutor(nil))
+	defer restoreExecutor()
+
 	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
@@ -112,7 +126,7 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(creds, executor)
+	kubectl := NewKubectl(creds)
 
 	err := kubectl.DeleteResource(resource)
 

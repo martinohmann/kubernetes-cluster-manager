@@ -17,18 +17,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createManager() (*Manager, *command.MockExecutor) {
-	e := command.NewMockExecutor(command.NewExecutor())
-	p := provisioner.NewTerraform(&kcm.TerraformOptions{}, e)
+func createManager() *Manager {
+	p := provisioner.NewTerraform(&kcm.TerraformOptions{})
 	m := NewManager(
 		credentials.NewProvisionerSource(p),
 		p,
-		renderer.NewHelm(&kcm.HelmOptions{Chart: "testdata/testchart"}, e),
-		e,
+		renderer.NewHelm(&kcm.HelmOptions{Chart: "testdata/testchart"}),
 		log.StandardLogger(),
 	)
 
-	return m, e
+	return m
 }
 
 func TestProvision(t *testing.T) {
@@ -52,7 +50,11 @@ postApply:
 		Manifest:  manifest.Name(),
 	}
 
-	p, executor := createManager()
+	executor := command.NewMockExecutor(command.NewExecutor(nil))
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
+	p := createManager()
 
 	executor.Command("terraform apply --auto-approve").WillSucceed()
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
@@ -118,7 +120,11 @@ preDestroy:
 		Manifest:  manifest.Name(),
 	}
 
-	p, executor := createManager()
+	executor := command.NewMockExecutor(command.NewExecutor(nil))
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
+
+	p := createManager()
 
 	executor.Command("terraform output --json").WillReturn(`{}`)
 	executor.Command("terraform output --json").WillReturn(`{}`)

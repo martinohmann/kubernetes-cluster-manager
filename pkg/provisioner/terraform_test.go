@@ -10,10 +10,12 @@ import (
 
 func TestTerraformProvision(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
 	options := kcm.TerraformOptions{Parallelism: 4}
 
-	m := NewTerraform(&options, executor)
+	m := NewTerraform(&options)
 
 	err := m.Provision()
 
@@ -32,8 +34,10 @@ func TestTerraformProvision(t *testing.T) {
 
 func TestTerraformPlan(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
-	m := NewTerraform(&kcm.TerraformOptions{}, executor)
+	m := NewTerraform(&kcm.TerraformOptions{})
 
 	err := m.Reconcile()
 
@@ -52,8 +56,10 @@ func TestTerraformPlan(t *testing.T) {
 
 func TestTerraformFetch(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
-	m := NewTerraform(&kcm.TerraformOptions{}, executor)
+	m := NewTerraform(&kcm.TerraformOptions{})
 
 	output := `
 {
@@ -91,10 +97,12 @@ func TestTerraformFetch(t *testing.T) {
 
 func TestTerraformDestroy(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
+	restoreExecutor := command.SetExecutorWithRestore(executor)
+	defer restoreExecutor()
 
 	options := kcm.TerraformOptions{Parallelism: 4}
 
-	m := NewTerraform(&options, executor)
+	m := NewTerraform(&options)
 
 	err := m.Destroy()
 
