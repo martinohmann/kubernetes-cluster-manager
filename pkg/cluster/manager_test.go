@@ -86,9 +86,7 @@ foo: output-from-terraform
 kubeconfig: /tmp/kubeconfig
 `
 
-	err := p.Provision(o)
-
-	assert.NoError(t, err)
+	assert.NoError(t, p.Provision(o))
 
 	buf, _ := ioutil.ReadFile(manifest.Name())
 
@@ -101,4 +99,43 @@ kubeconfig: /tmp/kubeconfig
 	buf, _ = ioutil.ReadFile(values.Name())
 
 	assert.Equal(t, expectedValues, string(buf))
+}
+
+func TestDestroy(t *testing.T) {
+	deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
+preDestroy:
+- kind: PersistentVolumeClaim
+  name: bar`))
+	defer os.Remove(deletions.Name())
+	values, _ := file.NewTempFile("values.yaml", []byte(`baz: somevalue`))
+	defer os.Remove(values.Name())
+	manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
+	defer os.Remove(manifest.Name())
+
+	o := &kcm.Options{
+		Values:    values.Name(),
+		Deletions: deletions.Name(),
+		Manifest:  manifest.Name(),
+	}
+
+	p, executor := createManager()
+
+	executor.Command("terraform output --json").WillReturn(`{}`)
+	executor.Command("terraform output --json").WillReturn(`{}`)
+	executor.Pattern("helm template --values .*").WillExecute()
+	executor.Pattern("kubectl cluster-info.*").WillSucceed()
+	executor.Pattern("kubectl delete -f - --ignore-not-found").WillSucceed()
+	executor.Pattern("kubectl delete persistentvolumeclaim --ignore-not-found --namespace default bar").WillSucceed()
+	executor.Command("terraform destroy --auto-approve").WillSucceed()
+
+	expectedDeletions := `preApply: []
+postApply: []
+preDestroy: []
+`
+
+	assert.NoError(t, p.Destroy(o))
+
+	buf, _ := ioutil.ReadFile(deletions.Name())
+
+	assert.Equal(t, expectedDeletions, string(buf))
 }

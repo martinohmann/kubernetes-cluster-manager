@@ -51,3 +51,39 @@ clusterOptions:
 	assert.Equal(t, "/values.yaml", o.ManagerOptions.Values)
 	assert.Equal(t, "/deletions.yaml", o.ManagerOptions.Deletions)
 }
+
+func TestOptionsCreateManager(t *testing.T) {
+	cases := []struct {
+		name        string
+		o           *Options
+		expectError bool
+	}{
+		{
+			name:        "invalid provisioner",
+			o:           &Options{Provisioner: "foo"},
+			expectError: true,
+		},
+		{
+			name:        "invalid renderer",
+			o:           &Options{Provisioner: "null", Renderer: "bar"},
+			expectError: true,
+		},
+		{
+			name:        "valid options",
+			o:           &Options{Provisioner: "null", Renderer: "helm"},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := tc.o.createManager()
+			if tc.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, m)
+			}
+		})
+	}
+}
