@@ -1,22 +1,22 @@
-package provisioner
+package cluster
 
 import (
 	"errors"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessResourceDeletions(t *testing.T) {
-	o := &Options{}
+	o := &kcm.Options{}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, command.NewMockExecutor(nil))
 
-	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
+	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 
 	err := processResourceDeletions(o, l, kubectl, deletions)
 
@@ -26,11 +26,11 @@ func TestProcessResourceDeletions(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
-	o := &Options{DryRun: true}
+	o := &kcm.Options{DryRun: true}
 	l := log.New()
-	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, command.NewMockExecutor(nil))
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, command.NewMockExecutor(nil))
 
-	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
+	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 
 	err := processResourceDeletions(o, l, kubectl, deletions)
 
@@ -40,12 +40,12 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsFailed(t *testing.T) {
-	o := &Options{}
+	o := &kcm.Options{}
 	l := log.New()
 	executor := command.NewMockExecutor(nil)
-	kubectl := kubernetes.NewKubectl(&kubernetes.ClusterOptions{}, executor)
+	kubectl := kubernetes.NewKubectl(&kcm.Credentials{}, executor)
 
-	deletions := []*api.Deletion{{Name: "foo", Kind: "pod"}}
+	deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
 	expectedError := errors.New("deletion failed")
 
 	executor.NextCommand().WillReturnError(expectedError)

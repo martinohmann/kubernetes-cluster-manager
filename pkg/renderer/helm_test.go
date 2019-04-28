@@ -1,25 +1,25 @@
 // +build integration
 
-package manifest
+package renderer
 
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRenderManifest(t *testing.T) {
+func TestHelmRenderManifest(t *testing.T) {
 	executor := command.NewExecutor()
 
-	o := &HelmOptions{
-		Chart: "helm/testdata/chart",
+	o := &kcm.HelmOptions{
+		Chart: "testdata/helm/chart",
 	}
 
-	r := NewHelmRenderer(o, executor)
+	r := NewHelm(o, executor)
 
-	values := api.Values{
+	values := kcm.Values{
 		"config": map[string]interface{}{
 			"bar": "baz",
 		},

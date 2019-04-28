@@ -1,18 +1,18 @@
-package infra
+package provisioner
 
 import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
 func init() {
-	RegisterManager("terraform", func(o *ManagerOptions, e command.Executor) (Manager, error) {
-		return NewTerraformManager(&o.Terraform, e), nil
+	Register("terraform", func(o *kcm.ProvisionerOptions, e command.Executor) (kcm.Provisioner, error) {
+		return NewTerraform(&o.Terraform, e), nil
 	})
 }
 
@@ -20,27 +20,23 @@ type terraformOutputValue struct {
 	Value interface{} `json:"value"`
 }
 
-type TerraformOptions struct {
-	Parallelism int `json:"parallelism" yaml:"parallelism"`
-}
-
-// TerraformManager is an infrastructure manager that uses terraform to manage
+// Terraform is an infrastructure manager that uses terraform to manage
 // resources.
-type TerraformManager struct {
-	options  *TerraformOptions
+type Terraform struct {
+	options  *kcm.TerraformOptions
 	executor command.Executor
 }
 
-// NewTerraformManager creates a new terraform infrastructure manager.
-func NewTerraformManager(o *TerraformOptions, executor command.Executor) *TerraformManager {
-	return &TerraformManager{
+// NewTerraform creates a new terraform infrastructure manager.
+func NewTerraform(o *kcm.TerraformOptions, executor command.Executor) *Terraform {
+	return &Terraform{
 		options:  o,
 		executor: executor,
 	}
 }
 
-// Apply implements Apply from the Manager interface.
-func (m *TerraformManager) Apply() error {
+// Provision implements Provision from the kcm.Provisioner interface.
+func (m *Terraform) Provision() error {
 	args := []string{
 		"terraform",
 		"apply",
@@ -58,8 +54,8 @@ func (m *TerraformManager) Apply() error {
 	return err
 }
 
-// Plan implements Plan from the Manager interface.
-func (m *TerraformManager) Plan() (err error) {
+// Reconcile implements Reconcile from the kcm.Provisioner interface.
+func (m *Terraform) Reconcile() (err error) {
 	args := []string{
 		"terraform",
 		"plan",
@@ -82,8 +78,8 @@ func (m *TerraformManager) Plan() (err error) {
 	return
 }
 
-// GetValues implements GetValues from the Manager interface.
-func (m *TerraformManager) GetValues() (api.Values, error) {
+// Fetch implements Fetch from the kcm.Provisioner interface.
+func (m *Terraform) Fetch() (kcm.Values, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -102,7 +98,7 @@ func (m *TerraformManager) GetValues() (api.Values, error) {
 		return nil, err
 	}
 
-	v := make(api.Values)
+	v := make(kcm.Values)
 
 	for key, ov := range outputValues {
 		v[key] = ov.Value
@@ -111,8 +107,8 @@ func (m *TerraformManager) GetValues() (api.Values, error) {
 	return v, nil
 }
 
-// Destroy implements Destroy from the Manager interface.
-func (m *TerraformManager) Destroy() error {
+// Destroy implements Destroy from the kcm.Provisioner interface.
+func (m *Terraform) Destroy() error {
 	args := []string{
 		"terraform",
 		"destroy",

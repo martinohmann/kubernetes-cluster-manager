@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestLoadYAML(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	deletions := &api.Deletions{}
+	deletions := &kcm.Deletions{}
 
 	if !assert.NoError(t, LoadYAML(f.Name(), deletions)) {
 		return

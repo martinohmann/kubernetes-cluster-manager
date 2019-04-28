@@ -1,32 +1,34 @@
-// +build integration
+// build +integration
 
-package provisioner
+package cluster
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/infra"
-	"github.com/martinohmann/kubernetes-cluster-manager/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
-func createProvisioner() (*Provisioner, *command.MockExecutor) {
+func createManager() (*Manager, *command.MockExecutor) {
 	e := command.NewMockExecutor(command.NewExecutor())
-	p := NewClusterProvisioner(
-		&kubernetes.ClusterOptions{},
-		infra.NewTerraformManager(&infra.TerraformOptions{}, e),
-		manifest.NewHelmRenderer(&manifest.HelmOptions{Chart: "testdata/testchart"}, e),
+	p := provisioner.NewTerraform(&kcm.TerraformOptions{}, e)
+	m := NewManager(
+		credentials.NewProvisionerSource(p),
+		p,
+		renderer.NewHelm(&kcm.HelmOptions{Chart: "testdata/testchart"}, e),
 		e,
 		log.StandardLogger(),
 	)
 
-	return p, e
+	return m, e
 }
 
 func TestProvision(t *testing.T) {
@@ -44,15 +46,16 @@ postApply:
 	manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
 	defer os.Remove(manifest.Name())
 
-	o := &Options{
+	o := &kcm.Options{
 		Values:    values.Name(),
 		Deletions: deletions.Name(),
 		Manifest:  manifest.Name(),
 	}
 
-	p, executor := createProvisioner()
+	p, executor := createManager()
 
 	executor.Command("terraform apply --auto-approve").WillSucceed()
+	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
 	executor.Pattern("helm template --values .*").WillExecute()
 	executor.Pattern("kubectl cluster-info.*").WillSucceed()
@@ -83,9 +86,7 @@ foo: output-from-terraform
 kubeconfig: /tmp/kubeconfig
 `
 
-	err := p.Provision(o)
-
-	assert.NoError(t, err)
+	assert.NoError(t, p.Provision(o))
 
 	buf, _ := ioutil.ReadFile(manifest.Name())
 
@@ -98,4 +99,43 @@ kubeconfig: /tmp/kubeconfig
 	buf, _ = ioutil.ReadFile(values.Name())
 
 	assert.Equal(t, expectedValues, string(buf))
+}
+
+func TestDestroy(t *testing.T) {
+	deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
+preDestroy:
+- kind: PersistentVolumeClaim
+  name: bar`))
+	defer os.Remove(deletions.Name())
+	values, _ := file.NewTempFile("values.yaml", []byte(`baz: somevalue`))
+	defer os.Remove(values.Name())
+	manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
+	defer os.Remove(manifest.Name())
+
+	o := &kcm.Options{
+		Values:    values.Name(),
+		Deletions: deletions.Name(),
+		Manifest:  manifest.Name(),
+	}
+
+	p, executor := createManager()
+
+	executor.Command("terraform output --json").WillReturn(`{}`)
+	executor.Command("terraform output --json").WillReturn(`{}`)
+	executor.Pattern("helm template --values .*").WillExecute()
+	executor.Pattern("kubectl cluster-info.*").WillSucceed()
+	executor.Pattern("kubectl delete -f - --ignore-not-found").WillSucceed()
+	executor.Pattern("kubectl delete persistentvolumeclaim --ignore-not-found --namespace default bar").WillSucceed()
+	executor.Command("terraform destroy --auto-approve").WillSucceed()
+
+	expectedDeletions := `preApply: []
+postApply: []
+preDestroy: []
+`
+
+	assert.NoError(t, p.Destroy(o))
+
+	buf, _ := ioutil.ReadFile(deletions.Name())
+
+	assert.Equal(t, expectedDeletions, string(buf))
 }

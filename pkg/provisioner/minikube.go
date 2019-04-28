@@ -1,35 +1,35 @@
-package infra
+package provisioner
 
 import (
 	"fmt"
 	"os/exec"
 	"strings"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
 func init() {
-	RegisterManager("minikube", func(_ *ManagerOptions, e command.Executor) (Manager, error) {
-		return NewMinikubeManager(e), nil
+	Register("minikube", func(_ *kcm.ProvisionerOptions, e command.Executor) (kcm.Provisioner, error) {
+		return NewMinikube(e), nil
 	})
 }
 
-// MinikubeManager uses minikube instead of an actual infrastructure manager.
+// Minikube uses minikube instead of an actual infrastructure provisioner.
 // This is useful for local testing.
-type MinikubeManager struct {
+type Minikube struct {
 	executor command.Executor
 }
 
-// NewMinikubeManager creates a new minikube manager.
-func NewMinikubeManager(executor command.Executor) *MinikubeManager {
-	return &MinikubeManager{
+// NewMinikube creates a new minikube manager.
+func NewMinikube(executor command.Executor) *Minikube {
+	return &Minikube{
 		executor: executor,
 	}
 }
 
-func (m *MinikubeManager) status() error {
+func (m *Minikube) status() error {
 	args := []string{
 		"minikube",
 		"status",
@@ -42,7 +42,7 @@ func (m *MinikubeManager) status() error {
 	return err
 }
 
-func (m *MinikubeManager) start() error {
+func (m *Minikube) start() error {
 	if err := m.status(); err == nil {
 		return nil
 	}
@@ -59,18 +59,18 @@ func (m *MinikubeManager) start() error {
 	return err
 }
 
-// Apply implements Apply from the Manager interface.
-func (m *MinikubeManager) Apply() error {
+// Provision implements Provision from the kcm.Provisioner interface.
+func (m *Minikube) Provision() error {
 	return m.start()
 }
 
-// Plan implements Plan from the Manager interface.
-func (m *MinikubeManager) Plan() error {
+// Reconcile implements Reconcile from the kcm.Provisioner interface.
+func (m *Minikube) Reconcile() error {
 	return m.start()
 }
 
-// GetValues implements GetValues from the Manager interface.
-func (m *MinikubeManager) GetValues() (api.Values, error) {
+// Fetch implements Fetch from the kcm.Provisioner interface.
+func (m *Minikube) Fetch() (kcm.Values, error) {
 	args := []string{
 		"minikube",
 		"ip",
@@ -85,7 +85,7 @@ func (m *MinikubeManager) GetValues() (api.Values, error) {
 
 	home, _ := homedir.Dir()
 
-	v := api.Values{
+	v := kcm.Values{
 		"server":     fmt.Sprintf("https://%s:8443", strings.Trim(out, "\n")),
 		"kubeconfig": fmt.Sprintf("%s/.kube/config", home),
 		// this will force the correct kubectl kubeconfig context
@@ -95,8 +95,8 @@ func (m *MinikubeManager) GetValues() (api.Values, error) {
 	return v, nil
 }
 
-// Destroy implements Destroy from the Manager interface.
-func (m *MinikubeManager) Destroy() error {
+// Destroy implements Destroy from the kcm.Provisioner interface.
+func (m *Minikube) Destroy() error {
 	if err := m.status(); err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package api
+package kcm
 
 import (
 	"testing"

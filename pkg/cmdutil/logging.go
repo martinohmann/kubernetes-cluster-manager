@@ -11,11 +11,9 @@ import (
 
 var logger = log.StandardLogger()
 
-func SetLogger(l *log.Logger) {
+func ConfigureLogger(l *log.Logger) {
 	logger = l
-}
 
-func SetupLogger() {
 	if !debug {
 		return
 	}

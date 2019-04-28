@@ -3,21 +3,21 @@ package kubernetes
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/api"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApplyManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &kcm.Credentials{
 		Server: "https://localhost:6443",
 		Token:  "sometoken",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
-	err := kubectl.ApplyManifest(api.Manifest{})
+	err := kubectl.ApplyManifest(kcm.Manifest{})
 
 	assert.NoError(t, err)
 	if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -31,13 +31,13 @@ func TestApplyManifest(t *testing.T) {
 
 func TestDeleteManifest(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
-	err := kubectl.DeleteManifest(api.Manifest{})
+	err := kubectl.DeleteManifest(kcm.Manifest{})
 
 	assert.NoError(t, err)
 	if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -51,16 +51,16 @@ func TestDeleteManifest(t *testing.T) {
 
 func TestDeleteResource(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	resource := &api.Deletion{
+	resource := &kcm.Deletion{
 		Name: "foo",
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -76,11 +76,11 @@ func TestDeleteResource(t *testing.T) {
 
 func TestDeleteResourceLabels(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	resource := &api.Deletion{
+	resource := &kcm.Deletion{
 		Kind: "pod",
 		Labels: map[string]string{
 			"app.kubernetes.io/name":    "foo",
@@ -88,7 +88,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 		},
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteResource(resource)
 
@@ -104,15 +104,15 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
 	executor := command.NewMockExecutor(nil)
-	opts := &ClusterOptions{
+	creds := &kcm.Credentials{
 		Kubeconfig: "/tmp/kubeconfig",
 	}
 
-	resource := &api.Deletion{
+	resource := &kcm.Deletion{
 		Kind: "pod",
 	}
 
-	kubectl := NewKubectl(opts, executor)
+	kubectl := NewKubectl(creds, executor)
 
 	err := kubectl.DeleteResource(resource)
 
