@@ -50,10 +50,6 @@ func (o *DumpConfigOptions) Validate() error {
 		return errors.New("--output must be 'yaml' or 'json'")
 	}
 
-	if o.Filename != "" && !file.Exists(o.Filename) {
-		return errors.Errorf("file %q does not exist", o.Filename)
-	}
-
 	return nil
 }
 
