@@ -68,6 +68,10 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
 
+	executor := command.NewExecutor(o.logger)
+
+	command.SetExecutor(executor)
+
 	return err
 }
 
@@ -97,14 +101,12 @@ func (o *Options) MergeConfig(filename string) error {
 }
 
 func (o *Options) createManager() (kcm.ClusterManager, error) {
-	executor := command.NewExecutor(o.logger)
-
-	infraProvisioner, err := provisioner.Create(o.Provisioner, &o.ProvisionerOptions, executor)
+	infraProvisioner, err := provisioner.Create(o.Provisioner, &o.ProvisionerOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	manifestRenderer, err := renderer.Create(o.Renderer, &o.RendererOptions, executor)
+	manifestRenderer, err := renderer.Create(o.Renderer, &o.RendererOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +127,6 @@ func (o *Options) createManager() (kcm.ClusterManager, error) {
 		credentialSource,
 		infraProvisioner,
 		manifestRenderer,
-		executor,
 		o.logger,
 	), nil
 }

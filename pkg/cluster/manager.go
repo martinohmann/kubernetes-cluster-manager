@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
@@ -14,7 +13,6 @@ type Manager struct {
 	credentialSource kcm.CredentialSource
 	provisioner      kcm.Provisioner
 	renderer         kcm.Renderer
-	executor         command.Executor
 	values           kcm.Values
 	deletions        *kcm.Deletions
 	logger           *log.Logger
@@ -25,14 +23,12 @@ func NewManager(
 	credentialSource kcm.CredentialSource,
 	provisioner kcm.Provisioner,
 	renderer kcm.Renderer,
-	executor command.Executor,
 	logger *log.Logger,
 ) *Manager {
 	return &Manager{
 		credentialSource: credentialSource,
 		provisioner:      provisioner,
 		renderer:         renderer,
-		executor:         executor,
 		logger:           logger,
 		deletions:        &kcm.Deletions{},
 		values:           kcm.Values{},
@@ -82,7 +78,7 @@ func (p *Manager) ApplyManifests(o *kcm.Options) error {
 		return err
 	}
 
-	kubectl := kubernetes.NewKubectl(creds, p.executor)
+	kubectl := kubernetes.NewKubectl(creds)
 
 	if !o.DryRun {
 		p.logger.Info("Waiting for cluster to become available...")
@@ -146,7 +142,7 @@ func (p *Manager) DeleteManifests(o *kcm.Options) error {
 		return err
 	}
 
-	kubectl := kubernetes.NewKubectl(creds, p.executor)
+	kubectl := kubernetes.NewKubectl(creds)
 
 	if o.DryRun {
 		p.logger.Warn("Would delete manifest")

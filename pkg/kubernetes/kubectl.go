@@ -30,14 +30,12 @@ var (
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
 	credentials *kcm.Credentials
-	executor    command.Executor
 }
 
 // NewKubectl create a new kubectl interactor.
-func NewKubectl(c *kcm.Credentials, executor command.Executor) *Kubectl {
+func NewKubectl(c *kcm.Credentials) *Kubectl {
 	return &Kubectl{
 		credentials: c,
-		executor:    executor,
 	}
 }
 
@@ -56,7 +54,7 @@ func (k *Kubectl) ApplyManifest(manifest kcm.Manifest) error {
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
-			_, err := k.executor.Run(cmd)
+			_, err := command.Run(cmd)
 			return err
 		},
 		backoffStrategy,
@@ -81,7 +79,7 @@ func (k *Kubectl) DeleteManifest(manifest kcm.Manifest) error {
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
-			_, err := k.executor.Run(cmd)
+			_, err := command.Run(cmd)
 			return err
 		},
 		backoffStrategy,
@@ -134,7 +132,7 @@ func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := k.executor.Run(cmd)
+	_, err := command.Run(cmd)
 
 	return err
 }
@@ -150,7 +148,7 @@ func (k *Kubectl) UseContext(context string) error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := k.executor.RunSilently(cmd)
+	_, err := command.RunSilently(cmd)
 
 	return err
 }
@@ -166,7 +164,7 @@ func (k *Kubectl) ClusterInfo() (string, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	return k.executor.RunSilently(cmd)
+	return command.RunSilently(cmd)
 }
 
 // buildCredentialArgs builds kubectl args from credentials.

@@ -8,14 +8,14 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	r, err := Create("helm", &kcm.RendererOptions{}, nil)
+	r, err := Create("helm", &kcm.RendererOptions{})
 
 	assert.NoError(t, err)
 	assert.IsType(t, &Helm{}, r)
 }
 
 func TestCreateError(t *testing.T) {
-	_, err := Create("", &kcm.RendererOptions{}, nil)
+	_, err := Create("", &kcm.RendererOptions{})
 
 	assert.Error(t, err)
 }
