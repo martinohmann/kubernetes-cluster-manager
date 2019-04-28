@@ -25,7 +25,6 @@ func BindRendererFlags(cmd *cobra.Command, o *kcm.RendererOptions) {
 
 func BindManagerFlags(cmd *cobra.Command, o *kcm.Options) {
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Do not make any changes")
-	cmd.Flags().BoolVar(&o.OnlyManifest, "only-manifest", false, "Only render manifest, skip infrastructure changes")
 	cmd.Flags().StringVarP(&o.Manifest, "manifest", "m", "manifest.yaml", `Manifest file path`)
 	cmd.Flags().StringVarP(&o.Deletions, "deletions", "d", "deletions.yaml", `Deletions file path`)
 	cmd.Flags().StringVar(&o.Values, "values", "values.yaml", `Values file path`)

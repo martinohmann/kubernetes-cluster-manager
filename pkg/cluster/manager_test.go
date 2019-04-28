@@ -56,8 +56,8 @@ postApply:
 
 	executor.Command("terraform apply --auto-approve").WillSucceed()
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
-	executor.Pattern("helm template --values .*").WillExecute()
 	executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
+	executor.Pattern("helm template --values .*").WillExecute()
 	executor.Pattern("kubectl cluster-info.*").WillSucceed()
 	executor.Pattern("kubectl delete pod --ignore-not-found --namespace kube-system --kubeconfig /tmp/kubeconfig foo").WillSucceed()
 	executor.Pattern("kubectl apply -f -").WillSucceed()

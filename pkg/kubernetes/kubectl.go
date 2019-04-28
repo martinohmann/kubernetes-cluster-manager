@@ -151,11 +151,8 @@ func (k *Kubectl) UseContext(context string) error {
 	cmd := exec.Command(args[0], args[1:]...)
 
 	_, err := k.executor.RunSilently(cmd)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // ClusterInfo fetches the kubernetes cluster info.

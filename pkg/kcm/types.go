@@ -81,7 +81,7 @@ func (v Values) Merge(other Values) error {
 	return mergo.Merge(&v, other, mergo.WithOverride)
 }
 
-// Credentials contains the credentials needed to communicate with a Kubernetes
+// Credentials holds the credentials needed to communicate with a Kubernetes
 // cluster.
 type Credentials struct {
 	Server     string `json:"server" yaml:"server"`

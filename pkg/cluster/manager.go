@@ -9,6 +9,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// Manager is a kcm.Manager.
 type Manager struct {
 	credentialSource kcm.CredentialSource
 	provisioner      kcm.Provisioner
@@ -19,6 +20,7 @@ type Manager struct {
 	logger           *log.Logger
 }
 
+// NewManager creates a new cluster manager.
 func NewManager(
 	credentialSource kcm.CredentialSource,
 	provisioner kcm.Provisioner,
@@ -33,43 +35,35 @@ func NewManager(
 		executor:         executor,
 		logger:           logger,
 		deletions:        &kcm.Deletions{},
-		values:           make(kcm.Values),
+		values:           kcm.Values{},
 	}
 }
 
-func (p *Manager) prepare(o *kcm.Options) error {
-	if err := file.LoadYAML(o.Values, &p.values); err != nil {
-		return err
-	}
-
-	return file.LoadYAML(o.Deletions, &p.deletions)
-}
-
+// Provision implements Provision from the kcm.ClusterManager interface.
 func (p *Manager) Provision(o *kcm.Options) error {
 	var err error
 
-	if err = p.prepare(o); err != nil {
+	if o.DryRun {
+		err = p.provisioner.Reconcile()
+	} else {
+		err = p.provisioner.Provision()
+	}
+
+	if err != nil || o.SkipManifests {
 		return err
 	}
 
-	if !o.OnlyManifest {
-		if o.DryRun {
-			err = p.provisioner.Reconcile()
-		} else {
-			err = p.provisioner.Provision()
-		}
+	return p.ApplyManifests(o)
+}
+
+// ApplyManifests implements ApplyManifests from the kcm.ClusterManager interface.
+func (p *Manager) ApplyManifests(o *kcm.Options) error {
+	if err := p.prepareManifests(o); err != nil {
+		return err
 	}
 
+	creds, err := p.credentialSource.GetCredentials()
 	if err != nil {
-		return err
-	}
-
-	newValues, err := p.provisioner.Fetch()
-	if err != nil {
-		return err
-	}
-
-	if err := p.values.Merge(newValues); err != nil {
 		return err
 	}
 
@@ -84,11 +78,6 @@ func (p *Manager) Provision(o *kcm.Options) error {
 	}
 
 	manifest, err := p.renderer.RenderManifest(p.values)
-	if err != nil {
-		return err
-	}
-
-	creds, err := p.credentialSource.GetCredentials()
 	if err != nil {
 		return err
 	}
@@ -124,26 +113,35 @@ func (p *Manager) Provision(o *kcm.Options) error {
 	return processResourceDeletions(o, p.logger, kubectl, p.deletions.PostApply)
 }
 
+// Destroy implements Destroy from the kcm.ClusterManager interface.
 func (p *Manager) Destroy(o *kcm.Options) error {
-	if err := p.prepare(o); err != nil {
-		return err
+	if !o.SkipManifests {
+		if err := p.DeleteManifests(o); err != nil {
+			return err
+		}
 	}
 
-	currentValues, err := p.provisioner.Fetch()
-	if err != nil {
-		return err
+	if o.DryRun {
+		p.logger.Warn("Would destroy infrastructure")
+		return nil
 	}
 
-	if err := p.values.Merge(currentValues); err != nil {
-		return err
-	}
+	return p.provisioner.Destroy()
 
-	manifest, err := p.renderer.RenderManifest(p.values)
-	if err != nil {
+}
+
+// DeleteManifests implements DeleteManifests from the kcm.ClusterManager interface.
+func (p *Manager) DeleteManifests(o *kcm.Options) error {
+	if err := p.prepareManifests(o); err != nil {
 		return err
 	}
 
 	creds, err := p.credentialSource.GetCredentials()
+	if err != nil {
+		return err
+	}
+
+	manifest, err := p.renderer.RenderManifest(p.values)
 	if err != nil {
 		return err
 	}
@@ -159,19 +157,7 @@ func (p *Manager) Destroy(o *kcm.Options) error {
 
 	defer p.finalizeDeletions(o, p.deletions)
 
-	if err := processResourceDeletions(o, p.logger, kubectl, p.deletions.PreDestroy); err != nil {
-		return err
-	}
-
-	if !o.OnlyManifest {
-		if o.DryRun {
-			p.logger.Warn("Would destroy infrastructure")
-		} else {
-			return p.provisioner.Destroy()
-		}
-	}
-
-	return nil
+	return processResourceDeletions(o, p.logger, kubectl, p.deletions.PreDestroy)
 }
 
 func (p *Manager) finalizeChanges(o *kcm.Options, filename string, content []byte) error {
@@ -202,4 +188,21 @@ func (p *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) er
 	}
 
 	return p.finalizeChanges(o, o.Deletions, buf)
+}
+
+func (p *Manager) prepareManifests(o *kcm.Options) error {
+	if err := file.LoadYAML(o.Values, &p.values); err != nil {
+		return err
+	}
+
+	if err := file.LoadYAML(o.Deletions, &p.deletions); err != nil {
+		return err
+	}
+
+	v, err := p.provisioner.Fetch()
+	if err != nil {
+		return err
+	}
+
+	return p.values.Merge(v)
 }

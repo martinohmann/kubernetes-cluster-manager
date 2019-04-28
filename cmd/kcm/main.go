@@ -21,15 +21,17 @@ var (
 func init() {
 	logger := log.New()
 
-	cmdutil.SetLogger(logger)
 	cmdutil.AddGlobalDebugFlag(rootCmd)
 
 	rootCmd.AddCommand(cmd.NewProvisionCommand(logger))
 	rootCmd.AddCommand(cmd.NewDestroyCommand(logger))
+	rootCmd.AddCommand(cmd.NewManifestsCommand(logger))
 	rootCmd.AddCommand(cmd.NewDumpConfigCommand(os.Stdout))
 	rootCmd.AddCommand(cmd.NewVersionCommand(os.Stdout))
 
-	cobra.OnInitialize(cmdutil.SetupLogger)
+	cobra.OnInitialize(func() {
+		cmdutil.ConfigureLogger(logger)
+	})
 }
 
 func main() {

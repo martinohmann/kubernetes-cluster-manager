@@ -15,7 +15,7 @@ var (
 	provisioners = make(map[string]Factory)
 )
 
-// RegisterProvisioner registers a factory for an infrastructure provisioner with given
+// Register registers a factory for an infrastructure provisioner with given
 // name.
 func Register(name string, factory Factory) {
 	provisioners[name] = factory

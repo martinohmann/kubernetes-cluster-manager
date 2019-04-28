@@ -32,7 +32,7 @@ func (*Null) Fetch() (kcm.Values, error) {
 	return kcm.Values{}, nil
 }
 
-// Destroy implements Destroy from the Provisioner interface.
+// Destroy implements Destroy from the kcm.Provisioner interface.
 func (*Null) Destroy() error {
 	return nil
 }
