@@ -24,7 +24,7 @@ type Executor interface {
 
 // DefaultExecutor is the default executor used in the package level Run and
 // RunSilently funcs.
-var DefaultExecutor = NewExecutor()
+var DefaultExecutor = NewExecutor(nil)
 
 // Run runs a command using the default executor.
 func Run(cmd *exec.Cmd) (string, error) {
@@ -40,12 +40,11 @@ type executor struct {
 	logger *log.Logger
 }
 
-// NewExecutor creates a new command executor. Optionally accepts a logger for
-// logging command output. If not provided logrus.StandardLogger() will be used.
-func NewExecutor(logger ...*log.Logger) Executor {
-	l := log.StandardLogger()
-	if len(logger) > 0 && logger[0] != nil {
-		l = logger[0]
+// NewExecutor creates a new command executor. Accepts a logger for logging
+// command output. If nil is provided logrus.StandardLogger() will be used.
+func NewExecutor(l *log.Logger) Executor {
+	if l == nil {
+		l = log.StandardLogger()
 	}
 
 	return &executor{logger: l}
