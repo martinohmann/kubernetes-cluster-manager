@@ -3,10 +3,11 @@ package kcm
 // Options are used to configure the cluster manager.
 type Options struct {
 	DryRun        bool   `json:"dryRun" yaml:"dryRun"`
-	Manifest      string `json:"manifest" yaml:"manifest"`
 	Values        string `json:"values" yaml:"values"`
 	Deletions     string `json:"deletions" yaml:"deletions"`
+	ManifestsDir  string `json:"manifestsDir" yaml:"manifestsDir"`
 	SkipManifests bool   `json:"skipManifests" yaml:"skipManifests"`
+	OnlyChanges   bool   `json:"onlyChanges" yaml:"onlyChanges"`
 }
 
 // ProvisionerOptions are made available to infrastructure provisioners.
@@ -26,5 +27,5 @@ type RendererOptions struct {
 
 // HelmOptions configure the helm manifest renderer.
 type HelmOptions struct {
-	Chart string `json:"chart" yaml:"chart"`
+	ChartsDir string `json:"chartsDir" yaml:"chartsDir"`
 }

@@ -1,8 +1,10 @@
 package helm
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
@@ -52,4 +54,24 @@ func (c *Chart) Render(values map[string]interface{}) ([]byte, error) {
 	}
 
 	return []byte(out), nil
+}
+
+// IsChartDir returns true if dir is a helm chart.
+func IsChartDir(dir string) bool {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+
+		if filepath.Base(f.Name()) == "Chart.yaml" {
+			return true
+		}
+	}
+
+	return false
 }

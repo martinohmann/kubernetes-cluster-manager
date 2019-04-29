@@ -18,7 +18,7 @@ func TestApplyManifest(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.ApplyManifest(kcm.Manifest{})
+		err := kubectl.ApplyManifest(&kcm.Manifest{})
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -39,7 +39,7 @@ func TestDeleteManifest(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteManifest(kcm.Manifest{})
+		err := kubectl.DeleteManifest(&kcm.Manifest{})
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {

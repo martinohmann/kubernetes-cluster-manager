@@ -47,8 +47,8 @@ type Provisioner interface {
 
 // Renderer is the interface for a Kubernetes manifest renderer.
 type Renderer interface {
-	// RenderManifest renders a Kubernetes manifest.
-	RenderManifest(Values) (Manifest, error)
+	// RenderManifest renders Kubernetes manifests.
+	RenderManifests(Values) ([]*Manifest, error)
 }
 
 // CredentialSource provides credentials for a Kubernetes cluster.

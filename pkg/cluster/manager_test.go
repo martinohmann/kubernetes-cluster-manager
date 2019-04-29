@@ -5,6 +5,7 @@ package cluster
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -23,7 +24,7 @@ func createManager() *Manager {
 	m := NewManager(
 		credentials.NewProvisionerSource(p),
 		p,
-		renderer.NewHelm(&kcm.HelmOptions{Chart: "testdata/testchart"}),
+		renderer.NewHelm(&kcm.HelmOptions{ChartsDir: "testdata/charts"}),
 		log.StandardLogger(),
 	)
 
@@ -45,11 +46,13 @@ postApply:
 		defer os.Remove(values.Name())
 		manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
 		defer os.Remove(manifest.Name())
+		manifestsDir, _ := ioutil.TempDir("", "manifests")
+		defer os.RemoveAll(manifestsDir)
 
 		o := &kcm.Options{
-			Values:    values.Name(),
-			Deletions: deletions.Name(),
-			Manifest:  manifest.Name(),
+			Values:       values.Name(),
+			Deletions:    deletions.Name(),
+			ManifestsDir: manifestsDir,
 		}
 
 		p := createManager()
@@ -88,7 +91,7 @@ kubeconfig: /tmp/kubeconfig
 
 		assert.NoError(t, p.Provision(o))
 
-		buf, _ := ioutil.ReadFile(manifest.Name())
+		buf, _ := ioutil.ReadFile(filepath.Join(manifestsDir, "testchart.yaml"))
 
 		assert.Equal(t, expectedManifest, string(buf))
 
@@ -113,11 +116,13 @@ preDestroy:
 		defer os.Remove(values.Name())
 		manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
 		defer os.Remove(manifest.Name())
+		manifestsDir, _ := ioutil.TempDir("", "manifests")
+		defer os.RemoveAll(manifestsDir)
 
 		o := &kcm.Options{
-			Values:    values.Name(),
-			Deletions: deletions.Name(),
-			Manifest:  manifest.Name(),
+			Values:       values.Name(),
+			Deletions:    deletions.Name(),
+			ManifestsDir: manifestsDir,
 		}
 
 		p := createManager()
