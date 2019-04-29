@@ -31,8 +31,6 @@ func NewHelm(o *kcm.HelmOptions) *Helm {
 
 // RenderManifests implements RenderManifests from the kcm.Renderer interface.
 func (r *Helm) RenderManifests(v kcm.Values) ([]*kcm.Manifest, error) {
-	manifests := []*kcm.Manifest{}
-
 	files, err := ioutil.ReadDir(r.chartsDir)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -50,13 +48,15 @@ func (r *Helm) RenderManifests(v kcm.Values) ([]*kcm.Manifest, error) {
 
 	sort.Strings(dirs)
 
-	for _, d := range dirs {
+	manifests := make([]*kcm.Manifest, len(dirs))
+
+	for i, d := range dirs {
 		manifest, err := r.renderChart(d, v)
 		if err != nil {
 			return nil, err
 		}
 
-		manifests = append(manifests, manifest)
+		manifests[i] = manifest
 	}
 
 	return manifests, nil
