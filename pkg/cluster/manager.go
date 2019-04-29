@@ -58,7 +58,7 @@ func (m *Manager) Provision(o *kcm.Options) error {
 
 // ApplyManifests implements ApplyManifests from the kcm.ClusterManager interface.
 func (m *Manager) ApplyManifests(o *kcm.Options) error {
-	if err := m.prepareManifests(o); err != nil {
+	if err := m.prepare(o); err != nil {
 		return err
 	}
 
@@ -85,6 +85,10 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 	kubectl := kubernetes.NewKubectl(creds)
 
 	if !o.DryRun {
+		if err := os.MkdirAll(o.ManifestsDir, 0775); err != nil {
+			return errors.WithStack(err)
+		}
+
 		m.logger.Info("Waiting for cluster to become available...")
 
 		if err := kubectl.WaitForCluster(); err != nil {
@@ -148,7 +152,7 @@ func (m *Manager) Destroy(o *kcm.Options) error {
 
 // DeleteManifests implements DeleteManifests from the kcm.ClusterManager interface.
 func (m *Manager) DeleteManifests(o *kcm.Options) error {
-	if err := m.prepareManifests(o); err != nil {
+	if err := m.prepare(o); err != nil {
 		return err
 	}
 
@@ -188,6 +192,15 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 	return processResourceDeletions(o, m.logger, kubectl, m.deletions.PreDestroy)
 }
 
+func (m *Manager) logChanges(changeSet *file.ChangeSet) {
+	filename := changeSet.Filename
+	if changeSet.HasChanges() {
+		m.logger.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
+	} else {
+		m.logger.Infof("No changes to %s", filename)
+	}
+}
+
 func (m *Manager) finalizeChanges(o *kcm.Options, filename string, content []byte) error {
 	cs, err := file.NewChangeSet(filename, content)
 	if err != nil {
@@ -203,15 +216,6 @@ func (m *Manager) finalizeChanges(o *kcm.Options, filename string, content []byt
 	return cs.Apply()
 }
 
-func (m *Manager) logChanges(changeSet *file.ChangeSet) {
-	filename := changeSet.Filename
-	if changeSet.HasChanges() {
-		m.logger.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
-	} else {
-		m.logger.Infof("No changes to %s", filename)
-	}
-}
-
 func (m *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) error {
 	buf, err := yaml.Marshal(deletions.FilterPending())
 	if err != nil {
@@ -221,7 +225,7 @@ func (m *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) er
 	return m.finalizeChanges(o, o.Deletions, buf)
 }
 
-func (m *Manager) prepareManifests(o *kcm.Options) error {
+func (m *Manager) prepare(o *kcm.Options) error {
 	if err := file.LoadYAML(o.Values, &m.values); err != nil {
 		return err
 	}
@@ -233,12 +237,6 @@ func (m *Manager) prepareManifests(o *kcm.Options) error {
 	v, err := m.provisioner.Fetch()
 	if err != nil {
 		return err
-	}
-
-	if !o.DryRun {
-		if err := os.MkdirAll(o.ManifestsDir, 0775); err != nil {
-			return errors.WithStack(err)
-		}
 	}
 
 	return m.values.Merge(v)

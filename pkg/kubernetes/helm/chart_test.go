@@ -1,6 +1,9 @@
 package helm
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -20,4 +23,15 @@ func TestChartRender(t *testing.T) {
 			assert.Regexp(t, "helm template --values .*values.yaml.* cluster", executor.ExecutedCommands[0])
 		}
 	})
+}
+
+func TestIsChartDir(t *testing.T) {
+	dir, _ := ioutil.TempDir("", "chart")
+	defer os.RemoveAll(dir)
+
+	assert.False(t, IsChartDir(dir))
+
+	ioutil.WriteFile(filepath.Join(dir, "Chart.yaml"), nil, 660)
+
+	assert.True(t, IsChartDir(dir))
 }
