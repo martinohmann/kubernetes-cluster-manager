@@ -39,7 +39,7 @@ type Options struct {
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&o.Provisioner, "provisioner", "terraform", `Infrastructure provisioner to use`)
+	cmd.Flags().StringVar(&o.Provisioner, "provisioner", "", `Infrastructure provisioner to use`)
 	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
@@ -67,6 +67,9 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 	}
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
+	if o.Provisioner == "" {
+		o.Provisioner = "null"
+	}
 
 	executor := command.NewExecutor(o.logger)
 
