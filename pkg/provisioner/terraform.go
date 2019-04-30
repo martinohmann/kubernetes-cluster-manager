@@ -41,7 +41,7 @@ func (m *Terraform) Provision() error {
 		"--auto-approve",
 	}
 
-	if m.options.Parallelism != 0 {
+	if m.options.Parallelism > 0 {
 		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
 	}
 
@@ -60,7 +60,7 @@ func (m *Terraform) Reconcile() (err error) {
 		"--detailed-exitcode",
 	}
 
-	if m.options.Parallelism != 0 {
+	if m.options.Parallelism > 0 {
 		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
 	}
 
@@ -113,7 +113,7 @@ func (m *Terraform) Destroy() error {
 		"--auto-approve",
 	}
 
-	if m.options.Parallelism != 0 {
+	if m.options.Parallelism > 0 {
 		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
 	}
 

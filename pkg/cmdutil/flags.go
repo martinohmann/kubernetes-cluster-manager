@@ -16,7 +16,7 @@ func AddConfigFlag(cmd *cobra.Command) {
 }
 
 func BindProvisionerFlags(cmd *cobra.Command, o *kcm.ProvisionerOptions) {
-	cmd.Flags().IntVar(&o.Terraform.Parallelism, "terraform-parallelism", 1, "Number of parallel terraform resource operations")
+	cmd.Flags().IntVar(&o.Terraform.Parallelism, "terraform-parallelism", 0, "Number of parallel terraform resource operations")
 }
 
 func BindRendererFlags(cmd *cobra.Command, o *kcm.RendererOptions) {
