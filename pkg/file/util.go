@@ -21,8 +21,8 @@ func NewTempFile(prefix string, content []byte) (*os.File, error) {
 	return f, nil
 }
 
-// LoadYAML loads the contents of filename and unmarshals it into v.
-func LoadYAML(filename string, v interface{}) error {
+// ReadYAML reads the contents of filename and unmarshals it into v.
+func ReadYAML(filename string, v interface{}) error {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil && !os.IsNotExist(err) {
 		return err

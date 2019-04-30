@@ -56,7 +56,7 @@ func (o *DumpConfigOptions) Validate() error {
 func (o *DumpConfigOptions) Run() error {
 	opts := &Options{}
 
-	if err := file.LoadYAML(o.Filename, opts); err != nil {
+	if err := file.ReadYAML(o.Filename, opts); err != nil {
 		return err
 	}
 

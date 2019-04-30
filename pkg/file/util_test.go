@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLoadYAML(t *testing.T) {
+func TestReadYAML(t *testing.T) {
 	content := []byte("---\npreApply:\n- kind: pod\n  name: foo")
 	f, err := NewTempFile("deletions.yaml", content)
 	if !assert.NoError(t, err) {
@@ -19,7 +19,7 @@ func TestLoadYAML(t *testing.T) {
 
 	deletions := &kcm.Deletions{}
 
-	if !assert.NoError(t, LoadYAML(f.Name(), deletions)) {
+	if !assert.NoError(t, ReadYAML(f.Name(), deletions)) {
 		return
 	}
 

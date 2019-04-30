@@ -96,7 +96,7 @@ func (o *Options) Run(exec func(kcm.ClusterManager, *kcm.Options) error) error {
 func (o *Options) MergeConfig(filename string) error {
 	opts := &Options{}
 
-	if err := file.LoadYAML(filename, opts); err != nil {
+	if err := file.ReadYAML(filename, opts); err != nil {
 		return err
 	}
 

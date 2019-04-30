@@ -226,11 +226,11 @@ func (m *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) er
 }
 
 func (m *Manager) prepare(o *kcm.Options) error {
-	if err := file.LoadYAML(o.Values, &m.values); err != nil {
+	if err := file.ReadYAML(o.Values, &m.values); err != nil {
 		return err
 	}
 
-	if err := file.LoadYAML(o.Deletions, &m.deletions); err != nil {
+	if err := file.ReadYAML(o.Deletions, &m.deletions); err != nil {
 		return err
 	}
 
