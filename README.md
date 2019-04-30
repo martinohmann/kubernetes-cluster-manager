@@ -48,10 +48,9 @@ Provision infrastructure using terraform and render manifests via helm:
 
 ```sh
 $ kcm provision \
-  --manager terraform \
-  --renderer helm \
+  --provisioner terraform \
   --working-dir /path/to/terraform/repo \
-  --helm-chart /path/to/cluster/helm/chart \
+  --helm-charts-dir /path/to/helm/charts \
   --dry-run
 ```
 
