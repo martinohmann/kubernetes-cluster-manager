@@ -1,9 +1,13 @@
 package cluster
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -36,44 +40,44 @@ func NewManager(
 }
 
 // Provision implements Provision from the kcm.ClusterManager interface.
-func (p *Manager) Provision(o *kcm.Options) error {
+func (m *Manager) Provision(o *kcm.Options) error {
 	var err error
 
 	if o.DryRun {
-		err = p.provisioner.Reconcile()
+		err = m.provisioner.Reconcile()
 	} else {
-		err = p.provisioner.Provision()
+		err = m.provisioner.Provision()
 	}
 
 	if err != nil || o.SkipManifests {
 		return err
 	}
 
-	return p.ApplyManifests(o)
+	return m.ApplyManifests(o)
 }
 
 // ApplyManifests implements ApplyManifests from the kcm.ClusterManager interface.
-func (p *Manager) ApplyManifests(o *kcm.Options) error {
-	if err := p.prepareManifests(o); err != nil {
+func (m *Manager) ApplyManifests(o *kcm.Options) error {
+	if err := m.prepare(o); err != nil {
 		return err
 	}
 
-	creds, err := p.credentialSource.GetCredentials()
+	creds, err := m.credentialSource.GetCredentials()
 	if err != nil {
 		return err
 	}
 
-	valueBytes, err := yaml.Marshal(p.values)
+	valueBytes, err := yaml.Marshal(m.values)
 	if err != nil {
 		return err
 	}
 
-	err = p.finalizeChanges(o, o.Values, valueBytes)
+	err = m.finalizeChanges(o, o.Values, valueBytes)
 	if err != nil {
 		return err
 	}
 
-	manifest, err := p.renderer.RenderManifest(p.values)
+	manifests, err := m.renderer.RenderManifests(m.values)
 	if err != nil {
 		return err
 	}
@@ -81,124 +85,159 @@ func (p *Manager) ApplyManifests(o *kcm.Options) error {
 	kubectl := kubernetes.NewKubectl(creds)
 
 	if !o.DryRun {
-		p.logger.Info("Waiting for cluster to become available...")
+		if err := os.MkdirAll(o.ManifestsDir, 0775); err != nil {
+			return errors.WithStack(err)
+		}
+
+		m.logger.Info("Waiting for cluster to become available...")
 
 		if err := kubectl.WaitForCluster(); err != nil {
 			return err
 		}
 	}
 
-	err = p.finalizeChanges(o, o.Manifest, manifest)
+	defer m.finalizeDeletions(o, m.deletions)
+
+	err = processResourceDeletions(o, m.logger, kubectl, m.deletions.PreApply)
 	if err != nil {
 		return err
 	}
 
-	defer p.finalizeDeletions(o, p.deletions)
+	for _, manifest := range manifests {
+		filename := filepath.Join(o.ManifestsDir, manifest.Filename)
+		changeSet, err := file.NewChangeSet(filename, manifest.Content)
+		if err != nil {
+			return err
+		}
 
-	if err := processResourceDeletions(o, p.logger, kubectl, p.deletions.PreApply); err != nil {
-		return err
+		m.logChanges(changeSet)
+
+		if o.OnlyChanges && !changeSet.HasChanges() {
+			continue
+		}
+
+		if o.DryRun {
+			m.logger.Warnf("Would apply manifest %s", filename)
+			m.logger.Debug(string(manifest.Content))
+		} else {
+			m.logger.Infof("Applying manifest %s", filename)
+			if err := kubectl.ApplyManifest(manifest); err != nil {
+				return err
+			}
+
+			if err := changeSet.Apply(); err != nil {
+				return err
+			}
+		}
 	}
 
-	if o.DryRun {
-		p.logger.Warn("Would apply manifest")
-		p.logger.Debug(string(manifest))
-	} else if err := kubectl.ApplyManifest(manifest); err != nil {
-		return err
-	}
-
-	return processResourceDeletions(o, p.logger, kubectl, p.deletions.PostApply)
+	return processResourceDeletions(o, m.logger, kubectl, m.deletions.PostApply)
 }
 
 // Destroy implements Destroy from the kcm.ClusterManager interface.
-func (p *Manager) Destroy(o *kcm.Options) error {
+func (m *Manager) Destroy(o *kcm.Options) error {
 	if !o.SkipManifests {
-		if err := p.DeleteManifests(o); err != nil {
+		if err := m.DeleteManifests(o); err != nil {
 			return err
 		}
 	}
 
 	if o.DryRun {
-		p.logger.Warn("Would destroy infrastructure")
+		m.logger.Warn("Would destroy cluster infrastructure")
 		return nil
 	}
 
-	return p.provisioner.Destroy()
-
+	return m.provisioner.Destroy()
 }
 
 // DeleteManifests implements DeleteManifests from the kcm.ClusterManager interface.
-func (p *Manager) DeleteManifests(o *kcm.Options) error {
-	if err := p.prepareManifests(o); err != nil {
+func (m *Manager) DeleteManifests(o *kcm.Options) error {
+	if err := m.prepare(o); err != nil {
 		return err
 	}
 
-	creds, err := p.credentialSource.GetCredentials()
+	creds, err := m.credentialSource.GetCredentials()
 	if err != nil {
 		return err
 	}
 
-	manifest, err := p.renderer.RenderManifest(p.values)
+	manifests, err := m.renderer.RenderManifests(m.values)
 	if err != nil {
 		return err
 	}
 
 	kubectl := kubernetes.NewKubectl(creds)
 
-	if o.DryRun {
-		p.logger.Warn("Would delete manifest")
-		p.logger.Debug(string(manifest))
-	} else if err := kubectl.DeleteManifest(manifest); err != nil {
-		return err
+	for _, manifest := range manifests {
+		filename := filepath.Join(o.ManifestsDir, manifest.Filename)
+
+		if o.DryRun {
+			m.logger.Warnf("Would delete manifest %s", filename)
+			m.logger.Debug(string(manifest.Content))
+		} else {
+			m.logger.Infof("Deleting manifest %s", filename)
+			if err := kubectl.DeleteManifest(manifest); err != nil {
+				return err
+			}
+
+			err = os.Remove(filename)
+			if err != nil && !os.IsNotExist(err) {
+				return errors.WithStack(err)
+			}
+		}
 	}
 
-	defer p.finalizeDeletions(o, p.deletions)
+	defer m.finalizeDeletions(o, m.deletions)
 
-	return processResourceDeletions(o, p.logger, kubectl, p.deletions.PreDestroy)
+	return processResourceDeletions(o, m.logger, kubectl, m.deletions.PreDestroy)
 }
 
-func (p *Manager) finalizeChanges(o *kcm.Options, filename string, content []byte) error {
-	changes := file.NewChanges(filename, content)
+func (m *Manager) logChanges(changeSet *file.ChangeSet) {
+	filename := changeSet.Filename
+	if changeSet.HasChanges() {
+		m.logger.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
+	} else {
+		m.logger.Infof("No changes to %s", filename)
+	}
+}
 
-	diff, err := changes.Diff()
+func (m *Manager) finalizeChanges(o *kcm.Options, filename string, content []byte) error {
+	cs, err := file.NewChangeSet(filename, content)
 	if err != nil {
 		return err
 	}
 
-	if len(diff) > 0 {
-		p.logger.Infof("Changes to %s:\n%s", filename, diff)
-	} else {
-		p.logger.Infof("No changes to %s", filename)
-	}
+	m.logChanges(cs)
 
 	if o.DryRun {
 		return nil
 	}
 
-	return changes.Apply()
+	return cs.Apply()
 }
 
-func (p *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) error {
+func (m *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) error {
 	buf, err := yaml.Marshal(deletions.FilterPending())
 	if err != nil {
 		return err
 	}
 
-	return p.finalizeChanges(o, o.Deletions, buf)
+	return m.finalizeChanges(o, o.Deletions, buf)
 }
 
-func (p *Manager) prepareManifests(o *kcm.Options) error {
-	if err := file.LoadYAML(o.Values, &p.values); err != nil {
+func (m *Manager) prepare(o *kcm.Options) error {
+	if err := file.LoadYAML(o.Values, &m.values); err != nil {
 		return err
 	}
 
-	if err := file.LoadYAML(o.Deletions, &p.deletions); err != nil {
+	if err := file.LoadYAML(o.Deletions, &m.deletions); err != nil {
 		return err
 	}
 
-	v, err := p.provisioner.Fetch()
+	v, err := m.provisioner.Fetch()
 	if err != nil {
 		return err
 	}
 
-	return p.values.Merge(v)
+	return m.values.Merge(v)
 }

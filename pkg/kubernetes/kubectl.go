@@ -40,7 +40,7 @@ func NewKubectl(c *kcm.Credentials) *Kubectl {
 }
 
 // ApplyManifest applies the manifest via kubectl.
-func (k *Kubectl) ApplyManifest(manifest kcm.Manifest) error {
+func (k *Kubectl) ApplyManifest(manifest *kcm.Manifest) error {
 	args := []string{
 		"kubectl",
 		"apply",
@@ -53,7 +53,7 @@ func (k *Kubectl) ApplyManifest(manifest kcm.Manifest) error {
 	err := backoff.Retry(
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdin = bytes.NewBuffer(manifest)
+			cmd.Stdin = bytes.NewBuffer(manifest.Content)
 			_, err := command.Run(cmd)
 			return err
 		},
@@ -64,7 +64,7 @@ func (k *Kubectl) ApplyManifest(manifest kcm.Manifest) error {
 }
 
 // DeleteManifest deletes the manifest via kubectl.
-func (k *Kubectl) DeleteManifest(manifest kcm.Manifest) error {
+func (k *Kubectl) DeleteManifest(manifest *kcm.Manifest) error {
 	args := []string{
 		"kubectl",
 		"delete",
@@ -78,7 +78,7 @@ func (k *Kubectl) DeleteManifest(manifest kcm.Manifest) error {
 	err := backoff.Retry(
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdin = bytes.NewBuffer(manifest)
+			cmd.Stdin = bytes.NewBuffer(manifest.Content)
 			_, err := command.Run(cmd)
 			return err
 		},

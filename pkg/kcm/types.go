@@ -70,7 +70,10 @@ func (d *Deletion) Deleted() bool {
 }
 
 // Manifest defines a Kubernetes manifest.
-type Manifest []byte
+type Manifest struct {
+	Filename string
+	Content  []byte
+}
 
 // Values contains the output values of an infrastructure manager.
 type Values map[string]interface{}

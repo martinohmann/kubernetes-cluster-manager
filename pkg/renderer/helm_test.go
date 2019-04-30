@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHelmRenderManifest(t *testing.T) {
+func TestHelmRenderManifests(t *testing.T) {
 	o := &kcm.HelmOptions{
-		Chart: "testdata/helm/chart",
+		ChartsDir: "testdata/helm",
 	}
 
 	r := NewHelm(o)
@@ -38,9 +38,14 @@ data:
 
 `
 
-	manifest, err := r.RenderManifest(values)
+	manifests, err := r.RenderManifests(values)
 
-	if assert.NoError(t, err) {
-		assert.Equal(t, expected, string(manifest))
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	if assert.Len(t, manifests, 1) {
+		assert.Equal(t, "chart.yaml", string(manifests[0].Filename))
+		assert.Equal(t, expected, string(manifests[0].Content))
 	}
 }

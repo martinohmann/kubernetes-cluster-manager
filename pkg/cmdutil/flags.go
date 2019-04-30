@@ -20,12 +20,12 @@ func BindProvisionerFlags(cmd *cobra.Command, o *kcm.ProvisionerOptions) {
 }
 
 func BindRendererFlags(cmd *cobra.Command, o *kcm.RendererOptions) {
-	cmd.Flags().StringVar(&o.Helm.Chart, "helm-chart", "./cluster", "Path to cluster helm chart")
+	cmd.Flags().StringVar(&o.Helm.ChartsDir, "helm-charts-dir", "./charts", "Path to helm charts")
 }
 
 func BindManagerFlags(cmd *cobra.Command, o *kcm.Options) {
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Do not make any changes")
-	cmd.Flags().StringVarP(&o.Manifest, "manifest", "m", "manifest.yaml", `Manifest file path`)
-	cmd.Flags().StringVarP(&o.Deletions, "deletions", "d", "deletions.yaml", `Deletions file path`)
+	cmd.Flags().StringVar(&o.ManifestsDir, "manifests-dir", "./manifests", "Path to rendered manifests")
+	cmd.Flags().StringVar(&o.Deletions, "deletions", "deletions.yaml", `Deletions file path`)
 	cmd.Flags().StringVar(&o.Values, "values", "values.yaml", `Values file path`)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestChangesApply(t *testing.T) {
+func TestChangeSetApply(t *testing.T) {
 	f, err := NewTempFile("foo.yaml", []byte(`bar`))
 	if !assert.NoError(t, err) {
 		return
@@ -16,7 +16,8 @@ func TestChangesApply(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	c := NewChanges(f.Name(), []byte(`baz`))
+	c, err := NewChangeSet(f.Name(), []byte(`baz`))
+	assert.NoError(t, err)
 
 	if !assert.NoError(t, c.Apply()) {
 		return
@@ -28,11 +29,8 @@ func TestChangesApply(t *testing.T) {
 	}
 }
 
-func TestChangesDiff(t *testing.T) {
-	c := NewChanges("foo.yaml", []byte(`foo`))
-
-	diff, err := c.Diff()
-
+func TestChangeSetDiff(t *testing.T) {
+	c, err := NewChangeSet("foo.yaml", []byte(`foo`))
 	assert.NoError(t, err)
 
 	expected := `--- foo.yaml
@@ -42,5 +40,5 @@ func TestChangesDiff(t *testing.T) {
 +foo
 `
 
-	assert.Equal(t, expected, diff)
+	assert.Equal(t, expected, c.Diff())
 }
