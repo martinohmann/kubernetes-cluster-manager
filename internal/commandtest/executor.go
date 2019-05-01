@@ -187,7 +187,7 @@ func (e *expectation) WillReturnError(err error) {
 }
 
 func (e *expectation) WillError() {
-	e.err = errors.New("error")
+	e.WillReturnError(errors.New("error"))
 }
 
 func (e *expectation) WillReturn(out string) {
