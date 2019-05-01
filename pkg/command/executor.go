@@ -72,7 +72,7 @@ func (e *executor) RunSilently(cmd *exec.Cmd) (out string, err error) {
 		err = errors.Wrapf(
 			err,
 			"command %s failed with output: %s",
-			color.YellowString(commandLine(cmd)),
+			color.YellowString(Line(cmd)),
 			strings.Trim(out, "\n"),
 		)
 	}
@@ -81,7 +81,7 @@ func (e *executor) RunSilently(cmd *exec.Cmd) (out string, err error) {
 }
 
 func (e *executor) run(out *bytes.Buffer, cmd *exec.Cmd) (string, error) {
-	e.logger.Debugf("Executing %s", color.YellowString(commandLine(cmd)))
+	e.logger.Debugf("Executing %s", color.YellowString(Line(cmd)))
 
 	err := cmd.Run()
 
@@ -113,7 +113,8 @@ func (w logWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func commandLine(cmd *exec.Cmd) string {
+// Line returns the command line string for cmd.
+func Line(cmd *exec.Cmd) string {
 	return strings.Join(cmd.Args, " ")
 }
 

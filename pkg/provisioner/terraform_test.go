@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTerraformProvision(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		options := kcm.TerraformOptions{Parallelism: 4}
 
 		m := NewTerraform(&options)
@@ -32,7 +31,7 @@ func TestTerraformProvision(t *testing.T) {
 }
 
 func TestTerraformPlan(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		m := NewTerraform(&kcm.TerraformOptions{})
 
 		err := m.Reconcile()
@@ -52,7 +51,7 @@ func TestTerraformPlan(t *testing.T) {
 }
 
 func TestTerraformFetch(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		m := NewTerraform(&kcm.TerraformOptions{})
 
 		output := `
@@ -91,7 +90,7 @@ func TestTerraformFetch(t *testing.T) {
 }
 
 func TestTerraformDestroy(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		options := kcm.TerraformOptions{Parallelism: 4}
 
 		m := NewTerraform(&options)

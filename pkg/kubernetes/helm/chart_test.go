@@ -7,12 +7,11 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestChartRender(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		chart := NewChart("cluster")
 
 		_, err := chart.Render(make(map[string]interface{}))

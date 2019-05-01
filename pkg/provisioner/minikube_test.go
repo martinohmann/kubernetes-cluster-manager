@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMinikubeProvision(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		m := &Minikube{}
 
 		executor.Command("minikube status").WillError()
@@ -24,7 +23,7 @@ func TestMinikubeProvision(t *testing.T) {
 }
 
 func TestMinikubeFetch(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		m := &Minikube{}
 
 		output := `127.0.0.1`
@@ -47,7 +46,7 @@ func TestMinikubeFetch(t *testing.T) {
 }
 
 func TestMinikubeDestroy(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		m := &Minikube{}
 
 		executor.Command("minikube status").WillSucceed()
