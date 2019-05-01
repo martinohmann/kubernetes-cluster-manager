@@ -9,6 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// CheckErr logs err and exits with a non-zero code. If err is of type
+// *exec.ExitError, the exit code from the error will be used. If err is nil,
+// CheckErr does nothing.
 func CheckErr(err error) {
 	if err == nil {
 		return
@@ -30,26 +33,9 @@ func CheckErr(err error) {
 	os.Exit(code)
 }
 
-func GetBool(cmd *cobra.Command, flag string) bool {
-	v, err := cmd.Flags().GetBool(flag)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return v
-}
-
+// GetString retrieves a string flag from cmd.
 func GetString(cmd *cobra.Command, flag string) string {
 	v, err := cmd.Flags().GetString(flag)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return v
-}
-
-func GetInt(cmd *cobra.Command, flag string) int {
-	v, err := cmd.Flags().GetInt(flag)
 	if err != nil {
 		log.Fatal(err)
 	}

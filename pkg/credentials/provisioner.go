@@ -4,18 +4,18 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
-// ProvisionerSource is a Source that retrieves Kubernetes credentials from an
-// infrastructure provisioner.
+// ProvisionerSource is a kcm.CredentialSource that retrieves Kubernetes
+// credentials from an infrastructure provisioner.
 type ProvisionerSource struct {
 	provisioner kcm.Provisioner
 }
 
-// NewInfraSource creates a new InfraSource with given manager.
+// NewProvisionerSource creates a new ProvisionerSource with given provisioner.
 func NewProvisionerSource(p kcm.Provisioner) kcm.CredentialSource {
 	return &ProvisionerSource{p}
 }
 
-// GetCredentials implements Source.
+// GetCredentials implements kcm.CredentialSource.
 func (p *ProvisionerSource) GetCredentials() (*kcm.Credentials, error) {
 	v, err := p.provisioner.Fetch()
 	if err != nil {

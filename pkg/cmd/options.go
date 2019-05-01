@@ -63,7 +63,6 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 		}
 
 		o.logger.Infof("Using config %s, config values take precedence over command line flags", color.YellowString(config))
-
 	}
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)

@@ -12,6 +12,7 @@ import (
 
 var logger = log.StandardLogger()
 
+// ConfigureLogger configures l based on the values of parsed cli flags.
 func ConfigureLogger(l *log.Logger) {
 	logger = l
 

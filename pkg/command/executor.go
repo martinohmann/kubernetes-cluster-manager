@@ -123,7 +123,7 @@ func SetExecutor(e Executor) {
 }
 
 // SetExecutorWithRestore sets the default executor and returns a function that
-// restores the previously set executor. Can be used to temporarly mock out the
+// restores the previously set executor. Can be used to temporarily mock out the
 // executor in tests.
 func SetExecutorWithRestore(e Executor) func() {
 	prevExecutor := DefaultExecutor
