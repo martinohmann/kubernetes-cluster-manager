@@ -16,6 +16,10 @@ const (
 	dirMode os.FileMode = 0775
 )
 
+var (
+	emptyCredentials = kcm.Credentials{}
+)
+
 // Manager is a kcm.Manager.
 type Manager struct {
 	credentialSource kcm.CredentialSource
@@ -68,7 +72,7 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 		return err
 	}
 
-	creds, err := m.credentialSource.GetCredentials()
+	creds, err := m.readCredentials()
 	if err != nil {
 		return err
 	}
@@ -115,7 +119,7 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 
 		m.logChanges(changeSet)
 
-		if o.OnlyChanges && !changeSet.HasChanges() {
+		if !o.AllManifests && !changeSet.HasChanges() {
 			continue
 		}
 
@@ -165,7 +169,7 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 		return err
 	}
 
-	creds, err := m.credentialSource.GetCredentials()
+	creds, err := m.readCredentials()
 	if err != nil {
 		return err
 	}
@@ -247,4 +251,26 @@ func (m *Manager) readDeletions(filename string) (d *kcm.Deletions, err error) {
 	err = file.ReadYAML(filename, &d)
 
 	return
+}
+
+func (m *Manager) readCredentials() (*kcm.Credentials, error) {
+	creds, err := m.credentialSource.GetCredentials()
+	if err != nil {
+		return nil, err
+	}
+
+	if *creds == emptyCredentials {
+		return nil, errors.New("Empty kubernetes credentials found! " +
+			"Provide `kubeconfig` (and optionally `context`) or " +
+			"`server` and `token` via the provisioner or set the corresponding --cluster-* flags")
+	}
+
+	c := *creds
+	if c.Token != "" {
+		c.Token = "<sensitive>"
+	}
+
+	m.logger.Debugf("Using kubernetes credentials: %#v", c)
+
+	return creds, nil
 }

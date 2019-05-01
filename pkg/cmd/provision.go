@@ -26,7 +26,7 @@ func NewProvisionCommand(l *log.Logger) *cobra.Command {
 	o.AddFlags(cmd)
 
 	cmd.Flags().BoolVar(&o.ManagerOptions.SkipManifests, "skip-manifests", false, "Skip processing kubernetes manifests")
-	cmd.Flags().BoolVar(&o.ManagerOptions.OnlyChanges, "only-changes", false, "Only apply manifests which have changed")
+	cmd.Flags().BoolVar(&o.ManagerOptions.AllManifests, "all-manifests", false, "Apply all manifests, even unchanged")
 
 	return cmd
 }

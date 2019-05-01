@@ -8,7 +8,7 @@ import (
 )
 
 func processResourceDeletions(o *kcm.Options, l *log.Logger, kubectl *kubernetes.Kubectl, deletions []*kcm.Deletion) error {
-	if o.DryRun {
+	if o.DryRun && len(deletions) > 0 {
 		buf, _ := yaml.Marshal(deletions)
 		l.Warnf("Would delete the following resources:\n%s", string(buf))
 		return nil

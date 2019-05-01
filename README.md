@@ -6,18 +6,19 @@ kubernetes-cluster-manager (KCM)
 [![Go Report Card](https://goreportcard.com/badge/github.com/martinohmann/kubernetes-cluster-manager?style=flat)](https://goreportcard.com/report/github.com/martinohmann/kubernetes-cluster-manager)
 [![GoDoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager?status.svg)](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager)
 
-Inspired by [Zalando's CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager). The Kubernetes Cluster Manager project was started because CLM is tightly coupled to AWS Cloudformation for managing the cluster infrastructure. KCM tries to provide an interface for using different infrastructure manager and manifest renderers. It also tries to provide visibility about changes by providing diffs for things like manifest changes.
+Inspired by [Zalando's CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager). The Kubernetes Cluster Manager project was started because CLM is tightly coupled to AWS Cloudformation for managing the cluster infrastructure. KCM tries to provide an interface for using different infrastructure provisioners and manifest renderers. It also tries to provide visibility about changes by providing diffs for things like manifest changes.
 
 **Use with caution. This project is currently alpha quality and APIs are likely to change until the first stable release.**
 
 Features:
-- Make output of infrastructure manager available to manifest renderer
+- Make output of infrastructure provisioners available to manifest renderer
 - Show diffs of changes in infrastructure output values and manifests
 - Render manifests with helm
 - Minikube integration for local testing
 - Dry run, apply and destroy changes (infrastructure + kubernetes manifests)
 
 Currently supported infrastructure managers:
+- Null provisioner (default)
 - [Terraform](https://github.com/hashicorp/terraform)
 - [Minikube](https://github.com/kubernetes/minikube) for local testing
 
@@ -54,7 +55,11 @@ $ kcm provision \
   --dry-run
 ```
 
-As the bare minimum `kcm` expects the infrastructure manager to create a kubernetes cluster and to either return the path to a generated `kubeconfig` in its output, or `server` and `token` values needed for establishing a connection to the kubernetes api-server. Detailed examples will follow.
+As the bare minimum `kcm` expects the infrastructure provisioner to create a
+kubernetes cluster and to either return the path to a generated `kubeconfig` in
+its output, or `server` and `token` values needed for establishing a connection
+to the kubernetes api-server. Alternatively you can manually provide kubernetes
+credentials via the `--cluster-*` flags. Detailed examples will follow.
 
 License
 -------
