@@ -22,7 +22,7 @@ import (
 func createManager() *Manager {
 	p := provisioner.NewTerraform(&kcm.TerraformOptions{})
 	m := NewManager(
-		credentials.NewProvisionerSource(p),
+		credentials.NewStaticCredentials(&kcm.Credentials{Context: "test"}),
 		p,
 		renderer.NewHelm(&kcm.HelmOptions{ChartsDir: "testdata/charts"}),
 		log.StandardLogger(),
@@ -58,13 +58,12 @@ postApply:
 		p := createManager()
 
 		executor.Command("terraform apply --auto-approve").WillSucceed()
-		executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
-		executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"},"kubeconfig":{"value":"/tmp/kubeconfig"}}`)
+		executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"}}`)
 		executor.Pattern("helm template --values .*").WillExecute()
 		executor.Pattern("kubectl cluster-info.*").WillSucceed()
-		executor.Pattern("kubectl delete pod --ignore-not-found --namespace kube-system --kubeconfig /tmp/kubeconfig foo").WillSucceed()
+		executor.Pattern("kubectl delete pod --ignore-not-found --namespace kube-system --context test foo").WillSucceed()
 		executor.Pattern("kubectl apply -f -").WillSucceed()
-		executor.Pattern("kubectl delete deployment --ignore-not-found --namespace default --kubeconfig /tmp/kubeconfig bar").WillSucceed()
+		executor.Pattern("kubectl delete deployment --ignore-not-found --namespace default --context test bar").WillSucceed()
 
 		expectedManifest := `---
 # Source: testchart/templates/configmap.yaml
@@ -86,7 +85,6 @@ preDestroy: []
 `
 		expectedValues := `baz: somevalue
 foo: output-from-terraform
-kubeconfig: /tmp/kubeconfig
 `
 
 		assert.NoError(t, p.Provision(o))
@@ -128,11 +126,10 @@ preDestroy:
 		p := createManager()
 
 		executor.Command("terraform output --json").WillReturn(`{}`)
-		executor.Command("terraform output --json").WillReturn(`{}`)
 		executor.Pattern("helm template --values .*").WillExecute()
 		executor.Pattern("kubectl cluster-info.*").WillSucceed()
-		executor.Pattern("kubectl delete -f - --ignore-not-found").WillSucceed()
-		executor.Pattern("kubectl delete persistentvolumeclaim --ignore-not-found --namespace default bar").WillSucceed()
+		executor.Pattern("kubectl delete -f - --ignore-not-found --context test").WillSucceed()
+		executor.Pattern("kubectl delete persistentvolumeclaim --ignore-not-found --namespace default --context test bar").WillSucceed()
 		executor.Command("terraform destroy --auto-approve").WillSucceed()
 
 		expectedDeletions := `preApply: []
@@ -146,4 +143,31 @@ preDestroy: []
 
 		assert.Equal(t, expectedDeletions, string(buf))
 	}, command.NewExecutor(nil))
+}
+
+func TestReadEmptyCredentials(t *testing.T) {
+	m := &Manager{
+		credentialSource: credentials.NewStaticCredentials(&kcm.Credentials{}),
+	}
+
+	_, err := m.readCredentials()
+
+	assert.Error(t, err)
+}
+
+func TestReadCredentials(t *testing.T) {
+	expected := &kcm.Credentials{
+		Server: "https://localhost:6443",
+		Token:  "mytoken",
+	}
+
+	m := &Manager{
+		credentialSource: credentials.NewStaticCredentials(expected),
+		logger:           log.StandardLogger(),
+	}
+
+	creds, err := m.readCredentials()
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, creds)
 }

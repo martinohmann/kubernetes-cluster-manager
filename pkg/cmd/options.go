@@ -80,6 +80,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 
 func (o *Options) Run(exec func(kcm.ClusterManager, *kcm.Options) error) error {
 	if o.WorkingDir != "" {
+		o.logger.Infof("Switching working dir to %s", o.WorkingDir)
 		if err := os.Chdir(o.WorkingDir); err != nil {
 			return err
 		}
@@ -115,7 +116,8 @@ func (o *Options) createManager() (kcm.ClusterManager, error) {
 	}
 
 	var credentialSource kcm.CredentialSource
-	if o.ClusterOptions.Kubeconfig == "" && (o.ClusterOptions.Server == "" || o.ClusterOptions.Token == "") {
+	if o.ClusterOptions.Kubeconfig == "" && o.ClusterOptions.Context == "" &&
+		(o.ClusterOptions.Server == "" || o.ClusterOptions.Token == "") {
 		credentialSource = credentials.NewProvisionerSource(infraProvisioner)
 	} else {
 		credentialSource = credentials.NewStaticCredentials(&kcm.Credentials{

@@ -7,7 +7,7 @@ type Options struct {
 	Deletions     string `json:"deletions" yaml:"deletions"`
 	ManifestsDir  string `json:"manifestsDir" yaml:"manifestsDir"`
 	SkipManifests bool   `json:"skipManifests" yaml:"skipManifests"`
-	OnlyChanges   bool   `json:"onlyChanges" yaml:"onlyChanges"`
+	AllManifests  bool   `json:"allManifests" yaml:"allManifests"`
 }
 
 // ProvisionerOptions are made available to infrastructure provisioners.

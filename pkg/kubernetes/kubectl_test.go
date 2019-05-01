@@ -35,6 +35,7 @@ func TestDeleteManifest(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
 		creds := &kcm.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
+			Context:    "test",
 		}
 
 		kubectl := NewKubectl(creds)
@@ -46,7 +47,7 @@ func TestDeleteManifest(t *testing.T) {
 			assert.Equal(
 				t,
 				executor.ExecutedCommands[0],
-				"kubectl delete -f - --ignore-not-found --kubeconfig /tmp/kubeconfig",
+				"kubectl delete -f - --ignore-not-found --context test --kubeconfig /tmp/kubeconfig",
 			)
 		}
 	})

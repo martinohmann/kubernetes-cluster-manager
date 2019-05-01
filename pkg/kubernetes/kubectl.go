@@ -137,22 +137,6 @@ func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
 	return err
 }
 
-// UseContext sets the active kubernetes context
-func (k *Kubectl) UseContext(context string) error {
-	args := []string{
-		"kubectl",
-		"config",
-		"use-context",
-		context,
-	}
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	_, err := command.RunSilently(cmd)
-
-	return err
-}
-
 // ClusterInfo fetches the kubernetes cluster info.
 func (k *Kubectl) ClusterInfo() (string, error) {
 	args := []string{
@@ -169,12 +153,12 @@ func (k *Kubectl) ClusterInfo() (string, error) {
 
 // buildCredentialArgs builds kubectl args from credentials.
 func (k *Kubectl) buildCredentialArgs() (args []string) {
+	if k.credentials.Context != "" {
+		args = append(args, "--context", k.credentials.Context)
+	}
+
 	if k.credentials.Kubeconfig != "" {
 		args = append(args, "--kubeconfig", k.credentials.Kubeconfig)
-
-		if k.credentials.Context != "" {
-			args = append(args, "--context", k.credentials.Context)
-		}
 	} else {
 		if k.credentials.Server != "" {
 			args = append(args, "--server", k.credentials.Server)
