@@ -144,3 +144,30 @@ preDestroy: []
 		assert.Equal(t, expectedDeletions, string(buf))
 	}, command.NewExecutor(nil))
 }
+
+func TestReadEmptyCredentials(t *testing.T) {
+	m := &Manager{
+		credentialSource: credentials.NewStaticCredentials(&kcm.Credentials{}),
+	}
+
+	_, err := m.readCredentials()
+
+	assert.Error(t, err)
+}
+
+func TestReadCredentials(t *testing.T) {
+	expected := &kcm.Credentials{
+		Server: "https://localhost:6443",
+		Token:  "mytoken",
+	}
+
+	m := &Manager{
+		credentialSource: credentials.NewStaticCredentials(expected),
+		logger:           log.StandardLogger(),
+	}
+
+	creds, err := m.readCredentials()
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, creds)
+}
