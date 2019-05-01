@@ -32,7 +32,7 @@ func createManager() *Manager {
 }
 
 func TestProvision(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
 preApply:
 - kind: Pod
@@ -104,7 +104,7 @@ foo: output-from-terraform
 }
 
 func TestDestroy(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
 preDestroy:
 - kind: PersistentVolumeClaim

@@ -12,7 +12,7 @@ func TestWithMockExecutor(t *testing.T) {
 	def := command.DefaultExecutor
 	called := false
 
-	WithMockExecutor(func(executor *command.MockExecutor) {
+	WithMockExecutor(func(executor *MockExecutor) {
 		called = true
 
 		assert.Equal(t, executor, command.DefaultExecutor)
@@ -33,7 +33,7 @@ func TestWithMockExecutorPanic(t *testing.T) {
 		assert.Equal(t, def, command.DefaultExecutor)
 	}()
 
-	WithMockExecutor(func(executor *command.MockExecutor) {
+	WithMockExecutor(func(executor *MockExecutor) {
 		called = true
 
 		panic("whoops")
@@ -41,11 +41,11 @@ func TestWithMockExecutorPanic(t *testing.T) {
 }
 
 func TestWithMockExecutorWrapped(t *testing.T) {
-	wrapped := command.NewMockExecutor(nil)
+	wrapped := NewMockExecutor(nil)
 
 	wrapped.Command("foo").WillReturn("bar")
 
-	WithMockExecutor(func(executor *command.MockExecutor) {
+	WithMockExecutor(func(executor *MockExecutor) {
 		executor.Command("foo").WillExecute()
 
 		cmd := exec.Command("foo")

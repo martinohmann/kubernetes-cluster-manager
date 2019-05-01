@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestProcessResourceDeletions(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&kcm.Credentials{})
 
 		deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
@@ -27,7 +26,7 @@ func TestProcessResourceDeletions(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&kcm.Credentials{})
 
 		deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}
@@ -41,7 +40,7 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 }
 
 func TestProcessResourceDeletionsFailed(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&kcm.Credentials{})
 
 		deletions := []*kcm.Deletion{{Name: "foo", Kind: "pod"}}

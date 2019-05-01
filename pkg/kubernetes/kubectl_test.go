@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApplyManifest(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		creds := &kcm.Credentials{
 			Server: "https://localhost:6443",
 			Token:  "sometoken",
@@ -32,7 +31,7 @@ func TestApplyManifest(t *testing.T) {
 }
 
 func TestDeleteManifest(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		creds := &kcm.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 			Context:    "test",
@@ -54,7 +53,7 @@ func TestDeleteManifest(t *testing.T) {
 }
 
 func TestDeleteResource(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		creds := &kcm.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -80,7 +79,7 @@ func TestDeleteResource(t *testing.T) {
 }
 
 func TestDeleteResourceLabels(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		creds := &kcm.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -109,7 +108,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 }
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *command.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		creds := &kcm.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
