@@ -2,6 +2,7 @@ package cmdutil
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -13,6 +14,10 @@ var logger = log.StandardLogger()
 
 func ConfigureLogger(l *log.Logger) {
 	logger = l
+
+	if quiet && !debug {
+		logger.Out = ioutil.Discard
+	}
 
 	if !debug {
 		return

@@ -21,7 +21,7 @@ var (
 func init() {
 	logger := log.New()
 
-	cmdutil.AddGlobalDebugFlag(rootCmd)
+	cmdutil.AddGlobalFlags(rootCmd)
 
 	rootCmd.AddCommand(cmd.NewProvisionCommand(logger))
 	rootCmd.AddCommand(cmd.NewDestroyCommand(logger))

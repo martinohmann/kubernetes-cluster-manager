@@ -5,10 +5,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var debug bool
+var (
+	debug bool
+	quiet bool
+)
 
-func AddGlobalDebugFlag(cmd *cobra.Command) {
+func AddGlobalFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug output")
+	cmd.PersistentFlags().BoolVar(&quiet, "quiet", false, "Disable log output. Ignored if --debug is set")
 }
 
 func AddConfigFlag(cmd *cobra.Command) {
