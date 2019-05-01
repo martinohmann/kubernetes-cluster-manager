@@ -2,7 +2,6 @@ package kcm
 
 import (
 	"github.com/imdario/mergo"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // Deletions defines the structure of a resource deletions file's content.
@@ -50,12 +49,6 @@ type Deletion struct {
 
 	// internal marker for successful resource deletion.
 	deleted bool
-}
-
-// String implements fmt.Stringer.
-func (d *Deletion) String() string {
-	buf, _ := yaml.Marshal(d)
-	return string(buf)
 }
 
 // MarkDeleted marks a deletion as successfully deleted. This indicator can be

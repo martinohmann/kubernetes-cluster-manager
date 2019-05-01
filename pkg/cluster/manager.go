@@ -12,13 +12,15 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+const (
+	dirMode os.FileMode = 0775
+)
+
 // Manager is a kcm.Manager.
 type Manager struct {
 	credentialSource kcm.CredentialSource
 	provisioner      kcm.Provisioner
 	renderer         kcm.Renderer
-	values           kcm.Values
-	deletions        *kcm.Deletions
 	logger           *log.Logger
 }
 
@@ -34,8 +36,6 @@ func NewManager(
 		provisioner:      provisioner,
 		renderer:         renderer,
 		logger:           logger,
-		deletions:        &kcm.Deletions{},
-		values:           kcm.Values{},
 	}
 }
 
@@ -58,7 +58,13 @@ func (m *Manager) Provision(o *kcm.Options) error {
 
 // ApplyManifests implements ApplyManifests from the kcm.ClusterManager interface.
 func (m *Manager) ApplyManifests(o *kcm.Options) error {
-	if err := m.prepare(o); err != nil {
+	values, err := m.readValues(o.Values)
+	if err != nil {
+		return err
+	}
+
+	deletions, err := m.readDeletions(o.Deletions)
+	if err != nil {
 		return err
 	}
 
@@ -67,17 +73,12 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 		return err
 	}
 
-	valueBytes, err := yaml.Marshal(m.values)
+	err = m.finalizeChanges(o, o.Values, values)
 	if err != nil {
 		return err
 	}
 
-	err = m.finalizeChanges(o, o.Values, valueBytes)
-	if err != nil {
-		return err
-	}
-
-	manifests, err := m.renderer.RenderManifests(m.values)
+	manifests, err := m.renderer.RenderManifests(values)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 	kubectl := kubernetes.NewKubectl(creds)
 
 	if !o.DryRun {
-		if err := os.MkdirAll(o.ManifestsDir, 0775); err != nil {
+		if err := os.MkdirAll(o.ManifestsDir, dirMode); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -96,9 +97,11 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 		}
 	}
 
-	defer m.finalizeDeletions(o, m.deletions)
+	defer func() {
+		m.finalizeChanges(o, o.Deletions, deletions.FilterPending())
+	}()
 
-	err = processResourceDeletions(o, m.logger, kubectl, m.deletions.PreApply)
+	err = processResourceDeletions(o, m.logger, kubectl, deletions.PreApply)
 	if err != nil {
 		return err
 	}
@@ -131,7 +134,7 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 		}
 	}
 
-	return processResourceDeletions(o, m.logger, kubectl, m.deletions.PostApply)
+	return processResourceDeletions(o, m.logger, kubectl, deletions.PostApply)
 }
 
 // Destroy implements Destroy from the kcm.ClusterManager interface.
@@ -152,7 +155,13 @@ func (m *Manager) Destroy(o *kcm.Options) error {
 
 // DeleteManifests implements DeleteManifests from the kcm.ClusterManager interface.
 func (m *Manager) DeleteManifests(o *kcm.Options) error {
-	if err := m.prepare(o); err != nil {
+	values, err := m.readValues(o.Values)
+	if err != nil {
+		return err
+	}
+
+	deletions, err := m.readDeletions(o.Deletions)
+	if err != nil {
 		return err
 	}
 
@@ -161,7 +170,7 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 		return err
 	}
 
-	manifests, err := m.renderer.RenderManifests(m.values)
+	manifests, err := m.renderer.RenderManifests(values)
 	if err != nil {
 		return err
 	}
@@ -187,13 +196,13 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 		}
 	}
 
-	defer m.finalizeDeletions(o, m.deletions)
+	processResourceDeletions(o, m.logger, kubectl, deletions.PreDestroy)
 
-	return processResourceDeletions(o, m.logger, kubectl, m.deletions.PreDestroy)
+	return m.finalizeChanges(o, o.Deletions, deletions.FilterPending())
 }
 
 func (m *Manager) logChanges(changeSet *file.ChangeSet) {
-	filename := changeSet.Filename
+	filename := changeSet.Filename()
 	if changeSet.HasChanges() {
 		m.logger.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
 	} else {
@@ -201,43 +210,41 @@ func (m *Manager) logChanges(changeSet *file.ChangeSet) {
 	}
 }
 
-func (m *Manager) finalizeChanges(o *kcm.Options, filename string, content []byte) error {
-	cs, err := file.NewChangeSet(filename, content)
+func (m *Manager) finalizeChanges(o *kcm.Options, filename string, v interface{}) error {
+	buf, err := yaml.Marshal(v)
 	if err != nil {
 		return err
 	}
 
-	m.logChanges(cs)
+	changeSet, err := file.NewChangeSet(filename, buf)
+	if err != nil {
+		return err
+	}
+
+	m.logChanges(changeSet)
 
 	if o.DryRun {
 		return nil
 	}
 
-	return cs.Apply()
+	return changeSet.Apply()
 }
 
-func (m *Manager) finalizeDeletions(o *kcm.Options, deletions *kcm.Deletions) error {
-	buf, err := yaml.Marshal(deletions.FilterPending())
-	if err != nil {
-		return err
+func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
+	if err = file.ReadYAML(filename, &v); err != nil {
+		return
 	}
 
-	return m.finalizeChanges(o, o.Deletions, buf)
+	additional, err := m.provisioner.Fetch()
+	if err == nil {
+		v.Merge(additional)
+	}
+
+	return
 }
 
-func (m *Manager) prepare(o *kcm.Options) error {
-	if err := file.ReadYAML(o.Values, &m.values); err != nil {
-		return err
-	}
+func (m *Manager) readDeletions(filename string) (d *kcm.Deletions, err error) {
+	err = file.ReadYAML(filename, &d)
 
-	if err := file.ReadYAML(o.Deletions, &m.deletions); err != nil {
-		return err
-	}
-
-	v, err := m.provisioner.Fetch()
-	if err != nil {
-		return err
-	}
-
-	return m.values.Merge(v)
+	return
 }
