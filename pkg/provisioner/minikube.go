@@ -3,11 +3,11 @@ package provisioner
 import (
 	"fmt"
 	"os/exec"
-	"strings"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 )
 
 func init() {
@@ -21,66 +21,36 @@ func init() {
 type Minikube struct{}
 
 func (m *Minikube) status() error {
-	args := []string{
-		"minikube",
-		"status",
+	cmd := exec.Command("minikube", "status")
+
+	_, err := command.RunSilently(cmd)
+	if err != nil {
+		err = errors.New("minikube not running")
 	}
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	_, err := command.Run(cmd)
-
-	return err
-}
-
-func (m *Minikube) start() error {
-	if err := m.status(); err == nil {
-		return nil
-	}
-
-	args := []string{
-		"minikube",
-		"start",
-	}
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	_, err := command.Run(cmd)
 
 	return err
 }
 
 // Provision implements Provision from the kcm.Provisioner interface.
 func (m *Minikube) Provision() error {
-	return m.start()
+	if err := m.status(); err == nil {
+		return nil
+	}
+
+	cmd := exec.Command("minikube", "start")
+
+	_, err := command.Run(cmd)
+
+	return err
 }
 
-// Reconcile implements Reconcile from the kcm.Provisioner interface.
-func (m *Minikube) Reconcile() error {
-	return m.start()
-}
-
-// Fetch implements Fetch from the kcm.Provisioner interface.
+// Fetch implements kcm.ValueFetcher.
 func (m *Minikube) Fetch() (kcm.Values, error) {
-	args := []string{
-		"minikube",
-		"ip",
-	}
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	out, err := command.RunSilently(cmd)
-	if err != nil {
-		return nil, err
-	}
-
 	home, _ := homedir.Dir()
 
 	v := kcm.Values{
-		"server":     fmt.Sprintf("https://%s:8443", strings.Trim(out, "\n")),
 		"kubeconfig": fmt.Sprintf("%s/.kube/config", home),
-		// this will force the correct kubectl kubeconfig context
-		"context": "minikube",
+		"context":    "minikube",
 	}
 
 	return v, nil
@@ -92,12 +62,7 @@ func (m *Minikube) Destroy() error {
 		return err
 	}
 
-	args := []string{
-		"minikube",
-		"delete",
-	}
-
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command("minikube", "delete")
 
 	_, err := command.Run(cmd)
 
