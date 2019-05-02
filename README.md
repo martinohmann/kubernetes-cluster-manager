@@ -17,7 +17,7 @@ Features:
 - Minikube integration for local testing
 - Dry run, apply and destroy changes (infrastructure + kubernetes manifests)
 
-Currently supported infrastructure managers:
+Currently supported infrastructure provisioners:
 - Null provisioner (default)
 - [Terraform](https://github.com/hashicorp/terraform)
 - [Minikube](https://github.com/kubernetes/minikube) for local testing
@@ -60,6 +60,10 @@ kubernetes cluster and to either return the path to a generated `kubeconfig` in
 its output, or `server` and `token` values needed for establishing a connection
 to the kubernetes api-server. Alternatively you can manually provide kubernetes
 credentials via the `--cluster-*` flags. Detailed examples will follow.
+
+### Examples
+
+Check out the [`_examples`](_examples/) directory for more usage examples.
 
 License
 -------

@@ -240,7 +240,8 @@ func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
 	}
 
 	additional, err := m.provisioner.Fetch()
-	if err == nil {
+	if err == nil && len(additional) > 0 {
+		m.logger.Info("Merging values from provisioner")
 		v.Merge(additional)
 	}
 
