@@ -72,17 +72,17 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 		return err
 	}
 
-	creds, err := m.readCredentials()
-	if err != nil {
-		return err
-	}
-
 	err = m.finalizeChanges(o, o.Values, values)
 	if err != nil {
 		return err
 	}
 
 	manifests, err := m.renderer.RenderManifests(values)
+	if err != nil {
+		return err
+	}
+
+	creds, err := m.readCredentials(o)
 	if err != nil {
 		return err
 	}
@@ -169,12 +169,12 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 		return err
 	}
 
-	creds, err := m.readCredentials()
+	manifests, err := m.renderer.RenderManifests(values)
 	if err != nil {
 		return err
 	}
 
-	manifests, err := m.renderer.RenderManifests(values)
+	creds, err := m.readCredentials(o)
 	if err != nil {
 		return err
 	}
@@ -254,13 +254,13 @@ func (m *Manager) readDeletions(filename string) (d *kcm.Deletions, err error) {
 	return
 }
 
-func (m *Manager) readCredentials() (*kcm.Credentials, error) {
+func (m *Manager) readCredentials(o *kcm.Options) (*kcm.Credentials, error) {
 	creds, err := m.credentialSource.GetCredentials()
 	if err != nil {
 		return nil, err
 	}
 
-	if *creds == emptyCredentials {
+	if !o.DryRun && *creds == emptyCredentials {
 		return nil, errors.New("Empty kubernetes credentials found! " +
 			"Provide `kubeconfig` (and optionally `context`) or " +
 			"`server` and `token` via the provisioner or set the corresponding --cluster-* flags")

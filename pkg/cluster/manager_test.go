@@ -150,7 +150,7 @@ func TestReadEmptyCredentials(t *testing.T) {
 		credentialSource: credentials.NewStaticCredentials(&kcm.Credentials{}),
 	}
 
-	_, err := m.readCredentials()
+	_, err := m.readCredentials(&kcm.Options{})
 
 	assert.Error(t, err)
 }
@@ -166,7 +166,7 @@ func TestReadCredentials(t *testing.T) {
 		logger:           log.StandardLogger(),
 	}
 
-	creds, err := m.readCredentials()
+	creds, err := m.readCredentials(&kcm.Options{})
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, creds)
