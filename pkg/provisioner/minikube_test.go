@@ -23,26 +23,19 @@ func TestMinikubeProvision(t *testing.T) {
 }
 
 func TestMinikubeFetch(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := &Minikube{}
+	m := &Minikube{}
 
-		output := `127.0.0.1`
+	home, _ := homedir.Dir()
 
-		executor.Command("minikube ip").WillReturn(output)
+	expectedValues := kcm.Values{
+		"context":    "minikube",
+		"kubeconfig": home + "/.kube/config",
+	}
 
-		home, _ := homedir.Dir()
+	values, err := m.Fetch()
 
-		expectedValues := kcm.Values{
-			"context":    "minikube",
-			"kubeconfig": home + "/.kube/config",
-			"server":     "https://127.0.0.1:8443",
-		}
-
-		values, err := m.Fetch()
-
-		assert.NoError(t, err)
-		assert.Equal(t, expectedValues, values)
-	})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValues, values)
 }
 
 func TestMinikubeDestroy(t *testing.T) {
