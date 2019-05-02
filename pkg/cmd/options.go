@@ -14,6 +14,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -23,6 +24,10 @@ type ClusterOptions struct {
 	Token      string `json:"token" yaml:"token"`
 	Kubeconfig string `json:"kubeconfig" yaml:"kubeconfig"`
 	Context    string `json:"context" yaml:"context"`
+}
+
+func (o *ClusterOptions) ValidCredentials() bool {
+	return o.Kubeconfig != "" || (o.Server != "" && o.Token != "")
 }
 
 type Options struct {
@@ -115,16 +120,17 @@ func (o *Options) createManager() (kcm.ClusterManager, error) {
 	}
 
 	var credentialSource kcm.CredentialSource
-	if o.ClusterOptions.Kubeconfig == "" && o.ClusterOptions.Context == "" &&
-		(o.ClusterOptions.Server == "" || o.ClusterOptions.Token == "") {
-		credentialSource = credentials.NewProvisionerSource(infraProvisioner)
-	} else {
+	if o.ClusterOptions.ValidCredentials() {
 		credentialSource = credentials.NewStaticCredentials(&kcm.Credentials{
 			Server:     o.ClusterOptions.Server,
 			Token:      o.ClusterOptions.Token,
 			Kubeconfig: o.ClusterOptions.Kubeconfig,
 			Context:    o.ClusterOptions.Context,
 		})
+	} else if fetcher, ok := infraProvisioner.(kcm.ValueFetcher); ok {
+		credentialSource = credentials.NewValueFetcherSource(fetcher)
+	} else {
+		return nil, errors.New("please provide valid kubernetes credentials via the --cluster-* flags")
 	}
 
 	return cluster.NewManager(
