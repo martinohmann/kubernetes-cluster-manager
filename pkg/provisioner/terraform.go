@@ -4,10 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
+)
+
+const (
+	noTerraformRootModulePattern = ".*The module root could not be found. There is nothing to output.*"
+)
+
+var (
+	noTerraformRootModuleRegexp = regexp.MustCompile(noTerraformRootModulePattern)
 )
 
 func init() {
@@ -88,6 +97,13 @@ func (m *Terraform) Fetch() (kcm.Values, error) {
 
 	out, err := command.RunSilently(cmd)
 	if err != nil {
+		// If there was no tfstate written yet and we try to fetch output
+		// variables from terraform it will fail with an error. In that case we
+		// ignore the error and just return empty values.
+		if noTerraformRootModuleRegexp.MatchString(err.Error()) {
+			return kcm.Values{}, nil
+		}
+
 		return nil, err
 	}
 

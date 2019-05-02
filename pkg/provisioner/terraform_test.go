@@ -1,8 +1,10 @@
 package provisioner
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/fatih/color"
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
@@ -86,6 +88,22 @@ func TestTerraformFetch(t *testing.T) {
 
 			assert.Equal(t, expectedValues, values)
 		}
+	})
+}
+
+// Ref: https://github.com/martinohmann/kubernetes-cluster-manager/issues/21
+func TestTerraformFetchIssue21(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+		m := NewTerraform(&kcm.TerraformOptions{})
+
+		executor.NextCommand().WillReturnError(
+			errors.New(color.RedString("The module root could not be found. There is nothing to output.")),
+		)
+
+		values, err := m.Fetch()
+
+		assert.NoError(t, err)
+		assert.Equal(t, kcm.Values{}, values)
 	})
 }
 
