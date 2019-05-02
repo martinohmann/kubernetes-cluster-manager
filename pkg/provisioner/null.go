@@ -21,16 +21,6 @@ func (*Null) Provision() error {
 	return nil
 }
 
-// Reconcile implements Reconcile from the kcm.Provisioner interface.
-func (*Null) Reconcile() error {
-	return nil
-}
-
-// Fetch implements Fetch from the kcm.Provisioner interface.
-func (*Null) Fetch() (kcm.Values, error) {
-	return kcm.Values{}, nil
-}
-
 // Destroy implements Destroy from the kcm.Provisioner interface.
 func (*Null) Destroy() error {
 	return nil
