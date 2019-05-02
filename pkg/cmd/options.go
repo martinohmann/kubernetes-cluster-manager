@@ -10,7 +10,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	homedir "github.com/mitchellh/go-homedir"
@@ -19,26 +18,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type ClusterOptions struct {
-	Server     string `json:"server" yaml:"server"`
-	Token      string `json:"token" yaml:"token"`
-	Kubeconfig string `json:"kubeconfig" yaml:"kubeconfig"`
-	Context    string `json:"context" yaml:"context"`
-}
-
-func (o *ClusterOptions) ValidCredentials() bool {
-	return o.Kubeconfig != "" || (o.Server != "" && o.Token != "")
-}
-
 type Options struct {
 	Provisioner string `json:"provisioner,omitempty" yaml:"provisioner,omitempty"`
 	Renderer    string `json:"renderer,omitempty" yaml:"renderer,omitempty"`
 	WorkingDir  string `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`
 
-	ClusterOptions     ClusterOptions         `json:"clusterCredentials,omitempty" yaml:"clusterOptions,omitempty"`
-	ManagerOptions     kcm.Options            `json:"managerOptions,omitempty" yaml:"managerOptions,omitempty"`
-	ProvisionerOptions kcm.ProvisionerOptions `json:"provisionerOptions,omitempty" yaml:"provisionerOptions,omitempty"`
-	RendererOptions    kcm.RendererOptions    `json:"rendererOptions,omitempty" yaml:"rendererOptions,omitempty"`
+	Credentials        credentials.Credentials `json:"credentials,omitempty" yaml:"credentials,omitempty"`
+	ManagerOptions     cluster.Options         `json:"managerOptions,omitempty" yaml:"managerOptions,omitempty"`
+	ProvisionerOptions provisioner.Options     `json:"provisionerOptions,omitempty" yaml:"provisionerOptions,omitempty"`
+	RendererOptions    renderer.Options        `json:"rendererOptions,omitempty" yaml:"rendererOptions,omitempty"`
 
 	logger *log.Logger
 }
@@ -48,10 +36,10 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
-	cmd.Flags().StringVar(&o.ClusterOptions.Kubeconfig, "cluster-kubeconfig", "", "Path to kubeconfig file")
-	cmd.Flags().StringVar(&o.ClusterOptions.Context, "cluster-context", "", "Kubeconfig context")
-	cmd.Flags().StringVar(&o.ClusterOptions.Server, "cluster-server", "", "Kubernetes API server address")
-	cmd.Flags().StringVar(&o.ClusterOptions.Token, "cluster-token", "", "Bearer token for authentication to the Kubernetes API server")
+	cmd.Flags().StringVar(&o.Credentials.Kubeconfig, "cluster-kubeconfig", "", "Path to kubeconfig file")
+	cmd.Flags().StringVar(&o.Credentials.Context, "cluster-context", "", "Kubeconfig context")
+	cmd.Flags().StringVar(&o.Credentials.Server, "cluster-server", "", "Kubernetes API server address")
+	cmd.Flags().StringVar(&o.Credentials.Token, "cluster-token", "", "Bearer token for authentication to the Kubernetes API server")
 
 	cmdutil.AddConfigFlag(cmd)
 	cmdutil.BindManagerFlags(cmd, &o.ManagerOptions)
@@ -82,7 +70,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 	return err
 }
 
-func (o *Options) Run(exec func(kcm.ClusterManager, *kcm.Options) error) error {
+func (o *Options) Run(exec func(*cluster.Manager, *cluster.Options) error) error {
 	if o.WorkingDir != "" {
 		o.logger.Infof("Switching working dir to %s", o.WorkingDir)
 		if err := os.Chdir(o.WorkingDir); err != nil {
@@ -108,7 +96,7 @@ func (o *Options) MergeConfig(filename string) error {
 	return mergo.Merge(o, opts, mergo.WithOverride)
 }
 
-func (o *Options) createManager() (kcm.ClusterManager, error) {
+func (o *Options) createManager() (*cluster.Manager, error) {
 	infraProvisioner, err := provisioner.Create(o.Provisioner, &o.ProvisionerOptions)
 	if err != nil {
 		return nil, err
@@ -119,16 +107,11 @@ func (o *Options) createManager() (kcm.ClusterManager, error) {
 		return nil, err
 	}
 
-	var credentialSource kcm.CredentialSource
-	if o.ClusterOptions.ValidCredentials() {
-		credentialSource = credentials.NewStaticCredentials(&kcm.Credentials{
-			Server:     o.ClusterOptions.Server,
-			Token:      o.ClusterOptions.Token,
-			Kubeconfig: o.ClusterOptions.Kubeconfig,
-			Context:    o.ClusterOptions.Context,
-		})
-	} else if fetcher, ok := infraProvisioner.(kcm.ValueFetcher); ok {
-		credentialSource = credentials.NewValueFetcherSource(fetcher)
+	var credentialSource credentials.Source
+	if !o.Credentials.Empty() {
+		credentialSource = credentials.NewStaticSource(&o.Credentials)
+	} else if outputter, ok := infraProvisioner.(provisioner.Outputter); ok {
+		credentialSource = credentials.NewProvisionerOutputSource(outputter)
 	} else {
 		return nil, errors.New("please provide valid kubernetes credentials via the --cluster-* flags")
 	}

@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ func NewDestroyCommand(l *log.Logger) *cobra.Command {
 			"in the manifest and afterwards deleting all infrastructure resources.",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd))
-			cmdutil.CheckErr(o.Run(func(m kcm.ClusterManager, o *kcm.Options) error {
+			cmdutil.CheckErr(o.Run(func(m *cluster.Manager, o *cluster.Options) error {
 				return m.Destroy(o)
 			}))
 		},

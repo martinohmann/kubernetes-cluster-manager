@@ -3,12 +3,11 @@ package provisioner
 import (
 	"reflect"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
 // Factory defines a factory func to create an infrastructure provisioner.
-type Factory func(*kcm.ProvisionerOptions) (kcm.Provisioner, error)
+type Factory func(*Options) (Provisioner, error)
 
 var (
 	provisioners = make(map[string]Factory)
@@ -21,7 +20,7 @@ func Register(name string, factory Factory) {
 }
 
 // Create creates an infrastructure provisioner.
-func Create(name string, o *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
+func Create(name string, o *Options) (Provisioner, error) {
 	if factory, ok := provisioners[name]; ok {
 		return factory(o)
 	}

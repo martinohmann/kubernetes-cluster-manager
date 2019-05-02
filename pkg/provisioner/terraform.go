@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-	Register("terraform", func(o *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
+	Register("terraform", func(o *Options) (Provisioner, error) {
 		return NewTerraform(&o.Terraform), nil
 	})
 }
@@ -32,17 +32,17 @@ type terraformOutputValue struct {
 // Terraform is an infrastructure manager that uses terraform to manage
 // resources.
 type Terraform struct {
-	options *kcm.TerraformOptions
+	options *TerraformOptions
 }
 
 // NewTerraform creates a new terraform infrastructure manager.
-func NewTerraform(o *kcm.TerraformOptions) *Terraform {
+func NewTerraform(o *TerraformOptions) *Terraform {
 	return &Terraform{
 		options: o,
 	}
 }
 
-// Provision implements Provision from the kcm.Provisioner interface.
+// Provision implements Provision from the Provisioner interface.
 func (m *Terraform) Provision() error {
 	args := []string{
 		"terraform",
@@ -61,7 +61,7 @@ func (m *Terraform) Provision() error {
 	return err
 }
 
-// Reconcile implements kcm.Reconciler.
+// Reconcile implements Reconciler.
 func (m *Terraform) Reconcile() (err error) {
 	args := []string{
 		"terraform",
@@ -85,8 +85,8 @@ func (m *Terraform) Reconcile() (err error) {
 	return
 }
 
-// Fetch implements kcm.ValueFetcher.
-func (m *Terraform) Fetch() (kcm.Values, error) {
+// Output implements Outputter.
+func (m *Terraform) Output() (kcm.Values, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -121,7 +121,7 @@ func (m *Terraform) Fetch() (kcm.Values, error) {
 	return v, nil
 }
 
-// Destroy implements Destroy from the kcm.Provisioner interface.
+// Destroy implements Destroy from the Provisioner interface.
 func (m *Terraform) Destroy() error {
 	args := []string{
 		"terraform",

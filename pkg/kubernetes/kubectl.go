@@ -9,7 +9,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/pkg/errors"
 )
 
@@ -27,20 +27,28 @@ var (
 	backoffStrategy = backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxRetries)
 )
 
+// ResourceSelector is used to select kubernetes resources.
+type ResourceSelector struct {
+	Kind      string            `json:"kind" yaml:"kind"`
+	Name      string            `json:"name" yaml:"name"`
+	Namespace string            `json:"namespace" yaml:"namespace"`
+	Labels    map[string]string `json:"labels" yaml:"labels"`
+}
+
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
-	credentials *kcm.Credentials
+	credentials *credentials.Credentials
 }
 
 // NewKubectl create a new kubectl interactor.
-func NewKubectl(c *kcm.Credentials) *Kubectl {
+func NewKubectl(c *credentials.Credentials) *Kubectl {
 	return &Kubectl{
 		credentials: c,
 	}
 }
 
 // ApplyManifest applies the manifest via kubectl.
-func (k *Kubectl) ApplyManifest(manifest *kcm.Manifest) error {
+func (k *Kubectl) ApplyManifest(manifest []byte) error {
 	args := []string{
 		"kubectl",
 		"apply",
@@ -53,7 +61,7 @@ func (k *Kubectl) ApplyManifest(manifest *kcm.Manifest) error {
 	err := backoff.Retry(
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdin = bytes.NewBuffer(manifest.Content)
+			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := command.Run(cmd)
 			return err
 		},
@@ -64,7 +72,7 @@ func (k *Kubectl) ApplyManifest(manifest *kcm.Manifest) error {
 }
 
 // DeleteManifest deletes the manifest via kubectl.
-func (k *Kubectl) DeleteManifest(manifest *kcm.Manifest) error {
+func (k *Kubectl) DeleteManifest(manifest []byte) error {
 	args := []string{
 		"kubectl",
 		"delete",
@@ -78,7 +86,7 @@ func (k *Kubectl) DeleteManifest(manifest *kcm.Manifest) error {
 	err := backoff.Retry(
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdin = bytes.NewBuffer(manifest.Content)
+			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := command.Run(cmd)
 			return err
 		},
@@ -89,8 +97,8 @@ func (k *Kubectl) DeleteManifest(manifest *kcm.Manifest) error {
 }
 
 // DeleteResource deletes a resource via kubectl.
-func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
-	namespace := deletion.Namespace
+func (k *Kubectl) DeleteResource(selector *ResourceSelector) error {
+	namespace := selector.Namespace
 	if namespace == "" {
 		namespace = defaultNamespace
 	}
@@ -98,7 +106,7 @@ func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
 	args := []string{
 		"kubectl",
 		"delete",
-		strings.ToLower(deletion.Kind),
+		strings.ToLower(selector.Kind),
 		"--ignore-not-found",
 		"--namespace",
 		namespace,
@@ -106,26 +114,26 @@ func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
 
 	args = append(args, k.buildCredentialArgs()...)
 
-	if deletion.Name != "" {
-		args = append(args, deletion.Name)
-	} else if len(deletion.Labels) > 0 {
-		keys := make([]string, 0, len(deletion.Labels))
-		for k := range deletion.Labels {
+	if selector.Name != "" {
+		args = append(args, selector.Name)
+	} else if len(selector.Labels) > 0 {
+		keys := make([]string, 0, len(selector.Labels))
+		for k := range selector.Labels {
 			keys = append(keys, k)
 		}
 
 		sort.Strings(keys)
 
-		pairs := make([]string, 0, len(deletion.Labels))
+		pairs := make([]string, 0, len(selector.Labels))
 		for _, k := range keys {
-			pairs = append(pairs, fmt.Sprintf("%s=%s", k, deletion.Labels[k]))
+			pairs = append(pairs, fmt.Sprintf("%s=%s", k, selector.Labels[k]))
 		}
 
 		args = append(args, "--selector", strings.Join(pairs, ","))
 	} else {
 		return errors.Errorf(
-			"either a name or labels must be specified for a deletion (kind=%s,namespace=%s)",
-			deletion.Kind,
+			"either a name or labels must be specified in the resource selector (kind=%s,namespace=%s)",
+			selector.Kind,
 			namespace,
 		)
 	}
@@ -135,6 +143,18 @@ func (k *Kubectl) DeleteResource(deletion *kcm.Deletion) error {
 	_, err := command.Run(cmd)
 
 	return err
+}
+
+// DeleteResources deletes resources via kubectl. Returns a slice containing
+// the resources that were not deleted to to an error.
+func (k *Kubectl) DeleteResources(resources []*ResourceSelector) ([]*ResourceSelector, error) {
+	for i, selector := range resources {
+		if err := k.DeleteResource(selector); err != nil {
+			return resources[i:], err
+		}
+	}
+
+	return []*ResourceSelector{}, nil
 }
 
 // ClusterInfo fetches the kubernetes cluster info.

@@ -1,7 +1,9 @@
 package cmdutil
 
 import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	"github.com/spf13/cobra"
 )
 
@@ -22,17 +24,17 @@ func AddConfigFlag(cmd *cobra.Command) {
 }
 
 // BindProvisionerFlags binds flags to provisioner options.
-func BindProvisionerFlags(cmd *cobra.Command, o *kcm.ProvisionerOptions) {
+func BindProvisionerFlags(cmd *cobra.Command, o *provisioner.Options) {
 	cmd.Flags().IntVar(&o.Terraform.Parallelism, "terraform-parallelism", 0, "Number of parallel terraform resource operations")
 }
 
 // BindRendererFlags binds flags to renderer options.
-func BindRendererFlags(cmd *cobra.Command, o *kcm.RendererOptions) {
+func BindRendererFlags(cmd *cobra.Command, o *renderer.Options) {
 	cmd.Flags().StringVar(&o.Helm.ChartsDir, "helm-charts-dir", "./charts", "Path to helm charts")
 }
 
 // BindManagerFlags binds flags to options.
-func BindManagerFlags(cmd *cobra.Command, o *kcm.Options) {
+func BindManagerFlags(cmd *cobra.Command, o *cluster.Options) {
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Do not make any changes")
 	cmd.Flags().StringVar(&o.ManifestsDir, "manifests-dir", "./manifests", "Path to rendered manifests")
 	cmd.Flags().StringVar(&o.Deletions, "deletions", "deletions.yaml", `Deletions file path`)

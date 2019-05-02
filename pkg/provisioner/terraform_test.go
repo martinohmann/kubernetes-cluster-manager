@@ -12,7 +12,7 @@ import (
 
 func TestTerraformProvision(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		options := kcm.TerraformOptions{Parallelism: 4}
+		options := TerraformOptions{Parallelism: 4}
 
 		m := NewTerraform(&options)
 
@@ -34,7 +34,7 @@ func TestTerraformProvision(t *testing.T) {
 
 func TestTerraformPlan(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := NewTerraform(&kcm.TerraformOptions{})
+		m := NewTerraform(&TerraformOptions{})
 
 		err := m.Reconcile()
 
@@ -52,9 +52,9 @@ func TestTerraformPlan(t *testing.T) {
 	})
 }
 
-func TestTerraformFetch(t *testing.T) {
+func TestTerraformOutput(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := NewTerraform(&kcm.TerraformOptions{})
+		m := NewTerraform(&TerraformOptions{})
 
 		output := `
 {
@@ -73,7 +73,7 @@ func TestTerraformFetch(t *testing.T) {
 			"bar": []interface{}{"baz"},
 		}
 
-		values, err := m.Fetch()
+		values, err := m.Output()
 
 		if !assert.NoError(t, err) {
 			return
@@ -92,15 +92,15 @@ func TestTerraformFetch(t *testing.T) {
 }
 
 // Ref: https://github.com/martinohmann/kubernetes-cluster-manager/issues/21
-func TestTerraformFetchIssue21(t *testing.T) {
+func TestTerraformOutputIssue21(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := NewTerraform(&kcm.TerraformOptions{})
+		m := NewTerraform(&TerraformOptions{})
 
 		executor.NextCommand().WillReturnError(
 			errors.New(color.RedString("The module root could not be found. There is nothing to output.")),
 		)
 
-		values, err := m.Fetch()
+		values, err := m.Output()
 
 		assert.NoError(t, err)
 		assert.Equal(t, kcm.Values{}, values)
@@ -109,7 +109,7 @@ func TestTerraformFetchIssue21(t *testing.T) {
 
 func TestTerraformDestroy(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		options := kcm.TerraformOptions{Parallelism: 4}
+		options := TerraformOptions{Parallelism: 4}
 
 		m := NewTerraform(&options)
 

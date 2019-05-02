@@ -10,7 +10,7 @@ import (
 )
 
 func TestHelmRenderManifests(t *testing.T) {
-	o := &kcm.HelmOptions{
+	o := &HelmOptions{
 		ChartsDir: "testdata/helm",
 	}
 

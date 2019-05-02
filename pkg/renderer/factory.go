@@ -3,12 +3,11 @@ package renderer
 import (
 	"reflect"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
 // Factory defines a factory func to create a manifest renderer.
-type Factory func(*kcm.RendererOptions) (kcm.Renderer, error)
+type Factory func(*Options) (Renderer, error)
 
 var (
 	renderers = make(map[string]Factory)
@@ -21,7 +20,7 @@ func Register(name string, factory Factory) {
 }
 
 // Create creates a manifest renderer.
-func Create(name string, o *kcm.RendererOptions) (kcm.Renderer, error) {
+func Create(name string, o *Options) (Renderer, error) {
 	if factory, ok := renderers[name]; ok {
 		return factory(o)
 	}
