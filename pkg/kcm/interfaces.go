@@ -31,18 +31,24 @@ type Provisioner interface {
 	// automatically create or update a kubernetes cluster.
 	Provision() error
 
+	// Destroy performs all actions needed to destroy the underlying
+	// cluster infrastructure.
+	Destroy() error
+}
+
+// Reconciler can reconcile infrastucture status.
+type Reconciler interface {
 	// Reconcile retrieves the current state of the infrastructure and
 	// should log potential changes without actually applying them.
 	Reconcile() error
+}
 
+// ValueFetcher can fetch kcm values.
+type ValueFetcher interface {
 	// Fetch obtains output values from the infrastructure provisioner.
 	// These values are made available during kubernetes manifest
 	// renderering.
 	Fetch() (Values, error)
-
-	// Destroy performs all actions needed to destroy the underlying
-	// cluster infrastructure.
-	Destroy() error
 }
 
 // Renderer is the interface for a Kubernetes manifest renderer.

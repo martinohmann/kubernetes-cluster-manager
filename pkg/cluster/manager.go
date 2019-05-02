@@ -47,10 +47,10 @@ func NewManager(
 func (m *Manager) Provision(o *kcm.Options) error {
 	var err error
 
-	if o.DryRun {
-		err = m.provisioner.Reconcile()
-	} else {
+	if !o.DryRun {
 		err = m.provisioner.Provision()
+	} else if r, ok := m.provisioner.(kcm.Reconciler); ok {
+		err = r.Reconcile()
 	}
 
 	if err != nil || o.SkipManifests {
@@ -239,10 +239,12 @@ func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
 		return
 	}
 
-	additional, err := m.provisioner.Fetch()
-	if err == nil && len(additional) > 0 {
-		m.logger.Info("Merging values from provisioner")
-		v.Merge(additional)
+	if fetcher, ok := m.provisioner.(kcm.ValueFetcher); ok {
+		values, err := fetcher.Fetch()
+		if err == nil && len(values) > 0 {
+			m.logger.Info("Merging values from provisioner")
+			v.Merge(values)
+		}
 	}
 
 	return

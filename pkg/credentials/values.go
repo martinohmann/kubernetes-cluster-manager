@@ -4,20 +4,20 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
-// ProvisionerSource is a kcm.CredentialSource that retrieves Kubernetes
+// ValueFetcherSource is a kcm.CredentialSource that retrieves Kubernetes
 // credentials from an infrastructure provisioner.
-type ProvisionerSource struct {
-	provisioner kcm.Provisioner
+type ValueFetcherSource struct {
+	fetcher kcm.ValueFetcher
 }
 
-// NewProvisionerSource creates a new ProvisionerSource with given provisioner.
-func NewProvisionerSource(p kcm.Provisioner) kcm.CredentialSource {
-	return &ProvisionerSource{p}
+// NewValueFetcherSource creates a new ValueFetcherSource with given f.
+func NewValueFetcherSource(f kcm.ValueFetcher) kcm.CredentialSource {
+	return &ValueFetcherSource{f}
 }
 
 // GetCredentials implements kcm.CredentialSource.
-func (p *ProvisionerSource) GetCredentials() (*kcm.Credentials, error) {
-	v, err := p.provisioner.Fetch()
+func (s *ValueFetcherSource) GetCredentials() (*kcm.Credentials, error) {
+	v, err := s.fetcher.Fetch()
 	if err != nil {
 		return nil, err
 	}
