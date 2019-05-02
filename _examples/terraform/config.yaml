@@ -1,0 +1,8 @@
+---
+provisioner: terraform
+provisionerOptions:
+  terraform:
+    parallelism: 10
+rendererOptions:
+  helm:
+    chartsDir: ../charts/

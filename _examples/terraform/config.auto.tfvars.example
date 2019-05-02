@@ -1,0 +1,5 @@
+clustername = "cluster"
+
+profile = "default"
+
+region = "eu-west-1"
