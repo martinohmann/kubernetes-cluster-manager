@@ -44,12 +44,7 @@ func (m *Minikube) Provision() error {
 	return err
 }
 
-// Reconcile implements Reconcile from the kcm.Provisioner interface.
-func (m *Minikube) Reconcile() error {
-	return nil
-}
-
-// Fetch implements Fetch from the kcm.Provisioner interface.
+// Fetch implements kcm.ValueFetcher.
 func (m *Minikube) Fetch() (kcm.Values, error) {
 	home, _ := homedir.Dir()
 

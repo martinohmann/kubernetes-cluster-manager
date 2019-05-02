@@ -61,7 +61,7 @@ func (m *Terraform) Provision() error {
 	return err
 }
 
-// Reconcile implements Reconcile from the kcm.Provisioner interface.
+// Reconcile implements kcm.Reconciler.
 func (m *Terraform) Reconcile() (err error) {
 	args := []string{
 		"terraform",
@@ -85,7 +85,7 @@ func (m *Terraform) Reconcile() (err error) {
 	return
 }
 
-// Fetch implements Fetch from the kcm.Provisioner interface.
+// Fetch implements kcm.ValueFetcher.
 func (m *Terraform) Fetch() (kcm.Values, error) {
 	args := []string{
 		"terraform",
