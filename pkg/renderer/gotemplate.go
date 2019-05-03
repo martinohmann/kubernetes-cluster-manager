@@ -9,6 +9,7 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/pkg/errors"
 )
 
 // GoTemplate uses the text/template package to render manifests
@@ -33,7 +34,7 @@ func (r *GoTemplate) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
 func renderDirectory(dir string, v kcm.Values) (*ManifestInfo, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var b bytes.Buffer
@@ -54,7 +55,7 @@ func renderDirectory(dir string, v kcm.Values) (*ManifestInfo, error) {
 
 		err := renderTemplate(template, &b, v)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
