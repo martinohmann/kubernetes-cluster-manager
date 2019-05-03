@@ -7,11 +7,16 @@ import (
 )
 
 // Factory defines a factory func to create a manifest renderer.
-type Factory func(*Options) (Renderer, error)
+type Factory func(*Options) Renderer
 
 var (
 	renderers = make(map[string]Factory)
 )
+
+func init() {
+	Register("helm", func(o *Options) Renderer { return NewHelm(&o.Helm) })
+	Register("null", func(_ *Options) Renderer { return &Null{} })
+}
 
 // Register registers a factory for a manifest renderer with given
 // name.
@@ -22,7 +27,7 @@ func Register(name string, factory Factory) {
 // Create creates a manifest renderer.
 func Create(name string, o *Options) (Renderer, error) {
 	if factory, ok := renderers[name]; ok {
-		return factory(o)
+		return factory(o), nil
 	}
 
 	return nil, errors.Errorf(

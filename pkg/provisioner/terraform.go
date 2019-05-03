@@ -19,12 +19,6 @@ var (
 	noTerraformRootModuleRegexp = regexp.MustCompile(noTerraformRootModulePattern)
 )
 
-func init() {
-	Register("terraform", func(o *Options) (Provisioner, error) {
-		return NewTerraform(&o.Terraform), nil
-	})
-}
-
 type terraformOutputValue struct {
 	Value interface{} `json:"value"`
 }

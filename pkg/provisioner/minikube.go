@@ -10,12 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func init() {
-	Register("minikube", func(_ *Options) (Provisioner, error) {
-		return &Minikube{}, nil
-	})
-}
-
 // Minikube uses minikube instead of an actual infrastructure provisioner.
 // This is useful for local testing.
 type Minikube struct{}

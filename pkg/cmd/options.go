@@ -63,6 +63,10 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 		o.Provisioner = "null"
 	}
 
+	if o.Renderer == "" {
+		o.Renderer = "null"
+	}
+
 	executor := command.NewExecutor(o.logger)
 
 	command.SetExecutor(executor)

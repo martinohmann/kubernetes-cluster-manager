@@ -7,10 +7,10 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	r, err := Create("helm", &Options{})
+	r, err := Create("null", &Options{})
 
 	assert.NoError(t, err)
-	assert.IsType(t, &Helm{}, r)
+	assert.IsType(t, &Null{}, r)
 }
 
 func TestCreateError(t *testing.T) {

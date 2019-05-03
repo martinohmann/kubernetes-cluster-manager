@@ -11,12 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func init() {
-	Register("helm", func(o *Options) (Renderer, error) {
-		return NewHelm(&o.Helm), nil
-	})
-}
-
 // Helm uses helm to render kubernetes manifests.
 type Helm struct {
 	chartsDir string
@@ -29,7 +23,7 @@ func NewHelm(o *HelmOptions) *Helm {
 	}
 }
 
-// RenderManifests implements RenderManifests from the kcm.Renderer interface.
+// RenderManifests implements Renderer.
 func (r *Helm) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
 	files, err := ioutil.ReadDir(r.chartsDir)
 	if err != nil {

@@ -1,11 +1,5 @@
 package provisioner
 
-func init() {
-	Register("null", func(_ *Options) (Provisioner, error) {
-		return &Null{}, nil
-	})
-}
-
 // Null does not provision any infrastructure. All interface funcs
 // will return successfully. Null can be used if you want to manage
 // your cluster infrastructure by other means and just want to make use of the
