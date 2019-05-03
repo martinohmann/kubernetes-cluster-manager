@@ -1,71 +1,40 @@
 package renderer
 
 import (
-	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"sort"
-
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes/helm"
-	"github.com/pkg/errors"
 )
 
 // Helm uses helm to render kubernetes manifests.
 type Helm struct {
-	chartsDir string
+	TemplatesDir string
 }
 
-// NewHelm creates a new helm manifest renderer with given options.
-func NewHelm(o *HelmOptions) *Helm {
+func NewHelm(o *Options) Renderer {
 	return &Helm{
-		chartsDir: o.ChartsDir,
+		TemplatesDir: o.TemplatesDir,
 	}
 }
 
 // RenderManifests implements Renderer.
 func (r *Helm) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
-	files, err := ioutil.ReadDir(r.chartsDir)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	dirs := make([]string, 0, len(files))
-
-	for _, f := range files {
-		if !f.IsDir() && !helm.IsChartDir(f.Name()) {
-			continue
-		}
-
-		dirs = append(dirs, f.Name())
-	}
-
-	sort.Strings(dirs)
-
-	manifests := make([]*ManifestInfo, len(dirs))
-
-	for i, d := range dirs {
-		manifest, err := r.renderChart(d, v)
-		if err != nil {
-			return nil, err
-		}
-
-		manifests[i] = manifest
-	}
-
-	return manifests, nil
+	return renderManifests(r.TemplatesDir, v, renderChart)
 }
 
-// renderChart renders a helm chart.
-func (r *Helm) renderChart(chartName string, v kcm.Values) (*ManifestInfo, error) {
-	chart := helm.NewChart(filepath.Join(r.chartsDir, chartName))
-	buf, err := chart.Render(v)
+// renderChart renders a helm chart and satisfies the signature for
+// renderManifestFunc.
+func renderChart(dir string, v kcm.Values) (*ManifestInfo, error) {
+	if !helm.IsChartDir(dir) {
+		return nil, skipError{dir}
+	}
+
+	buf, err := helm.NewChart(dir).Render(v)
 	if err != nil {
 		return nil, err
 	}
 
 	m := &ManifestInfo{
-		Filename: fmt.Sprintf("%s.yaml", chartName),
+		Filename: manifestFilename(dir),
 		Content:  buf,
 	}
 

@@ -14,8 +14,9 @@ var (
 )
 
 func init() {
-	Register("helm", func(o *Options) Renderer { return NewHelm(&o.Helm) })
-	Register("null", func(_ *Options) Renderer { return &Null{} })
+	Register("gotemplate", NewGoTemplate)
+	Register("helm", NewHelm)
+	Register("null", NewNull)
 }
 
 // Register registers a factory for a manifest renderer with given

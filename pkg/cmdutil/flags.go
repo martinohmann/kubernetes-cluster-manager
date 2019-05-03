@@ -30,7 +30,7 @@ func BindProvisionerFlags(cmd *cobra.Command, o *provisioner.Options) {
 
 // BindRendererFlags binds flags to renderer options.
 func BindRendererFlags(cmd *cobra.Command, o *renderer.Options) {
-	cmd.Flags().StringVar(&o.Helm.ChartsDir, "helm-charts-dir", "./charts", "Path to helm charts")
+	cmd.Flags().StringVar(&o.TemplatesDir, "templates-dir", "./templates", "Path to manifest templates")
 }
 
 // BindManagerFlags binds flags to options.

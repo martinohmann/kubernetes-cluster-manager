@@ -18,12 +18,14 @@ Features:
 - Dry run, apply and destroy changes (infrastructure + kubernetes manifests)
 
 Currently supported infrastructure provisioners:
-- Null provisioner (default)
-- [Terraform](https://github.com/hashicorp/terraform)
-- [Minikube](https://github.com/kubernetes/minikube) for local testing
+- `null` (default)
+- [`terraform`](https://github.com/hashicorp/terraform)
+- [`minikube`](https://github.com/kubernetes/minikube) for local testing
 
 Currently supported manifest renderers:
-- [Helm](https://github.com/helm/helm)
+- [`gotemplate`](https://golang.org/pkg/text/template/) with [sprig](https://github.com/Masterminds/sprig) function library (default)
+- [`helm`](https://github.com/helm/helm)
+- `null`
 
 Installation
 ------------
@@ -50,8 +52,9 @@ Provision infrastructure using terraform and render manifests via helm:
 ```sh
 $ kcm provision \
   --provisioner terraform \
+  --renderer helm \
   --working-dir /path/to/terraform/repo \
-  --helm-charts-dir /path/to/helm/charts \
+  --templates-dir /path/to/helm/charts \
   --dry-run
 ```
 

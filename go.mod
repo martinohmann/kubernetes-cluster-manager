@@ -3,8 +3,13 @@ module github.com/martinohmann/kubernetes-cluster-manager
 go 1.12
 
 require (
+	github.com/Masterminds/goutils v1.1.0 // indirect
+	github.com/Masterminds/semver v1.4.2 // indirect
+	github.com/Masterminds/sprig v2.18.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fatih/color v1.7.0
+	github.com/google/uuid v1.1.1 // indirect
+	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
