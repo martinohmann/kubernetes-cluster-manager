@@ -14,6 +14,11 @@ import (
 // This is useful for local testing.
 type Minikube struct{}
 
+// NewMinikube creates a new Minikube provisioner.
+func NewMinikube(_ *Options) Provisioner {
+	return &Minikube{}
+}
+
 func (m *Minikube) status() error {
 	cmd := exec.Command("minikube", "status")
 

@@ -14,9 +14,9 @@ var (
 )
 
 func init() {
-	Register("minikube", func(_ *Options) Provisioner { return &Minikube{} })
-	Register("null", func(_ *Options) Provisioner { return &Null{} })
-	Register("terraform", func(o *Options) Provisioner { return NewTerraform(&o.Terraform) })
+	Register("minikube", NewMinikube)
+	Register("null", NewNull)
+	Register("terraform", NewTerraform)
 }
 
 // Register registers a factory for an infrastructure provisioner with given

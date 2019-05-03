@@ -31,10 +31,5 @@ type Outputter interface {
 
 // Options are made available to infrastructure provisioners.
 type Options struct {
-	Terraform TerraformOptions `json:"terraform" yaml:"terraform"`
-}
-
-// TerraformOptions configure the terraform provisioner.
-type TerraformOptions struct {
 	Parallelism int `json:"parallelism" yaml:"parallelism"`
 }

@@ -24,14 +24,12 @@ func TestNewDumpConfigCommand(t *testing.T) {
 	config := `---
 workingDir: /tmp/cluster
 provisionerOptions:
-  terraform:
-    parallelism: 1
+  parallelism: 1
 `
 
 	expected := `workingDir: /tmp/cluster
 provisionerOptions:
-  terraform:
-    parallelism: 1
+  parallelism: 1
 
 `
 

@@ -25,7 +25,7 @@ func AddConfigFlag(cmd *cobra.Command) {
 
 // BindProvisionerFlags binds flags to provisioner options.
 func BindProvisionerFlags(cmd *cobra.Command, o *provisioner.Options) {
-	cmd.Flags().IntVar(&o.Terraform.Parallelism, "terraform-parallelism", 0, "Number of parallel terraform resource operations")
+	cmd.Flags().IntVar(&o.Parallelism, "parallelism", 0, "Number of parallel provisioner resource operations")
 }
 
 // BindRendererFlags binds flags to renderer options.

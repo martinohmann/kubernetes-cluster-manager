@@ -26,13 +26,13 @@ type terraformOutputValue struct {
 // Terraform is an infrastructure manager that uses terraform to manage
 // resources.
 type Terraform struct {
-	options *TerraformOptions
+	Parallelism int
 }
 
 // NewTerraform creates a new terraform infrastructure manager.
-func NewTerraform(o *TerraformOptions) *Terraform {
+func NewTerraform(o *Options) Provisioner {
 	return &Terraform{
-		options: o,
+		Parallelism: o.Parallelism,
 	}
 }
 
@@ -44,8 +44,8 @@ func (m *Terraform) Provision() error {
 		"--auto-approve",
 	}
 
-	if m.options.Parallelism > 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
+	if m.Parallelism > 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -63,8 +63,8 @@ func (m *Terraform) Reconcile() (err error) {
 		"--detailed-exitcode",
 	}
 
-	if m.options.Parallelism > 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
+	if m.Parallelism > 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -123,8 +123,8 @@ func (m *Terraform) Destroy() error {
 		"--auto-approve",
 	}
 
-	if m.options.Parallelism > 0 {
-		args = append(args, fmt.Sprintf("--parallelism=%d", m.options.Parallelism))
+	if m.Parallelism > 0 {
+		args = append(args, fmt.Sprintf("--parallelism=%d", m.Parallelism))
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
