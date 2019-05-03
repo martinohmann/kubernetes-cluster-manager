@@ -1,0 +1,39 @@
+---
+project_name: kcm
+builds:
+  - main: ./cmd/kcm/main.go
+    binary: kcm
+    ldflags:
+      - -s -w
+        -X github.com/martinohmann/kubernetes-cluster-manager/pkg/version.gitVersion={{.Version}}
+        -X github.com/martinohmann/kubernetes-cluster-manager/pkg/version.gitCommit={{.FullCommit}}
+        -X github.com/martinohmann/kubernetes-cluster-manager/pkg/version.buildDate={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+archives:
+  - replacements:
+      amd64: x86_64
+archive:
+  files:
+    - none*
+release:
+  github:
+    owner: martinohmann
+    name: kubernetes-cluster-manager
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
