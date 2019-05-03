@@ -41,13 +41,16 @@ This will install the `kcm` binary to `$GOPATH/bin/kcm`.
 Usage
 -----
 
-The documentation is still work in progress. For now, refer to [godoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager) and the command line help:
+The documentation is still work in progress. For now, refer to [godoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager), the examples [`_examples`](_examples/) directory and the command line help:
 
 ```sh
 $ kcm help
 ```
 
-Provision infrastructure using terraform and render manifests via helm:
+Quick examples
+--------------
+
+### Provision infrastructure using terraform and render manifests via helm
 
 ```sh
 $ kcm provision \
@@ -64,9 +67,54 @@ its output, or `server` and `token` values needed for establishing a connection
 to the kubernetes api-server. Alternatively you can manually provide kubernetes
 credentials via the `--cluster-*` flags. Detailed examples will follow.
 
-### Examples
+### Using a config file and skipping manifest rendering/deployment
 
-Check out the [`_examples`](_examples/) directory for more usage examples.
+```sh
+$ kcm provision --config config.yaml --skip-manifests
+```
+
+### Working with manifests
+
+The `kcm manifests` command will only render and apply/delete manifests and
+will skip any infrastructure changes:
+
+```sh
+$ kcm manifests apply \
+  --renderer gotemplate \
+  --templates-dir templates/ \
+  --manifests-dir manifest/ \
+  --cluster-kubeconfig ~/.kube/config \
+  --cluster-context eks-dev
+```
+
+Apply all manifests, even if unchanged:
+
+```sh
+$ kcm manifests apply --config config.yaml --all-manifests
+```
+
+Delete manifests:
+
+```sh
+$ kcm manifests delete --config config.yaml
+```
+
+### Destroying a cluster
+
+```sh
+$ kcm destroy --dry-run
+```
+
+Roadmap
+-------
+
+The following features are currently planned, but I'm also happy about other
+contributions. PRs welcome!
+
+* Add node pool manager (e.g. for managing [spotinst elastigroups](https://api.spotinst.com/introducing-elastigroup/))
+* Triggering of rolling updates of node pools
+* Support for more provisioners (e.g. Cloudformation, kubeadm)
+* Replace shell-execs with native go-libraries where possible (and sensible)
 
 License
 -------
