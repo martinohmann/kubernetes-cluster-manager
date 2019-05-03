@@ -19,10 +19,9 @@ import (
 )
 
 func createManager() *Manager {
-	p := provisioner.NewTerraform(&provisioner.TerraformOptions{})
 	m := NewManager(
 		credentials.NewStaticSource(&credentials.Credentials{Context: "test"}),
-		p,
+		provisioner.NewTerraform(&provisioner.Options{}),
 		renderer.NewHelm(&renderer.Options{TemplatesDir: "testdata/charts"}),
 		log.StandardLogger(),
 	)

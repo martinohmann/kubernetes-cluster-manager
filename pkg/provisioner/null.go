@@ -6,6 +6,11 @@ package provisioner
 // manifest rendering and applying part.
 type Null struct{}
 
+// NewNull creates a new Null provisioner.
+func NewNull(_ *Options) Provisioner {
+	return &Null{}
+}
+
 // Provision implements Provision from the Provisioner interface.
 func (*Null) Provision() error {
 	return nil

@@ -12,9 +12,9 @@ import (
 
 func TestTerraformProvision(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		options := TerraformOptions{Parallelism: 4}
+		options := &Options{Parallelism: 4}
 
-		m := NewTerraform(&options)
+		m := NewTerraform(options)
 
 		err := m.Provision()
 
@@ -32,9 +32,9 @@ func TestTerraformProvision(t *testing.T) {
 	})
 }
 
-func TestTerraformPlan(t *testing.T) {
+func TestTerraformReconcile(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := NewTerraform(&TerraformOptions{})
+		m := &Terraform{}
 
 		err := m.Reconcile()
 
@@ -54,7 +54,7 @@ func TestTerraformPlan(t *testing.T) {
 
 func TestTerraformOutput(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := NewTerraform(&TerraformOptions{})
+		m := &Terraform{}
 
 		output := `
 {
@@ -94,7 +94,7 @@ func TestTerraformOutput(t *testing.T) {
 // Ref: https://github.com/martinohmann/kubernetes-cluster-manager/issues/21
 func TestTerraformOutputIssue21(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := NewTerraform(&TerraformOptions{})
+		m := &Terraform{}
 
 		executor.NextCommand().WillReturnError(
 			errors.New(color.RedString("The module root could not be found. There is nothing to output.")),
@@ -109,9 +109,9 @@ func TestTerraformOutputIssue21(t *testing.T) {
 
 func TestTerraformDestroy(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		options := TerraformOptions{Parallelism: 4}
+		options := &Options{Parallelism: 4}
 
-		m := NewTerraform(&options)
+		m := NewTerraform(options)
 
 		err := m.Destroy()
 

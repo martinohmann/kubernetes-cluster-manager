@@ -11,7 +11,7 @@ import (
 
 func TestMinikubeProvision(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		m := &Minikube{}
+		m := NewMinikube(&Options{})
 
 		executor.Command("minikube status").WillError()
 		executor.Command("minikube start").WillSucceed()
