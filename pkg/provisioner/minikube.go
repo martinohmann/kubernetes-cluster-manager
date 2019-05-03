@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	Register("minikube", func(_ *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
+	Register("minikube", func(_ *Options) (Provisioner, error) {
 		return &Minikube{}, nil
 	})
 }
@@ -31,7 +31,7 @@ func (m *Minikube) status() error {
 	return err
 }
 
-// Provision implements Provision from the kcm.Provisioner interface.
+// Provision implements Provision from the Provisioner interface.
 func (m *Minikube) Provision() error {
 	if err := m.status(); err == nil {
 		return nil
@@ -44,8 +44,8 @@ func (m *Minikube) Provision() error {
 	return err
 }
 
-// Fetch implements kcm.ValueFetcher.
-func (m *Minikube) Fetch() (kcm.Values, error) {
+// Output implements Outputter.
+func (m *Minikube) Output() (kcm.Values, error) {
 	home, _ := homedir.Dir()
 
 	v := kcm.Values{
@@ -56,7 +56,7 @@ func (m *Minikube) Fetch() (kcm.Values, error) {
 	return v, nil
 }
 
-// Destroy implements Destroy from the kcm.Provisioner interface.
+// Destroy implements Destroy from the Provisioner interface.
 func (m *Minikube) Destroy() error {
 	if err := m.status(); err != nil {
 		return err

@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	Register("helm", func(o *kcm.RendererOptions) (kcm.Renderer, error) {
+	Register("helm", func(o *Options) (Renderer, error) {
 		return NewHelm(&o.Helm), nil
 	})
 }
@@ -23,14 +23,14 @@ type Helm struct {
 }
 
 // NewHelm creates a new helm manifest renderer with given options.
-func NewHelm(o *kcm.HelmOptions) *Helm {
+func NewHelm(o *HelmOptions) *Helm {
 	return &Helm{
 		chartsDir: o.ChartsDir,
 	}
 }
 
 // RenderManifests implements RenderManifests from the kcm.Renderer interface.
-func (r *Helm) RenderManifests(v kcm.Values) ([]*kcm.Manifest, error) {
+func (r *Helm) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
 	files, err := ioutil.ReadDir(r.chartsDir)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -48,7 +48,7 @@ func (r *Helm) RenderManifests(v kcm.Values) ([]*kcm.Manifest, error) {
 
 	sort.Strings(dirs)
 
-	manifests := make([]*kcm.Manifest, len(dirs))
+	manifests := make([]*ManifestInfo, len(dirs))
 
 	for i, d := range dirs {
 		manifest, err := r.renderChart(d, v)
@@ -63,14 +63,14 @@ func (r *Helm) RenderManifests(v kcm.Values) ([]*kcm.Manifest, error) {
 }
 
 // renderChart renders a helm chart.
-func (r *Helm) renderChart(chartName string, v kcm.Values) (*kcm.Manifest, error) {
+func (r *Helm) renderChart(chartName string, v kcm.Values) (*ManifestInfo, error) {
 	chart := helm.NewChart(filepath.Join(r.chartsDir, chartName))
 	buf, err := chart.Render(v)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &kcm.Manifest{
+	m := &ManifestInfo{
 		Filename: fmt.Sprintf("%s.yaml", chartName),
 		Content:  buf,
 	}

@@ -4,9 +4,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -16,23 +19,30 @@ const (
 	dirMode os.FileMode = 0775
 )
 
-var (
-	emptyCredentials = kcm.Credentials{}
-)
+// Options are used to configure the cluster manager.
+type Options struct {
+	DryRun        bool   `json:"dryRun" yaml:"dryRun"`
+	Values        string `json:"values" yaml:"values"`
+	Deletions     string `json:"deletions" yaml:"deletions"`
+	ManifestsDir  string `json:"manifestsDir" yaml:"manifestsDir"`
+	SkipManifests bool   `json:"skipManifests" yaml:"skipManifests"`
+	AllManifests  bool   `json:"allManifests" yaml:"allManifests"`
+}
 
-// Manager is a kcm.Manager.
+// Manager is a Kubernetes cluster manager that will orchestrate changes to the
+// cluster infrastructure and the cluster itself.
 type Manager struct {
-	credentialSource kcm.CredentialSource
-	provisioner      kcm.Provisioner
-	renderer         kcm.Renderer
+	credentialSource credentials.Source
+	provisioner      provisioner.Provisioner
+	renderer         renderer.Renderer
 	logger           *log.Logger
 }
 
 // NewManager creates a new cluster manager.
 func NewManager(
-	credentialSource kcm.CredentialSource,
-	provisioner kcm.Provisioner,
-	renderer kcm.Renderer,
+	credentialSource credentials.Source,
+	provisioner provisioner.Provisioner,
+	renderer renderer.Renderer,
 	logger *log.Logger,
 ) *Manager {
 	return &Manager{
@@ -43,13 +53,16 @@ func NewManager(
 	}
 }
 
-// Provision implements Provision from the kcm.ClusterManager interface.
-func (m *Manager) Provision(o *kcm.Options) error {
+// Provision performs all steps necessary to create and setup a cluster and
+// the required infrastructure. If a cluster already exists, it should
+// update it if there are pending changes to be rolled out. Depending on
+// the options it may or may not perform a dry run of the pending changes.
+func (m *Manager) Provision(o *Options) error {
 	var err error
 
 	if !o.DryRun {
 		err = m.provisioner.Provision()
-	} else if r, ok := m.provisioner.(kcm.Reconciler); ok {
+	} else if r, ok := m.provisioner.(provisioner.Reconciler); ok {
 		err = r.Reconcile()
 	}
 
@@ -60,8 +73,10 @@ func (m *Manager) Provision(o *kcm.Options) error {
 	return m.ApplyManifests(o)
 }
 
-// ApplyManifests implements ApplyManifests from the kcm.ClusterManager interface.
-func (m *Manager) ApplyManifests(o *kcm.Options) error {
+// ApplyManifests renders and applies all manifests to the cluster. It also
+// takes care of pending resource deletions that should be performed before
+// and after applying.
+func (m *Manager) ApplyManifests(o *Options) error {
 	values, err := m.readValues(o.Values)
 	if err != nil {
 		return err
@@ -102,10 +117,10 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 	}
 
 	defer func() {
-		m.finalizeChanges(o, o.Deletions, deletions.FilterPending())
+		m.finalizeChanges(o, o.Deletions, deletions)
 	}()
 
-	err = processResourceDeletions(o, m.logger, kubectl, deletions.PreApply)
+	deletions.PreApply, err = processResourceDeletions(o, m.logger, kubectl, deletions.PreApply)
 	if err != nil {
 		return err
 	}
@@ -128,7 +143,7 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 			m.logger.Debug(string(manifest.Content))
 		} else {
 			m.logger.Infof("Applying manifest %s", filename)
-			if err := kubectl.ApplyManifest(manifest); err != nil {
+			if err := kubectl.ApplyManifest(manifest.Content); err != nil {
 				return err
 			}
 
@@ -138,11 +153,15 @@ func (m *Manager) ApplyManifests(o *kcm.Options) error {
 		}
 	}
 
-	return processResourceDeletions(o, m.logger, kubectl, deletions.PostApply)
+	deletions.PostApply, err = processResourceDeletions(o, m.logger, kubectl, deletions.PostApply)
+
+	return err
 }
 
-// Destroy implements Destroy from the kcm.ClusterManager interface.
-func (m *Manager) Destroy(o *kcm.Options) error {
+// Destroy deletes all applied manifests from a cluster and tears down the
+// cluster infrastructure. Depending on the options it may or may not
+// perform a dry run of the destruction process.
+func (m *Manager) Destroy(o *Options) error {
 	if !o.SkipManifests {
 		if err := m.DeleteManifests(o); err != nil {
 			return err
@@ -157,8 +176,10 @@ func (m *Manager) Destroy(o *kcm.Options) error {
 	return m.provisioner.Destroy()
 }
 
-// DeleteManifests implements DeleteManifests from the kcm.ClusterManager interface.
-func (m *Manager) DeleteManifests(o *kcm.Options) error {
+// DeleteManifests renders and deletes all manifests from the cluster. It
+// also takes care of other resource deletions that should be performed
+// after the manifests have been deleted from the cluster.
+func (m *Manager) DeleteManifests(o *Options) error {
 	values, err := m.readValues(o.Values)
 	if err != nil {
 		return err
@@ -189,7 +210,7 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 			m.logger.Debug(string(manifest.Content))
 		} else {
 			m.logger.Infof("Deleting manifest %s", filename)
-			if err := kubectl.DeleteManifest(manifest); err != nil {
+			if err := kubectl.DeleteManifest(manifest.Content); err != nil {
 				return err
 			}
 
@@ -200,9 +221,9 @@ func (m *Manager) DeleteManifests(o *kcm.Options) error {
 		}
 	}
 
-	processResourceDeletions(o, m.logger, kubectl, deletions.PreDestroy)
+	deletions.PreDestroy, _ = processResourceDeletions(o, m.logger, kubectl, deletions.PreDestroy)
 
-	return m.finalizeChanges(o, o.Deletions, deletions.FilterPending())
+	return m.finalizeChanges(o, o.Deletions, deletions)
 }
 
 func (m *Manager) logChanges(changeSet *file.ChangeSet) {
@@ -214,7 +235,7 @@ func (m *Manager) logChanges(changeSet *file.ChangeSet) {
 	}
 }
 
-func (m *Manager) finalizeChanges(o *kcm.Options, filename string, v interface{}) error {
+func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) error {
 	buf, err := yaml.Marshal(v)
 	if err != nil {
 		return err
@@ -239,8 +260,8 @@ func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
 		return
 	}
 
-	if fetcher, ok := m.provisioner.(kcm.ValueFetcher); ok {
-		values, err := fetcher.Fetch()
+	if o, ok := m.provisioner.(provisioner.Outputter); ok {
+		values, err := o.Output()
 		if err == nil && len(values) > 0 {
 			m.logger.Info("Merging values from provisioner")
 			v.Merge(values)
@@ -250,19 +271,19 @@ func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
 	return
 }
 
-func (m *Manager) readDeletions(filename string) (d *kcm.Deletions, err error) {
+func (m *Manager) readDeletions(filename string) (d *Deletions, err error) {
 	err = file.ReadYAML(filename, &d)
 
 	return
 }
 
-func (m *Manager) readCredentials(o *kcm.Options) (*kcm.Credentials, error) {
+func (m *Manager) readCredentials(o *Options) (*credentials.Credentials, error) {
 	creds, err := m.credentialSource.GetCredentials()
 	if err != nil {
 		return nil, err
 	}
 
-	if !o.DryRun && *creds == emptyCredentials {
+	if !o.DryRun && creds.Empty() {
 		return nil, errors.New("Empty kubernetes credentials found! " +
 			"Provide `kubeconfig` (and optionally `context`) or " +
 			"`server` and `token` via the provisioner or set the corresponding --cluster-* flags")

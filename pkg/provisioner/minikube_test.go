@@ -22,7 +22,7 @@ func TestMinikubeProvision(t *testing.T) {
 	})
 }
 
-func TestMinikubeFetch(t *testing.T) {
+func TestMinikubeOutput(t *testing.T) {
 	m := &Minikube{}
 
 	home, _ := homedir.Dir()
@@ -32,7 +32,7 @@ func TestMinikubeFetch(t *testing.T) {
 		"kubeconfig": home + "/.kube/config",
 	}
 
-	values, err := m.Fetch()
+	values, err := m.Output()
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValues, values)

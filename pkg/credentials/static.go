@@ -1,22 +1,16 @@
 package credentials
 
-import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
-)
-
-// StaticCredentials is a kcm.CredentialSource that holds static Kubernetes
-// credentials.
-type StaticCredentials struct {
-	c *kcm.Credentials
+// StaticSource is a Source that holds static Kubernetes credentials.
+type StaticSource struct {
+	c *Credentials
 }
 
-// NewStaticCredentials creates a new StaticCredentials source with given
-// credentials.
-func NewStaticCredentials(c *kcm.Credentials) kcm.CredentialSource {
-	return &StaticCredentials{c}
+// NewStaticSource creates a new StaticSource source with given credentials.
+func NewStaticSource(c *Credentials) Source {
+	return &StaticSource{c}
 }
 
-// GetCredentials implements kcm.CredentialSource.
-func (p *StaticCredentials) GetCredentials() (*kcm.Credentials, error) {
+// GetCredentials implements Source.
+func (p *StaticSource) GetCredentials() (*Credentials, error) {
 	return p.c, nil
 }

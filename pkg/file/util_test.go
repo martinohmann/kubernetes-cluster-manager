@@ -4,27 +4,29 @@ import (
 	"os"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
+type testStruct struct {
+	Foo string
+	Bar int
+}
+
 func TestReadYAML(t *testing.T) {
-	content := []byte("---\npreApply:\n- kind: pod\n  name: foo")
-	f, err := NewTempFile("deletions.yaml", content)
+	content := []byte("---\nfoo: bar\nbar: 2\n")
+	f, err := NewTempFile("foo.yaml", content)
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	defer os.Remove(f.Name())
 
-	deletions := &kcm.Deletions{}
+	v := &testStruct{}
 
-	if !assert.NoError(t, ReadYAML(f.Name(), deletions)) {
+	if !assert.NoError(t, ReadYAML(f.Name(), v)) {
 		return
 	}
 
-	if assert.Len(t, deletions.PreApply, 1) {
-		assert.Equal(t, "pod", deletions.PreApply[0].Kind)
-		assert.Equal(t, "foo", deletions.PreApply[0].Name)
-	}
+	assert.Equal(t, "bar", v.Foo)
+	assert.Equal(t, 2, v.Bar)
 }

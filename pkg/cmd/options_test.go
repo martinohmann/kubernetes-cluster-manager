@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	homedir "github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,7 @@ provisioner: minikube
 managerOptions:
   values: /values.yaml
   deletions: /deletions.yaml
-clusterOptions:
+credentials:
   kubeconfig: /tmp/kubeconfig
 `
 
@@ -46,7 +47,7 @@ clusterOptions:
 
 	assert.Equal(t, home+"/foo", o.WorkingDir)
 	assert.Equal(t, "minikube", o.Provisioner)
-	assert.Equal(t, "/tmp/kubeconfig", o.ClusterOptions.Kubeconfig)
+	assert.Equal(t, "/tmp/kubeconfig", o.Credentials.Kubeconfig)
 	assert.Equal(t, true, o.ManagerOptions.DryRun)
 	assert.Equal(t, "/values.yaml", o.ManagerOptions.Values)
 	assert.Equal(t, "/deletions.yaml", o.ManagerOptions.Deletions)
@@ -78,7 +79,7 @@ func TestOptionsCreateManager(t *testing.T) {
 			o: &Options{
 				Provisioner: "null",
 				Renderer:    "helm",
-				ClusterOptions: ClusterOptions{
+				Credentials: credentials.Credentials{
 					Kubeconfig: "/tmp/kubeconfig",
 				},
 			},

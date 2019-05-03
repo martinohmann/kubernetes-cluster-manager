@@ -1,11 +1,7 @@
 package provisioner
 
-import (
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
-)
-
 func init() {
-	Register("null", func(_ *kcm.ProvisionerOptions) (kcm.Provisioner, error) {
+	Register("null", func(_ *Options) (Provisioner, error) {
 		return &Null{}, nil
 	})
 }
@@ -16,12 +12,12 @@ func init() {
 // manifest rendering and applying part.
 type Null struct{}
 
-// Provision implements Provision from the kcm.Provisioner interface.
+// Provision implements Provision from the Provisioner interface.
 func (*Null) Provision() error {
 	return nil
 }
 
-// Destroy implements Destroy from the kcm.Provisioner interface.
+// Destroy implements Destroy from the Provisioner interface.
 func (*Null) Destroy() error {
 	return nil
 }

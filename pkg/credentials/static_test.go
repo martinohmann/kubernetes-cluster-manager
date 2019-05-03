@@ -3,14 +3,13 @@ package credentials
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStaticCredentials(t *testing.T) {
-	c := &kcm.Credentials{Kubeconfig: "~/.kube/config"}
+func TestStaticSource(t *testing.T) {
+	c := &Credentials{Kubeconfig: "~/.kube/config"}
 
-	p := NewStaticCredentials(c)
+	p := NewStaticSource(c)
 
 	credentials, err := p.GetCredentials()
 

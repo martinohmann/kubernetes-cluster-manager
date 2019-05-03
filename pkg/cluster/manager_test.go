@@ -12,7 +12,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	log "github.com/sirupsen/logrus"
@@ -20,11 +19,11 @@ import (
 )
 
 func createManager() *Manager {
-	p := provisioner.NewTerraform(&kcm.TerraformOptions{})
+	p := provisioner.NewTerraform(&provisioner.TerraformOptions{})
 	m := NewManager(
-		credentials.NewStaticCredentials(&kcm.Credentials{Context: "test"}),
+		credentials.NewStaticSource(&credentials.Credentials{Context: "test"}),
 		p,
-		renderer.NewHelm(&kcm.HelmOptions{ChartsDir: "testdata/charts"}),
+		renderer.NewHelm(&renderer.HelmOptions{ChartsDir: "testdata/charts"}),
 		log.StandardLogger(),
 	)
 
@@ -49,7 +48,7 @@ postApply:
 		manifestsDir, _ := ioutil.TempDir("", "manifests")
 		defer os.RemoveAll(manifestsDir)
 
-		o := &kcm.Options{
+		o := &Options{
 			Values:       values.Name(),
 			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
@@ -117,7 +116,7 @@ preDestroy:
 		manifestsDir, _ := ioutil.TempDir("", "manifests")
 		defer os.RemoveAll(manifestsDir)
 
-		o := &kcm.Options{
+		o := &Options{
 			Values:       values.Name(),
 			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
@@ -147,26 +146,26 @@ preDestroy: []
 
 func TestReadEmptyCredentials(t *testing.T) {
 	m := &Manager{
-		credentialSource: credentials.NewStaticCredentials(&kcm.Credentials{}),
+		credentialSource: credentials.NewStaticSource(&credentials.Credentials{}),
 	}
 
-	_, err := m.readCredentials(&kcm.Options{})
+	_, err := m.readCredentials(&Options{})
 
 	assert.Error(t, err)
 }
 
 func TestReadCredentials(t *testing.T) {
-	expected := &kcm.Credentials{
+	expected := &credentials.Credentials{
 		Server: "https://localhost:6443",
 		Token:  "mytoken",
 	}
 
 	m := &Manager{
-		credentialSource: credentials.NewStaticCredentials(expected),
+		credentialSource: credentials.NewStaticSource(expected),
 		logger:           log.StandardLogger(),
 	}
 
-	creds, err := m.readCredentials(&kcm.Options{})
+	creds, err := m.readCredentials(&Options{})
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, creds)

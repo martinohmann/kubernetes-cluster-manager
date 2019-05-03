@@ -4,20 +4,20 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApplyManifest(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		creds := &kcm.Credentials{
+		creds := &credentials.Credentials{
 			Server: "https://localhost:6443",
 			Token:  "sometoken",
 		}
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.ApplyManifest(&kcm.Manifest{})
+		err := kubectl.ApplyManifest([]byte{})
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -32,14 +32,14 @@ func TestApplyManifest(t *testing.T) {
 
 func TestDeleteManifest(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		creds := &kcm.Credentials{
+		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 			Context:    "test",
 		}
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteManifest(&kcm.Manifest{})
+		err := kubectl.DeleteManifest([]byte{})
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -54,18 +54,18 @@ func TestDeleteManifest(t *testing.T) {
 
 func TestDeleteResource(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		creds := &kcm.Credentials{
+		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		resource := &kcm.Deletion{
+		selector := &ResourceSelector{
 			Name: "foo",
 			Kind: "pod",
 		}
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(resource)
+		err := kubectl.DeleteResource(selector)
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -78,13 +78,72 @@ func TestDeleteResource(t *testing.T) {
 	})
 }
 
-func TestDeleteResourceLabels(t *testing.T) {
+func TestDeleteResources(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		creds := &kcm.Credentials{
+		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		resource := &kcm.Deletion{
+		resources := []*ResourceSelector{
+			{
+				Kind: "pod",
+				Labels: map[string]string{
+					"app.kubernetes.io/name": "foo",
+				},
+			},
+		}
+
+		kubectl := NewKubectl(creds)
+
+		executor.NextCommand().WillSucceed()
+
+		remaining, err := kubectl.DeleteResources(resources)
+
+		assert.NoError(t, err)
+		assert.Len(t, remaining, 0)
+	})
+}
+
+func TestDeleteResourcesError(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+		creds := &credentials.Credentials{
+			Kubeconfig: "/tmp/kubeconfig",
+		}
+
+		resources := []*ResourceSelector{
+			{
+				Kind: "pod",
+				Labels: map[string]string{
+					"app.kubernetes.io/name": "foo",
+				},
+			},
+			{
+				Kind: "bar",
+				Labels: map[string]string{
+					"app.kubernetes.io/name": "bar",
+				},
+			},
+		}
+
+		kubectl := NewKubectl(creds)
+
+		executor.NextCommand().WillSucceed()
+		executor.NextCommand().WillError()
+
+		remaining, err := kubectl.DeleteResources(resources)
+
+		assert.Error(t, err)
+		assert.Len(t, remaining, 1)
+	})
+}
+
+func TestDeleteResourceLabels(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+		creds := &credentials.Credentials{
+			Kubeconfig: "/tmp/kubeconfig",
+		}
+
+		selector := &ResourceSelector{
 			Kind: "pod",
 			Labels: map[string]string{
 				"app.kubernetes.io/name":    "foo",
@@ -94,7 +153,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(resource)
+		err := kubectl.DeleteResource(selector)
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -109,19 +168,19 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
-		creds := &kcm.Credentials{
+		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		resource := &kcm.Deletion{
+		selector := &ResourceSelector{
 			Kind: "pod",
 		}
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(resource)
+		err := kubectl.DeleteResource(selector)
 
 		assert.Error(t, err)
-		assert.EqualError(t, err, "either a name or labels must be specified for a deletion (kind=pod,namespace=default)")
+		assert.EqualError(t, err, "either a name or labels must be specified in the resource selector (kind=pod,namespace=default)")
 	})
 }
