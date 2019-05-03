@@ -10,8 +10,8 @@ import (
 )
 
 func TestHelmRenderManifests(t *testing.T) {
-	o := &HelmOptions{
-		ChartsDir: "testdata/helm",
+	o := &Options{
+		TemplatesDir: "testdata/helm",
 	}
 
 	r := NewHelm(o)

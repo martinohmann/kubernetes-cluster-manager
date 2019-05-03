@@ -23,7 +23,7 @@ func createManager() *Manager {
 	m := NewManager(
 		credentials.NewStaticSource(&credentials.Credentials{Context: "test"}),
 		p,
-		renderer.NewHelm(&renderer.HelmOptions{ChartsDir: "testdata/charts"}),
+		renderer.NewHelm(&renderer.Options{TemplatesDir: "testdata/charts"}),
 		log.StandardLogger(),
 	)
 

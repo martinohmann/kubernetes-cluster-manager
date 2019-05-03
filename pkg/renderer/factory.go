@@ -14,7 +14,8 @@ var (
 )
 
 func init() {
-	Register("helm", func(o *Options) Renderer { return NewHelm(&o.Helm) })
+	Register("gotemplate", NewGoTemplate)
+	Register("helm", NewHelm)
 	Register("null", func(_ *Options) Renderer { return &Null{} })
 }
 
