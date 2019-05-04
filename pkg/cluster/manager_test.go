@@ -14,7 +14,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +22,6 @@ func createManager() *Manager {
 		credentials.NewStaticSource(&credentials.Credentials{Context: "test"}),
 		provisioner.NewTerraform(&provisioner.Options{}),
 		renderer.NewHelm(&renderer.Options{TemplatesDir: "testdata/charts"}),
-		log.StandardLogger(),
 	)
 
 	return m
@@ -161,7 +159,6 @@ func TestReadCredentials(t *testing.T) {
 
 	m := &Manager{
 		credentialSource: credentials.NewStaticSource(expected),
-		logger:           log.StandardLogger(),
 	}
 
 	creds, err := m.readCredentials(&Options{})

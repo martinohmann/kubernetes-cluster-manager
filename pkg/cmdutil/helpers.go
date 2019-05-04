@@ -25,9 +25,9 @@ func CheckErr(err error) {
 	}
 
 	if debug {
-		logger.Errorf("%+v", err)
+		log.Errorf("%+v", err)
 	} else {
-		logger.Error(err)
+		log.Error(err)
 	}
 
 	os.Exit(code)

@@ -3,12 +3,11 @@ package cmd
 import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func NewProvisionCommand(l *log.Logger) *cobra.Command {
-	o := &Options{logger: l}
+func NewProvisionCommand() *cobra.Command {
+	o := &Options{}
 
 	cmd := &cobra.Command{
 		Use:   "provision",

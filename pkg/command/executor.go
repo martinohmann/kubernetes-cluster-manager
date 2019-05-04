@@ -129,7 +129,7 @@ func SetExecutor(e Executor) {
 func SetExecutorWithRestore(e Executor) func() {
 	prevExecutor := DefaultExecutor
 
-	DefaultExecutor = e
+	SetExecutor(e)
 
 	return func() {
 		DefaultExecutor = prevExecutor

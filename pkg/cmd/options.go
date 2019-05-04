@@ -7,7 +7,6 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
@@ -27,8 +26,6 @@ type Options struct {
 	ManagerOptions     cluster.Options         `json:"managerOptions,omitempty" yaml:"managerOptions,omitempty"`
 	ProvisionerOptions provisioner.Options     `json:"provisionerOptions,omitempty" yaml:"provisionerOptions,omitempty"`
 	RendererOptions    renderer.Options        `json:"rendererOptions,omitempty" yaml:"rendererOptions,omitempty"`
-
-	logger *log.Logger
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
@@ -55,7 +52,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 			return err
 		}
 
-		o.logger.Infof("Using config %s, config values take precedence over command line flags", color.YellowString(config))
+		log.Infof("Using config %s, config values take precedence over command line flags", color.YellowString(config))
 	}
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
@@ -67,16 +64,12 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 		o.Renderer = "null"
 	}
 
-	executor := command.NewExecutor(o.logger)
-
-	command.SetExecutor(executor)
-
 	return err
 }
 
 func (o *Options) Run(exec func(*cluster.Manager, *cluster.Options) error) error {
 	if o.WorkingDir != "" {
-		o.logger.Infof("Switching working dir to %s", o.WorkingDir)
+		log.Infof("Switching working dir to %s", o.WorkingDir)
 		if err := os.Chdir(o.WorkingDir); err != nil {
 			return err
 		}
@@ -120,10 +113,5 @@ func (o *Options) createManager() (*cluster.Manager, error) {
 		return nil, errors.New("please provide valid kubernetes credentials via the --cluster-* flags")
 	}
 
-	return cluster.NewManager(
-		credentialSource,
-		infraProvisioner,
-		manifestRenderer,
-		o.logger,
-	), nil
+	return cluster.NewManager(credentialSource, infraProvisioner, manifestRenderer), nil
 }

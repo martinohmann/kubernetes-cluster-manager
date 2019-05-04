@@ -10,23 +10,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var logger = log.StandardLogger()
-
-// ConfigureLogger configures l based on the values of parsed cli flags.
-func ConfigureLogger(l *log.Logger) {
-	logger = l
-
+// ConfigureLogging configures the standard logger based on the values of parsed
+// cli flags.
+func ConfigureLogging() {
 	if quiet && !debug {
-		logger.Out = ioutil.Discard
+		log.SetOutput(ioutil.Discard)
 	}
 
 	if !debug {
 		return
 	}
 
-	logger.SetLevel(log.DebugLevel)
-	logger.SetReportCaller(true)
-	logger.SetFormatter(&log.TextFormatter{
+	log.SetLevel(log.DebugLevel)
+	log.SetReportCaller(true)
+	log.SetFormatter(&log.TextFormatter{
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			pkg := "github.com/martinohmann/kubernetes-cluster-manager/"
 			repopath := fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), pkg)
