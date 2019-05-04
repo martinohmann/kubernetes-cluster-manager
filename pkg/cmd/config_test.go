@@ -30,7 +30,6 @@ provisionerOptions:
 	expected := `workingDir: /tmp/cluster
 provisionerOptions:
   parallelism: 1
-
 `
 
 	f, err := file.NewTempFile("config.yaml", []byte(config))
@@ -39,7 +38,7 @@ provisionerOptions:
 	assert.NoError(t, err)
 
 	cmd := NewDumpConfigCommand(buf)
-	cmd.SetArgs([]string{"--output", "yaml", "--config", f.Name()})
+	cmd.SetArgs([]string{"--output", "yaml", f.Name()})
 
 	assert.NoError(t, cmd.Execute())
 

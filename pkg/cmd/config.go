@@ -23,24 +23,28 @@ func NewDumpConfigCommand(w io.Writer) *cobra.Command {
 	o := &DumpConfigOptions{w: w}
 
 	cmd := &cobra.Command{
-		Use:   "dump-config",
+		Use:   "dump-config [config-file]",
 		Short: "Dumps the config to stdout",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("missing config-file argument")
+			}
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(o.Complete(cmd))
+			cmdutil.CheckErr(o.Complete(cmd, args))
 			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmdutil.AddConfigFlag(cmd)
-	cmd.MarkFlagRequired("config")
-	cmd.Flags().StringVar(&o.Output, "output", "", "Output format")
+	cmd.Flags().StringVar(&o.Output, "output", "yaml", "Output format")
 
 	return cmd
 }
 
-func (o *DumpConfigOptions) Complete(cmd *cobra.Command) error {
-	o.Filename = cmdutil.GetString(cmd, "config")
+func (o *DumpConfigOptions) Complete(cmd *cobra.Command, args []string) error {
+	o.Filename = args[0]
 
 	return nil
 }
@@ -68,15 +72,13 @@ func (o *DumpConfigOptions) Run() error {
 		}
 
 		fmt.Fprintln(o.w, string(buf))
-	case "yaml":
+	default:
 		buf, err := yaml.Marshal(opts)
 		if err != nil {
 			return err
 		}
 
-		fmt.Fprintln(o.w, string(buf))
-	default:
-		fmt.Fprintf(o.w, "%#v\n", opts)
+		fmt.Fprint(o.w, string(buf))
 	}
 
 	return nil
