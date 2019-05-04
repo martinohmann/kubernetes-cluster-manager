@@ -14,11 +14,11 @@ builds:
       - linux
       - darwin
     goarch:
+      - 386
       - amd64
-      - arm
-      - arm64
 archives:
   - replacements:
+      386: i386
       amd64: x86_64
 archive:
   files:
