@@ -55,7 +55,6 @@ postApply:
 
 		executor.Command("terraform apply --auto-approve").WillSucceed()
 		executor.Command("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"}}`)
-		executor.Pattern("helm template --values .*").WillExecute()
 		executor.Pattern("kubectl cluster-info.*").WillSucceed()
 		executor.Pattern("kubectl delete pod --ignore-not-found --namespace kube-system --context test foo").WillSucceed()
 		executor.Pattern("kubectl apply -f -").WillSucceed()
@@ -122,7 +121,6 @@ preDestroy:
 		p := createManager()
 
 		executor.Command("terraform output --json").WillReturn(`{}`)
-		executor.Pattern("helm template --values .*").WillExecute()
 		executor.Pattern("kubectl cluster-info.*").WillSucceed()
 		executor.Pattern("kubectl delete -f - --ignore-not-found --context test").WillSucceed()
 		executor.Pattern("kubectl delete persistentvolumeclaim --ignore-not-found --namespace default --context test bar").WillSucceed()

@@ -1,5 +1,3 @@
-// +build integration
-
 package renderer
 
 import (
@@ -7,6 +5,7 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHelmRenderManifests(t *testing.T) {
@@ -28,7 +27,7 @@ func TestHelmRenderManifests(t *testing.T) {
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: release-name-chart
+  name: kcm-chart
   labels:
     app.kubernetes.io/name: chart
     helm.sh/chart: chart-0.1.0
@@ -40,12 +39,9 @@ data:
 
 	manifests, err := r.RenderManifests(values)
 
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
+	require.Len(t, manifests, 1)
 
-	if assert.Len(t, manifests, 1) {
-		assert.Equal(t, "chart.yaml", string(manifests[0].Filename))
-		assert.Equal(t, expected, string(manifests[0].Content))
-	}
+	assert.Equal(t, "chart.yaml", string(manifests[0].Filename))
+	assert.Equal(t, expected, string(manifests[0].Content))
 }
