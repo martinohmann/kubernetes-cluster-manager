@@ -15,10 +15,10 @@ type Source interface {
 // Credentials holds the credentials needed to communicate with a Kubernetes
 // cluster.
 type Credentials struct {
-	Server     string `json:"server" yaml:"server"`
-	Token      string `json:"token" yaml:"token"`
-	Kubeconfig string `json:"kubeconfig" yaml:"kubeconfig"`
-	Context    string `json:"context" yaml:"context"`
+	Server     string `json:"server,omitempty" yaml:"server,omitempty"`
+	Token      string `json:"token,omitempty" yaml:"token,omitempty"`
+	Kubeconfig string `json:"kubeconfig,omitempty" yaml:"kubeconfig,omitempty"`
+	Context    string `json:"context,omitempty" yaml:"context,omitempty"`
 }
 
 // Empty returns true if the credentials are empty.

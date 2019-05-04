@@ -21,12 +21,13 @@ const (
 
 // Options are used to configure the cluster manager.
 type Options struct {
-	DryRun        bool   `json:"dryRun" yaml:"dryRun"`
-	Values        string `json:"values" yaml:"values"`
-	Deletions     string `json:"deletions" yaml:"deletions"`
-	ManifestsDir  string `json:"manifestsDir" yaml:"manifestsDir"`
-	SkipManifests bool   `json:"skipManifests" yaml:"skipManifests"`
-	AllManifests  bool   `json:"allManifests" yaml:"allManifests"`
+	DryRun        bool   `json:"dryRun,omitempty" yaml:"dryRun,omitempty"`
+	Values        string `json:"values,omitempty" yaml:"values,omitempty"`
+	Deletions     string `json:"deletions,omitempty" yaml:"deletions,omitempty"`
+	ManifestsDir  string `json:"manifestsDir,omitempty" yaml:"manifestsDir,omitempty"`
+	SkipManifests bool   `json:"skipManifests,omitempty" yaml:"skipManifests,omitempty"`
+	AllManifests  bool   `json:"allManifests,omitempty" yaml:"allManifests,omitempty"`
+	NoSave        bool   `json:"noSave,omitempty" yaml:"noSave,omitempty"`
 }
 
 // Manager is a Kubernetes cluster manager that will orchestrate changes to the
@@ -147,6 +148,9 @@ func (m *Manager) ApplyManifests(o *Options) error {
 				return err
 			}
 
+		}
+
+		if !o.DryRun && !o.NoSave {
 			if err := changeSet.Apply(); err != nil {
 				return err
 			}
@@ -202,6 +206,12 @@ func (m *Manager) DeleteManifests(o *Options) error {
 
 	kubectl := kubernetes.NewKubectl(creds)
 
+	if !o.DryRun {
+		if _, err := kubectl.ClusterInfo(); err != nil {
+			return err
+		}
+	}
+
 	for _, manifest := range manifests {
 		filename := filepath.Join(o.ManifestsDir, manifest.Filename)
 
@@ -248,7 +258,7 @@ func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) er
 
 	m.logChanges(changeSet)
 
-	if o.DryRun {
+	if o.DryRun || o.NoSave {
 		return nil
 	}
 

@@ -31,5 +31,5 @@ type Outputter interface {
 
 // Options are made available to infrastructure provisioners.
 type Options struct {
-	Parallelism int `json:"parallelism" yaml:"parallelism"`
+	Parallelism int `json:"parallelism,omitempty" yaml:"parallelism,omitempty"`
 }

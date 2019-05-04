@@ -17,7 +17,7 @@ type Renderer interface {
 
 // Options are made available to manifest renderers.
 type Options struct {
-	TemplatesDir string `json:"templatesDir" yaml:"templatesDir"`
+	TemplatesDir string `json:"templatesDir,omitempty" yaml:"templatesDir,omitempty"`
 }
 
 // ManifestInfo contains a kubernetes manifest as raw bytes and the filename.
@@ -45,7 +45,7 @@ type renderManifestFunc func(dir string, v kcm.Values) (*ManifestInfo, error)
 func renderManifests(dir string, v kcm.Values, render renderManifestFunc) ([]*ManifestInfo, error) {
 	dirs, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "failed to open templates dir")
 	}
 
 	manifests := make([]*ManifestInfo, 0, len(dirs))

@@ -29,10 +29,10 @@ var (
 
 // ResourceSelector is used to select kubernetes resources.
 type ResourceSelector struct {
-	Kind      string            `json:"kind" yaml:"kind"`
-	Name      string            `json:"name" yaml:"name"`
-	Namespace string            `json:"namespace" yaml:"namespace"`
-	Labels    map[string]string `json:"labels" yaml:"labels"`
+	Kind      string            `json:"kind,omitempty" yaml:"kind,omitempty"`
+	Name      string            `json:"name,omitempty" yaml:"name,omitempty"`
+	Namespace string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 // Kubectl defines a type for interacting with kubectl.
