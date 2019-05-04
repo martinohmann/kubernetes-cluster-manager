@@ -25,19 +25,21 @@ func NewGoTemplate(o *Options) Renderer {
 }
 
 // RenderManifests implements Renderer.
-func (r *GoTemplate) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
+func (r *GoTemplate) RenderManifests(v kcm.Values) ([]*Manifest, error) {
 	return renderManifests(r.TemplatesDir, v, renderDirectory)
 }
 
 // renderDirectory renders all templates in a directory. It satisfies the
 // signature of renderManifestFunc.
-func renderDirectory(dir string, v kcm.Values) (*ManifestInfo, error) {
+func renderDirectory(dir string, v kcm.Values) (*Manifest, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	var b bytes.Buffer
+	manifestName := filepath.Base(dir)
+
+	var buf bytes.Buffer
 
 	for _, f := range files {
 		if f.IsDir() {
@@ -49,32 +51,38 @@ func renderDirectory(dir string, v kcm.Values) (*ManifestInfo, error) {
 			continue
 		}
 
-		b.WriteString("---\n")
+		source := filepath.Join(manifestName, f.Name())
+		templatePath := filepath.Join(dir, f.Name())
 
-		template := filepath.Join(dir, f.Name())
+		writeSourceHeader(&buf, source)
 
-		err := renderTemplate(template, &b, v)
+		err := renderTemplate(templatePath, &buf, v)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
+		buf.WriteString("\n")
 	}
 
-	m := &ManifestInfo{
-		Filename: manifestFilename(dir),
-		Content:  b.Bytes(),
+	m := &Manifest{
+		Name:    manifestName,
+		Content: buf.Bytes(),
 	}
 
 	return m, nil
 }
 
 // renderTemplate renders a single template file into w.
-func renderTemplate(filename string, w io.Writer, data interface{}) error {
-	buf, err := ioutil.ReadFile(filename)
+func renderTemplate(path string, w io.Writer, data interface{}) error {
+	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	t, err := template.New(filepath.Base(filename)).Funcs(sprig.TxtFuncMap()).Parse(string(buf))
+	t, err := template.New(filepath.Base(path)).
+		Funcs(sprig.TxtFuncMap()).
+		Parse(string(buf))
+
 	if err != nil {
 		return err
 	}

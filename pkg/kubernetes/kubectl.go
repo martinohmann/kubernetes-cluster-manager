@@ -17,9 +17,9 @@ const (
 	// maxRetries defines the number of retries for kubectl commands.
 	maxRetries = 10
 
-	// defaultNamespace is the namespace that should be used where namespace is
+	// DefaultNamespace is the namespace that should be used where namespace is
 	// omitted.
-	defaultNamespace = "default"
+	DefaultNamespace = "default"
 )
 
 var (
@@ -100,7 +100,7 @@ func (k *Kubectl) DeleteManifest(manifest []byte) error {
 func (k *Kubectl) DeleteResource(selector *ResourceSelector) error {
 	namespace := selector.Namespace
 	if namespace == "" {
-		namespace = defaultNamespace
+		namespace = DefaultNamespace
 	}
 
 	args := []string{

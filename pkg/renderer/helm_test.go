@@ -21,7 +21,7 @@ func TestHelmRenderManifests(t *testing.T) {
 		},
 	}
 
-	expected := `---
+	expected := []byte(`---
 # Source: chart/templates/configmap.yaml
 ---
 apiVersion: v1
@@ -35,13 +35,13 @@ data:
   bar: "baz"
   foo: "bar"
 
-`
+`)
 
 	manifests, err := r.RenderManifests(values)
 
 	require.NoError(t, err)
 	require.Len(t, manifests, 1)
 
-	assert.Equal(t, "chart.yaml", string(manifests[0].Filename))
-	assert.Equal(t, expected, string(manifests[0].Content))
+	assert.Equal(t, "chart", manifests[0].Name)
+	assert.Equal(t, expected, manifests[0].Content)
 }

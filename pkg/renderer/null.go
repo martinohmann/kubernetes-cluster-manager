@@ -13,6 +13,6 @@ func NewNull(_ *Options) Renderer {
 }
 
 // RenderManifests implements Renderer.
-func (*Null) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
-	return []*ManifestInfo{}, nil
+func (*Null) RenderManifests(v kcm.Values) ([]*Manifest, error) {
+	return []*Manifest{}, nil
 }

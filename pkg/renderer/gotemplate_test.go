@@ -26,8 +26,25 @@ func TestGoTemplateRenderManifests(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, manifests, 2)
 
-	assert.Equal(t, "one.yaml", manifests[0].Filename)
-	assert.Equal(t, "---\n    BAZ\n", string(manifests[0].Content))
-	assert.Equal(t, "two.yaml", manifests[1].Filename)
-	assert.Equal(t, "---\n---\nblah\n---\nqux\n", string(manifests[1].Content))
+	expectedOneContent := []byte(`---
+# Source: one/test.yaml
+    BAZ
+
+`)
+
+	expectedTwoContent := []byte(`---
+# Source: two/00-test.yaml
+---
+blah
+
+---
+# Source: two/test.yaml
+qux
+
+`)
+
+	assert.Equal(t, "one", manifests[0].Name)
+	assert.Equal(t, expectedOneContent, manifests[0].Content)
+	assert.Equal(t, "two", manifests[1].Name)
+	assert.Equal(t, expectedTwoContent, manifests[1].Content)
 }

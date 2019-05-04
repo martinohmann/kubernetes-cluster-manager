@@ -124,7 +124,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 	}
 
 	for _, manifest := range manifests {
-		filename := filepath.Join(o.ManifestsDir, manifest.Filename)
+		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
 		changeSet, err := file.NewChangeSet(filename, manifest.Content)
 		if err != nil {
 			return err
@@ -210,7 +210,7 @@ func (m *Manager) DeleteManifests(o *Options) error {
 	}
 
 	for _, manifest := range manifests {
-		filename := filepath.Join(o.ManifestsDir, manifest.Filename)
+		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
 
 		if o.DryRun {
 			log.Warnf("Would delete manifest %s", filename)

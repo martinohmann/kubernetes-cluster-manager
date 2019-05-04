@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -25,13 +26,13 @@ func NewHelm(o *Options) Renderer {
 }
 
 // RenderManifests implements Renderer.
-func (r *Helm) RenderManifests(v kcm.Values) ([]*ManifestInfo, error) {
+func (r *Helm) RenderManifests(v kcm.Values) ([]*Manifest, error) {
 	return renderManifests(r.TemplatesDir, v, renderChart)
 }
 
 // renderChart renders a helm chart and satisfies the signature for
 // renderManifestFunc.
-func renderChart(dir string, v kcm.Values) (*ManifestInfo, error) {
+func renderChart(dir string, v kcm.Values) (*Manifest, error) {
 	if ok, err := chartutil.IsChartDir(dir); err != nil || !ok {
 		return nil, skipError{dir}
 	}
@@ -54,10 +55,8 @@ func renderChart(dir string, v kcm.Values) (*ManifestInfo, error) {
 	renderOpts := renderutil.Options{
 		ReleaseOptions: chartutil.ReleaseOptions{
 			Name:      "kcm",
-			IsInstall: true,
-			IsUpgrade: false,
 			Time:      timeconv.Now(),
-			Namespace: "default",
+			Namespace: kubernetes.DefaultNamespace,
 		},
 	}
 
@@ -65,22 +64,21 @@ func renderChart(dir string, v kcm.Values) (*ManifestInfo, error) {
 
 	var buf bytes.Buffer
 
-	for name, data := range renderedTemplates {
-		b := filepath.Base(name)
+	for source, data := range renderedTemplates {
+		b := filepath.Base(source)
 		if strings.HasPrefix(b, "_") {
 			continue
 		}
 
-		buf.WriteString("---\n# Source: ")
-		buf.WriteString(name)
-		buf.WriteString("\n")
+		writeSourceHeader(&buf, source)
+
 		buf.WriteString(data)
 		buf.WriteString("\n")
 	}
 
-	m := &ManifestInfo{
-		Filename: manifestFilename(dir),
-		Content:  buf.Bytes(),
+	m := &Manifest{
+		Name:    filepath.Base(dir),
+		Content: buf.Bytes(),
 	}
 
 	return m, nil
