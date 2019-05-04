@@ -3,25 +3,24 @@ package cmd
 import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func NewManifestsCommand(l *log.Logger) *cobra.Command {
+func NewManifestsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "manifests",
 		Aliases: []string{"manifest"},
 		Short:   "Perform manifest actions",
 	}
 
-	cmd.AddCommand(newApplyCommand(l))
-	cmd.AddCommand(newDeleteCommand(l))
+	cmd.AddCommand(newApplyCommand())
+	cmd.AddCommand(newDeleteCommand())
 
 	return cmd
 }
 
-func newApplyCommand(l *log.Logger) *cobra.Command {
-	o := &Options{logger: l}
+func newApplyCommand() *cobra.Command {
+	o := &Options{}
 
 	cmd := &cobra.Command{
 		Use:   "apply",
@@ -42,8 +41,8 @@ func newApplyCommand(l *log.Logger) *cobra.Command {
 	return cmd
 }
 
-func newDeleteCommand(l *log.Logger) *cobra.Command {
-	o := &Options{logger: l}
+func newDeleteCommand() *cobra.Command {
+	o := &Options{}
 
 	cmd := &cobra.Command{
 		Use:   "delete",

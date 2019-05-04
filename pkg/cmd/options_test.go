@@ -7,13 +7,12 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	homedir "github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOptionsComplete(t *testing.T) {
-	o := &Options{logger: log.StandardLogger()}
+	o := &Options{}
 
 	config := `---
 workingDir: ~/foo

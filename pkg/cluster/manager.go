@@ -36,7 +36,6 @@ type Manager struct {
 	credentialSource credentials.Source
 	provisioner      provisioner.Provisioner
 	renderer         renderer.Renderer
-	logger           *log.Logger
 }
 
 // NewManager creates a new cluster manager.
@@ -44,13 +43,11 @@ func NewManager(
 	credentialSource credentials.Source,
 	provisioner provisioner.Provisioner,
 	renderer renderer.Renderer,
-	logger *log.Logger,
 ) *Manager {
 	return &Manager{
 		credentialSource: credentialSource,
 		provisioner:      provisioner,
 		renderer:         renderer,
-		logger:           logger,
 	}
 }
 
@@ -110,7 +107,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 			return errors.WithStack(err)
 		}
 
-		m.logger.Info("Waiting for cluster to become available...")
+		log.Info("Waiting for cluster to become available...")
 
 		if err := kubectl.WaitForCluster(); err != nil {
 			return err
@@ -121,7 +118,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		m.finalizeChanges(o, o.Deletions, deletions)
 	}()
 
-	deletions.PreApply, err = processResourceDeletions(o, m.logger, kubectl, deletions.PreApply)
+	deletions.PreApply, err = processResourceDeletions(o, kubectl, deletions.PreApply)
 	if err != nil {
 		return err
 	}
@@ -140,10 +137,10 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		}
 
 		if o.DryRun {
-			m.logger.Warnf("Would apply manifest %s", filename)
-			m.logger.Debug(string(manifest.Content))
+			log.Warnf("Would apply manifest %s", filename)
+			log.Debug(string(manifest.Content))
 		} else {
-			m.logger.Infof("Applying manifest %s", filename)
+			log.Infof("Applying manifest %s", filename)
 			if err := kubectl.ApplyManifest(manifest.Content); err != nil {
 				return err
 			}
@@ -157,7 +154,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		}
 	}
 
-	deletions.PostApply, err = processResourceDeletions(o, m.logger, kubectl, deletions.PostApply)
+	deletions.PostApply, err = processResourceDeletions(o, kubectl, deletions.PostApply)
 
 	return err
 }
@@ -173,7 +170,7 @@ func (m *Manager) Destroy(o *Options) error {
 	}
 
 	if o.DryRun {
-		m.logger.Warn("Would destroy cluster infrastructure")
+		log.Warn("Would destroy cluster infrastructure")
 		return nil
 	}
 
@@ -216,10 +213,10 @@ func (m *Manager) DeleteManifests(o *Options) error {
 		filename := filepath.Join(o.ManifestsDir, manifest.Filename)
 
 		if o.DryRun {
-			m.logger.Warnf("Would delete manifest %s", filename)
-			m.logger.Debug(string(manifest.Content))
+			log.Warnf("Would delete manifest %s", filename)
+			log.Debug(string(manifest.Content))
 		} else {
-			m.logger.Infof("Deleting manifest %s", filename)
+			log.Infof("Deleting manifest %s", filename)
 			if err := kubectl.DeleteManifest(manifest.Content); err != nil {
 				return err
 			}
@@ -231,7 +228,7 @@ func (m *Manager) DeleteManifests(o *Options) error {
 		}
 	}
 
-	deletions.PreDestroy, _ = processResourceDeletions(o, m.logger, kubectl, deletions.PreDestroy)
+	deletions.PreDestroy, _ = processResourceDeletions(o, kubectl, deletions.PreDestroy)
 
 	return m.finalizeChanges(o, o.Deletions, deletions)
 }
@@ -239,9 +236,9 @@ func (m *Manager) DeleteManifests(o *Options) error {
 func (m *Manager) logChanges(changeSet *file.ChangeSet) {
 	filename := changeSet.Filename()
 	if changeSet.HasChanges() {
-		m.logger.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
+		log.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
 	} else {
-		m.logger.Infof("No changes to %s", filename)
+		log.Infof("No changes to %s", filename)
 	}
 }
 
@@ -273,7 +270,7 @@ func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
 	if o, ok := m.provisioner.(provisioner.Outputter); ok {
 		values, err := o.Output()
 		if err == nil && len(values) > 0 {
-			m.logger.Info("Merging values from provisioner")
+			log.Info("Merging values from provisioner")
 			v.Merge(values)
 		}
 	}
@@ -304,7 +301,7 @@ func (m *Manager) readCredentials(o *Options) (*credentials.Credentials, error) 
 		c.Token = "<sensitive>"
 	}
 
-	m.logger.Debugf("Using kubernetes credentials: %#v", c)
+	log.Debugf("Using kubernetes credentials: %#v", c)
 
 	return creds, nil
 }

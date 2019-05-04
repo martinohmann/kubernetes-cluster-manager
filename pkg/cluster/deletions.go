@@ -15,13 +15,12 @@ type Deletions struct {
 
 func processResourceDeletions(
 	o *Options,
-	l *log.Logger,
 	kubectl *kubernetes.Kubectl,
 	resources []*kubernetes.ResourceSelector,
 ) ([]*kubernetes.ResourceSelector, error) {
 	if o.DryRun && len(resources) > 0 {
 		buf, _ := yaml.Marshal(resources)
-		l.Warnf("Would delete the following resources:\n%s", string(buf))
+		log.Warnf("Would delete the following resources:\n%s", string(buf))
 		return resources, nil
 	}
 
