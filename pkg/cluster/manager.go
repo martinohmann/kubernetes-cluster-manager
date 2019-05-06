@@ -158,6 +158,11 @@ func (m *Manager) ApplyManifests(o *Options) error {
 			return err
 		}
 
+		if manifest.IsBlank() {
+			log.Warnf("Manifest %s does not contain any resources, skipping apply", filename)
+			continue
+		}
+
 		if o.DryRun {
 			log.Warnf("Would apply manifest %s", filename)
 			log.Debug(string(manifest.Content))
