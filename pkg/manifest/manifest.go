@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -19,6 +21,29 @@ type Manifest struct {
 // Filename returns the filename for the manifest.
 func (m *Manifest) Filename() string {
 	return fmt.Sprintf("%s.yaml", m.Name)
+}
+
+// IsBlank returns true if a manifest does contain nothing but whitespace,
+// comments and document separators (`---`). In this case it is semantically
+// equivalent to an empty manifest. A nil manifest is considered blank.
+func (m *Manifest) IsBlank() bool {
+	if m == nil || len(m.Content) == 0 {
+		return true
+	}
+
+	buf := bytes.NewBuffer(m.Content)
+	s := bufio.NewScanner(buf)
+
+	for s.Scan() {
+		line := bytes.TrimSpace(s.Bytes())
+
+		if len(line) == 0 || line[0] == '#' || bytes.HasPrefix(line, []byte(`---`)) {
+			continue
+		}
+
+		return false
+	}
+	return true
 }
 
 // Matches returns true if other matches m.
