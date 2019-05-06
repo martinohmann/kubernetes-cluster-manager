@@ -1,0 +1,5 @@
+---
+kind: Pod
+metadata:
+  name: foo
+  namespace: bar

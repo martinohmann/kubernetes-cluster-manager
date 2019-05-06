@@ -13,7 +13,7 @@ func TestProcessResourceDeletions(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&credentials.Credentials{})
 
-		deletions := []*kubernetes.ResourceSelector{{Name: "foo", Kind: "pod"}}
+		deletions := []ResourceSelector{{Name: "foo", Kind: "pod"}}
 
 		remaining, err := processResourceDeletions(&Options{}, kubectl, deletions)
 
@@ -26,7 +26,7 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&credentials.Credentials{})
 
-		deletions := []*kubernetes.ResourceSelector{{Name: "foo", Kind: "pod"}}
+		deletions := []ResourceSelector{{Name: "foo", Kind: "pod"}}
 
 		remaining, err := processResourceDeletions(&Options{DryRun: true}, kubectl, deletions)
 

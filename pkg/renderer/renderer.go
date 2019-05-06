@@ -1,13 +1,14 @@
 package renderer
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Renderer is the interface for a Kubernetes manifest renderer.
@@ -21,26 +22,18 @@ type Options struct {
 	TemplatesDir string `json:"templatesDir,omitempty" yaml:"templatesDir,omitempty"`
 }
 
-// Manifest contains a kubernetes manifest as raw bytes and its name.
-type Manifest struct {
-	Name    string
-	Content []byte
-}
-
-// Filename returns the filename for the manifest.
-func (m *Manifest) Filename() string {
-	return fmt.Sprintf("%s.yaml", m.Name)
-}
+// Manifest is a type alias for manifest.Manifest.
+type Manifest = manifest.Manifest
 
 // skipError can be returned while iterating directories to indicate that the
 // directory should be skipped.
 type skipError struct {
-	dir string
+	err error
 }
 
 // Error implements error.
 func (e skipError) Error() string {
-	return fmt.Sprintf("%s skipped", e.dir)
+	return e.err.Error()
 }
 
 // renderManifestFunc is a function that renders a manifest with the values v
@@ -64,7 +57,8 @@ func renderManifests(dir string, v kcm.Values, render renderManifestFunc) ([]*Ma
 		fullPath := filepath.Join(dir, d.Name())
 
 		manifest, err := render(fullPath, v)
-		if _, ok := err.(skipError); ok {
+		if e, ok := err.(skipError); ok {
+			log.Warnf("rendering of component %s was skipped due to: %s", d.Name(), e.Error())
 			continue
 		}
 

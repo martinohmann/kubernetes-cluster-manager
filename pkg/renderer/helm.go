@@ -3,10 +3,12 @@ package renderer
 import (
 	"bytes"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -19,6 +21,7 @@ type Helm struct {
 	TemplatesDir string
 }
 
+// NewHelm create a new helm template renderer.
 func NewHelm(o *Options) Renderer {
 	return &Helm{
 		TemplatesDir: o.TemplatesDir,
@@ -34,7 +37,7 @@ func (r *Helm) RenderManifests(v kcm.Values) ([]*Manifest, error) {
 // renderManifestFunc.
 func renderChart(dir string, v kcm.Values) (*Manifest, error) {
 	if ok, err := chartutil.IsChartDir(dir); err != nil || !ok {
-		return nil, skipError{dir}
+		return nil, skipError{err}
 	}
 
 	c, err := chartutil.Load(dir)
@@ -64,15 +67,15 @@ func renderChart(dir string, v kcm.Values) (*Manifest, error) {
 
 	var buf bytes.Buffer
 
-	for source, data := range renderedTemplates {
-		b := filepath.Base(source)
-		if strings.HasPrefix(b, "_") {
+	for _, manifest := range sortedManifests(renderedTemplates) {
+		b := filepath.Base(manifest.Name)
+		if strings.HasPrefix(b, "_") || b == "NOTES.txt" {
 			continue
 		}
 
-		writeSourceHeader(&buf, source)
+		writeSourceHeader(&buf, manifest.Name)
 
-		buf.WriteString(data)
+		buf.Write(manifest.Content)
 		buf.WriteString("\n")
 	}
 
@@ -82,4 +85,21 @@ func renderChart(dir string, v kcm.Values) (*Manifest, error) {
 	}
 
 	return m, nil
+}
+
+// sortedManifests transforms a map of rendered templates into a sorted slice
+// of manifests.
+func sortedManifests(m map[string]string) []*Manifest {
+	manifests := make([]*Manifest, 0, len(m))
+
+	for source, data := range m {
+		manifests = append(manifests, &Manifest{
+			Name:    source,
+			Content: []byte(data),
+		})
+	}
+
+	sort.Sort(manifest.ByName(manifests))
+
+	return manifests
 }

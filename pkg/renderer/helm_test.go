@@ -21,7 +21,7 @@ func TestHelmRenderManifests(t *testing.T) {
 		},
 	}
 
-	expected := []byte(`---
+	expected := `---
 # Source: chart/templates/configmap.yaml
 ---
 apiVersion: v1
@@ -35,7 +35,28 @@ data:
   bar: "baz"
   foo: "bar"
 
-`)
+---
+# Source: chart/templates/service.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kcm-chart
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: chart-0.1.0
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: chart
+    app.kubernetes.io/instance: kcm
+
+`
 
 	manifests, err := r.RenderManifests(values)
 
@@ -43,5 +64,5 @@ data:
 	require.Len(t, manifests, 1)
 
 	assert.Equal(t, "chart", manifests[0].Name)
-	assert.Equal(t, expected, manifests[0].Content)
+	assert.Equal(t, expected, string(manifests[0].Content))
 }
