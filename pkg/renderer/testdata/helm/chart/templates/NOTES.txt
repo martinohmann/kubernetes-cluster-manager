@@ -1,0 +1,1 @@
+some notes. this should not be rendered into the final manifest

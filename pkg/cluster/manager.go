@@ -8,6 +8,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
 	"github.com/pkg/errors"
@@ -90,10 +91,17 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		return err
 	}
 
-	manifests, err := m.renderer.RenderManifests(values)
+	nextManifests, err := m.renderer.RenderManifests(values)
 	if err != nil {
 		return err
 	}
+
+	previousManifests, err := manifest.ReadDir(o.ManifestsDir)
+	if err != nil {
+		return err
+	}
+
+	revisions := manifest.CreateRevisions(previousManifests, nextManifests)
 
 	creds, err := m.readCredentials(o)
 	if err != nil {
@@ -123,7 +131,16 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		return err
 	}
 
-	for _, manifest := range manifests {
+	for _, revision := range revisions {
+		if !revision.HasNext() {
+			if err := deleteManifest(o, kubectl, revision.Prev); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		manifest := revision.Next
 		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
 		changeSet, err := file.NewChangeSet(filename, manifest.Content)
 		if err != nil {
@@ -134,6 +151,11 @@ func (m *Manager) ApplyManifests(o *Options) error {
 
 		if !o.AllManifests && !changeSet.HasChanges() {
 			continue
+		}
+
+		_, err = processResourceDeletions(o, kubectl, revision.GetVanishedResources())
+		if err != nil {
+			return err
 		}
 
 		if o.DryRun {
@@ -210,21 +232,8 @@ func (m *Manager) DeleteManifests(o *Options) error {
 	}
 
 	for _, manifest := range manifests {
-		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
-
-		if o.DryRun {
-			log.Warnf("Would delete manifest %s", filename)
-			log.Debug(string(manifest.Content))
-		} else {
-			log.Infof("Deleting manifest %s", filename)
-			if err := kubectl.DeleteManifest(manifest.Content); err != nil {
-				return err
-			}
-
-			err = os.Remove(filename)
-			if err != nil && !os.IsNotExist(err) {
-				return errors.WithStack(err)
-			}
+		if err = deleteManifest(o, kubectl, manifest); err != nil {
+			return err
 		}
 	}
 

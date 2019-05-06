@@ -27,14 +27,6 @@ var (
 	backoffStrategy = backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxRetries)
 )
 
-// ResourceSelector is used to select kubernetes resources.
-type ResourceSelector struct {
-	Kind      string            `json:"kind,omitempty" yaml:"kind,omitempty"`
-	Name      string            `json:"name,omitempty" yaml:"name,omitempty"`
-	Namespace string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	Labels    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-}
-
 // Kubectl defines a type for interacting with kubectl.
 type Kubectl struct {
 	credentials *credentials.Credentials
@@ -97,7 +89,7 @@ func (k *Kubectl) DeleteManifest(manifest []byte) error {
 }
 
 // DeleteResource deletes a resource via kubectl.
-func (k *Kubectl) DeleteResource(selector *ResourceSelector) error {
+func (k *Kubectl) DeleteResource(selector ResourceSelector) error {
 	namespace := selector.Namespace
 	if namespace == "" {
 		namespace = DefaultNamespace
@@ -147,14 +139,14 @@ func (k *Kubectl) DeleteResource(selector *ResourceSelector) error {
 
 // DeleteResources deletes resources via kubectl. Returns a slice containing
 // the resources that were not deleted to to an error.
-func (k *Kubectl) DeleteResources(resources []*ResourceSelector) ([]*ResourceSelector, error) {
+func (k *Kubectl) DeleteResources(resources []ResourceSelector) ([]ResourceSelector, error) {
 	for i, selector := range resources {
 		if err := k.DeleteResource(selector); err != nil {
 			return resources[i:], err
 		}
 	}
 
-	return []*ResourceSelector{}, nil
+	return []ResourceSelector{}, nil
 }
 
 // ClusterInfo fetches the kubernetes cluster info.

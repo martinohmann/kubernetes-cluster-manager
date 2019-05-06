@@ -58,7 +58,7 @@ func TestDeleteResource(t *testing.T) {
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		selector := &ResourceSelector{
+		selector := ResourceSelector{
 			Name: "foo",
 			Kind: "pod",
 		}
@@ -84,7 +84,7 @@ func TestDeleteResources(t *testing.T) {
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		resources := []*ResourceSelector{
+		resources := []ResourceSelector{
 			{
 				Kind: "pod",
 				Labels: map[string]string{
@@ -110,7 +110,7 @@ func TestDeleteResourcesError(t *testing.T) {
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		resources := []*ResourceSelector{
+		resources := []ResourceSelector{
 			{
 				Kind: "pod",
 				Labels: map[string]string{
@@ -143,7 +143,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		selector := &ResourceSelector{
+		selector := ResourceSelector{
 			Kind: "pod",
 			Labels: map[string]string{
 				"app.kubernetes.io/name":    "foo",
@@ -172,7 +172,7 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 			Kubeconfig: "/tmp/kubeconfig",
 		}
 
-		selector := &ResourceSelector{
+		selector := ResourceSelector{
 			Kind: "pod",
 		}
 
