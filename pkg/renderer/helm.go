@@ -64,6 +64,9 @@ func renderChart(dir string, v kcm.Values) (*Manifest, error) {
 	}
 
 	renderedTemplates, err := renderutil.Render(c, config, renderOpts)
+	if err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 
