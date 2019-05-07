@@ -54,6 +54,27 @@ func TestRunError(t *testing.T) {
 	assert.Equal(t, `Unknown command "nonexistent-command"`+"\n", out)
 }
 
+func TestRunSilentlyError(t *testing.T) {
+	cmd := helperCommand("nonexistent-command")
+
+	out, err := RunSilently(cmd)
+
+	require.Error(t, err)
+
+	assert.Equal(t, `Unknown command "nonexistent-command"`+"\n", out)
+}
+
+func TestRunSilentlyWithContextNoCancel(t *testing.T) {
+	cmd := helperCommand("echo", "bar")
+
+	ctx, _ := context.WithCancel(context.Background())
+
+	out, err := RunSilentlyWithContext(ctx, cmd)
+
+	require.NoError(t, err)
+	assert.Equal(t, "bar\n", out)
+}
+
 func TestCancelRunSilentlyWithContext(t *testing.T) {
 	ctx := context.Background()
 
