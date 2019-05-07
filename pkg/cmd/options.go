@@ -82,7 +82,6 @@ func (o *Options) Run(exec func(context.Context, *cluster.Manager, *cluster.Opti
 		return err
 	}
 
-	// TODO(mohmann): this is the place where we should setup proper signal handling.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
