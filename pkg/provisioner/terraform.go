@@ -1,6 +1,7 @@
 package provisioner
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -37,7 +38,7 @@ func NewTerraform(o *Options) Provisioner {
 }
 
 // Provision implements Provision from the Provisioner interface.
-func (m *Terraform) Provision() error {
+func (m *Terraform) Provision(ctx context.Context) error {
 	args := []string{
 		"terraform",
 		"apply",
@@ -56,7 +57,7 @@ func (m *Terraform) Provision() error {
 }
 
 // Reconcile implements Reconciler.
-func (m *Terraform) Reconcile() (err error) {
+func (m *Terraform) Reconcile(ctx context.Context) (err error) {
 	args := []string{
 		"terraform",
 		"plan",
@@ -80,7 +81,7 @@ func (m *Terraform) Reconcile() (err error) {
 }
 
 // Output implements Outputter.
-func (m *Terraform) Output() (kcm.Values, error) {
+func (m *Terraform) Output(ctx context.Context) (kcm.Values, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -116,7 +117,7 @@ func (m *Terraform) Output() (kcm.Values, error) {
 }
 
 // Destroy implements Destroy from the Provisioner interface.
-func (m *Terraform) Destroy() error {
+func (m *Terraform) Destroy(ctx context.Context) error {
 	args := []string{
 		"terraform",
 		"destroy",

@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -22,6 +23,7 @@ type Deletions struct {
 }
 
 func processResourceDeletions(
+	ctx context.Context,
 	o *Options,
 	kubectl *kubernetes.Kubectl,
 	resources []ResourceSelector,
@@ -32,10 +34,10 @@ func processResourceDeletions(
 		return resources, nil
 	}
 
-	return kubectl.DeleteResources(resources)
+	return kubectl.DeleteResources(ctx, resources)
 }
 
-func deleteManifest(o *Options, kubectl *kubernetes.Kubectl, manifest *manifest.Manifest) error {
+func deleteManifest(ctx context.Context, o *Options, kubectl *kubernetes.Kubectl, manifest *manifest.Manifest) error {
 	filename := filepath.Join(o.ManifestsDir, manifest.Filename())
 
 	if o.DryRun {
@@ -43,7 +45,7 @@ func deleteManifest(o *Options, kubectl *kubernetes.Kubectl, manifest *manifest.
 		log.Debug(string(manifest.Content))
 	} else {
 		log.Infof("Deleting manifest %s", filename)
-		if err := kubectl.DeleteManifest(manifest.Content); err != nil {
+		if err := kubectl.DeleteManifest(ctx, manifest.Content); err != nil {
 			return err
 		}
 

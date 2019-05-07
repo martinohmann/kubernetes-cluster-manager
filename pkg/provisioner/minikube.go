@@ -1,6 +1,7 @@
 package provisioner
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
@@ -15,7 +16,7 @@ import (
 type Minikube struct{}
 
 // NewMinikube creates a new Minikube provisioner.
-func NewMinikube(_ *Options) Provisioner {
+func NewMinikube(o *Options) Provisioner {
 	return &Minikube{}
 }
 
@@ -31,7 +32,7 @@ func (m *Minikube) status() error {
 }
 
 // Provision implements Provision from the Provisioner interface.
-func (m *Minikube) Provision() error {
+func (m *Minikube) Provision(ctx context.Context) error {
 	if err := m.status(); err == nil {
 		return nil
 	}
@@ -44,7 +45,7 @@ func (m *Minikube) Provision() error {
 }
 
 // Output implements Outputter.
-func (m *Minikube) Output() (kcm.Values, error) {
+func (m *Minikube) Output(ctx context.Context) (kcm.Values, error) {
 	home, _ := homedir.Dir()
 
 	v := kcm.Values{
@@ -56,7 +57,7 @@ func (m *Minikube) Output() (kcm.Values, error) {
 }
 
 // Destroy implements Destroy from the Provisioner interface.
-func (m *Minikube) Destroy() error {
+func (m *Minikube) Destroy(ctx context.Context) error {
 	if err := m.status(); err != nil {
 		return err
 	}

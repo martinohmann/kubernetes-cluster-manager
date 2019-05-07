@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -56,27 +57,27 @@ func NewManager(
 // the required infrastructure. If a cluster already exists, it should
 // update it if there are pending changes to be rolled out. Depending on
 // the options it may or may not perform a dry run of the pending changes.
-func (m *Manager) Provision(o *Options) error {
+func (m *Manager) Provision(ctx context.Context, o *Options) error {
 	var err error
 
 	if !o.DryRun {
-		err = m.provisioner.Provision()
+		err = m.provisioner.Provision(ctx)
 	} else if r, ok := m.provisioner.(provisioner.Reconciler); ok {
-		err = r.Reconcile()
+		err = r.Reconcile(ctx)
 	}
 
 	if err != nil || o.SkipManifests {
 		return err
 	}
 
-	return m.ApplyManifests(o)
+	return m.ApplyManifests(ctx, o)
 }
 
 // ApplyManifests renders and applies all manifests to the cluster. It also
 // takes care of pending resource deletions that should be performed before
 // and after applying.
-func (m *Manager) ApplyManifests(o *Options) error {
-	values, err := m.readValues(o.Values)
+func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
+	values, err := m.readValues(ctx, o.Values)
 	if err != nil {
 		return err
 	}
@@ -103,7 +104,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 
 	revisions := manifest.CreateRevisions(previousManifests, nextManifests)
 
-	creds, err := m.readCredentials(o)
+	creds, err := m.readCredentials(ctx, o)
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 
 		log.Info("Waiting for cluster to become available...")
 
-		if err := kubectl.WaitForCluster(); err != nil {
+		if err := kubectl.WaitForCluster(ctx); err != nil {
 			return err
 		}
 	}
@@ -126,14 +127,14 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		m.finalizeChanges(o, o.Deletions, deletions)
 	}()
 
-	deletions.PreApply, err = processResourceDeletions(o, kubectl, deletions.PreApply)
+	deletions.PreApply, err = processResourceDeletions(ctx, o, kubectl, deletions.PreApply)
 	if err != nil {
 		return err
 	}
 
 	for _, revision := range revisions {
 		if !revision.HasNext() {
-			if err := deleteManifest(o, kubectl, revision.Prev); err != nil {
+			if err := deleteManifest(ctx, o, kubectl, revision.Prev); err != nil {
 				return err
 			}
 
@@ -153,7 +154,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 			continue
 		}
 
-		_, err = processResourceDeletions(o, kubectl, revision.GetVanishedResources())
+		_, err = processResourceDeletions(ctx, o, kubectl, revision.GetVanishedResources())
 		if err != nil {
 			return err
 		}
@@ -168,7 +169,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 			log.Debug(string(manifest.Content))
 		} else {
 			log.Infof("Applying manifest %s", filename)
-			if err := kubectl.ApplyManifest(manifest.Content); err != nil {
+			if err := kubectl.ApplyManifest(ctx, manifest.Content); err != nil {
 				return err
 			}
 
@@ -181,7 +182,7 @@ func (m *Manager) ApplyManifests(o *Options) error {
 		}
 	}
 
-	deletions.PostApply, err = processResourceDeletions(o, kubectl, deletions.PostApply)
+	deletions.PostApply, err = processResourceDeletions(ctx, o, kubectl, deletions.PostApply)
 
 	return err
 }
@@ -189,9 +190,9 @@ func (m *Manager) ApplyManifests(o *Options) error {
 // Destroy deletes all applied manifests from a cluster and tears down the
 // cluster infrastructure. Depending on the options it may or may not
 // perform a dry run of the destruction process.
-func (m *Manager) Destroy(o *Options) error {
+func (m *Manager) Destroy(ctx context.Context, o *Options) error {
 	if !o.SkipManifests {
-		if err := m.DeleteManifests(o); err != nil {
+		if err := m.DeleteManifests(ctx, o); err != nil {
 			return err
 		}
 	}
@@ -201,14 +202,14 @@ func (m *Manager) Destroy(o *Options) error {
 		return nil
 	}
 
-	return m.provisioner.Destroy()
+	return m.provisioner.Destroy(ctx)
 }
 
 // DeleteManifests renders and deletes all manifests from the cluster. It
 // also takes care of other resource deletions that should be performed
 // after the manifests have been deleted from the cluster.
-func (m *Manager) DeleteManifests(o *Options) error {
-	values, err := m.readValues(o.Values)
+func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
+	values, err := m.readValues(ctx, o.Values)
 	if err != nil {
 		return err
 	}
@@ -223,7 +224,7 @@ func (m *Manager) DeleteManifests(o *Options) error {
 		return err
 	}
 
-	creds, err := m.readCredentials(o)
+	creds, err := m.readCredentials(ctx, o)
 	if err != nil {
 		return err
 	}
@@ -231,18 +232,18 @@ func (m *Manager) DeleteManifests(o *Options) error {
 	kubectl := kubernetes.NewKubectl(creds)
 
 	if !o.DryRun {
-		if _, err := kubectl.ClusterInfo(); err != nil {
+		if _, err := kubectl.ClusterInfo(ctx); err != nil {
 			return err
 		}
 	}
 
 	for _, manifest := range manifests {
-		if err = deleteManifest(o, kubectl, manifest); err != nil {
+		if err = deleteManifest(ctx, o, kubectl, manifest); err != nil {
 			return err
 		}
 	}
 
-	deletions.PreDestroy, _ = processResourceDeletions(o, kubectl, deletions.PreDestroy)
+	deletions.PreDestroy, _ = processResourceDeletions(ctx, o, kubectl, deletions.PreDestroy)
 
 	return m.finalizeChanges(o, o.Deletions, deletions)
 }
@@ -276,13 +277,13 @@ func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) er
 	return changeSet.Apply()
 }
 
-func (m *Manager) readValues(filename string) (v kcm.Values, err error) {
+func (m *Manager) readValues(ctx context.Context, filename string) (v kcm.Values, err error) {
 	if err = file.ReadYAML(filename, &v); err != nil {
 		return
 	}
 
 	if o, ok := m.provisioner.(provisioner.Outputter); ok {
-		values, err := o.Output()
+		values, err := o.Output(ctx)
 		if err == nil && len(values) > 0 {
 			log.Info("Merging values from provisioner")
 			v.Merge(values)
@@ -298,8 +299,8 @@ func (m *Manager) readDeletions(filename string) (d *Deletions, err error) {
 	return
 }
 
-func (m *Manager) readCredentials(o *Options) (*credentials.Credentials, error) {
-	creds, err := m.credentialSource.GetCredentials()
+func (m *Manager) readCredentials(ctx context.Context, o *Options) (*credentials.Credentials, error) {
+	creds, err := m.credentialSource.GetCredentials(ctx)
 	if err != nil {
 		return nil, err
 	}

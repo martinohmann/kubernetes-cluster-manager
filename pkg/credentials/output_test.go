@@ -1,6 +1,7 @@
 package credentials
 
 import (
+	"context"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
@@ -9,7 +10,7 @@ import (
 
 type testOutputter struct{}
 
-func (testOutputter) Output() (kcm.Values, error) {
+func (testOutputter) Output(ctx context.Context) (kcm.Values, error) {
 	return kcm.Values{
 		"kubeconfig": "/tmp/kubeconfig",
 	}, nil
@@ -18,7 +19,7 @@ func (testOutputter) Output() (kcm.Values, error) {
 func TestProvisionerOutputSource(t *testing.T) {
 	p := NewProvisionerOutputSource(testOutputter{})
 
-	credentials, err := p.GetCredentials()
+	credentials, err := p.GetCredentials(context.Background())
 
 	assert.NoError(t, err)
 	assert.Equal(t, "/tmp/kubeconfig", credentials.Kubeconfig)

@@ -1,6 +1,7 @@
 package credentials
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,7 @@ func TestStaticSource(t *testing.T) {
 
 	p := NewStaticSource(c)
 
-	credentials, err := p.GetCredentials()
+	credentials, err := p.GetCredentials(context.Background())
 
 	assert.NoError(t, err)
 	assert.Exactly(t, c, credentials)

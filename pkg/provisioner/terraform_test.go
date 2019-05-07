@@ -1,6 +1,7 @@
 package provisioner
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestTerraformProvision(t *testing.T) {
 
 		m := NewTerraform(options)
 
-		err := m.Provision()
+		err := m.Provision(context.Background())
 
 		if !assert.NoError(t, err) {
 			return
@@ -36,7 +37,7 @@ func TestTerraformReconcile(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
 		m := &Terraform{}
 
-		err := m.Reconcile()
+		err := m.Reconcile(context.Background())
 
 		if !assert.NoError(t, err) {
 			return
@@ -73,7 +74,7 @@ func TestTerraformOutput(t *testing.T) {
 			"bar": []interface{}{"baz"},
 		}
 
-		values, err := m.Output()
+		values, err := m.Output(context.Background())
 
 		if !assert.NoError(t, err) {
 			return
@@ -100,7 +101,7 @@ func TestTerraformOutputIssue21(t *testing.T) {
 			errors.New(color.RedString("The module root could not be found. There is nothing to output.")),
 		)
 
-		values, err := m.Output()
+		values, err := m.Output(context.Background())
 
 		assert.NoError(t, err)
 		assert.Equal(t, kcm.Values{}, values)
@@ -113,7 +114,7 @@ func TestTerraformDestroy(t *testing.T) {
 
 		m := NewTerraform(options)
 
-		err := m.Destroy()
+		err := m.Destroy(context.Background())
 
 		if !assert.NoError(t, err) {
 			return

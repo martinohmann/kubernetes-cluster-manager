@@ -3,6 +3,7 @@
 package cluster
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -82,7 +83,7 @@ preDestroy: []
 foo: output-from-terraform
 `
 
-		assert.NoError(t, p.Provision(o))
+		assert.NoError(t, p.Provision(context.Background(), o))
 
 		buf, _ := ioutil.ReadFile(filepath.Join(manifestsDir, "testchart.yaml"))
 
@@ -131,7 +132,7 @@ postApply: []
 preDestroy: []
 `
 
-		assert.NoError(t, p.Destroy(o))
+		assert.NoError(t, p.Destroy(context.Background(), o))
 
 		buf, _ := ioutil.ReadFile(deletions.Name())
 
@@ -144,7 +145,7 @@ func TestReadEmptyCredentials(t *testing.T) {
 		credentialSource: credentials.NewStaticSource(&credentials.Credentials{}),
 	}
 
-	_, err := m.readCredentials(&Options{})
+	_, err := m.readCredentials(context.Background(), &Options{})
 
 	assert.Error(t, err)
 }
@@ -159,7 +160,7 @@ func TestReadCredentials(t *testing.T) {
 		credentialSource: credentials.NewStaticSource(expected),
 	}
 
-	creds, err := m.readCredentials(&Options{})
+	creds, err := m.readCredentials(context.Background(), &Options{})
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, creds)

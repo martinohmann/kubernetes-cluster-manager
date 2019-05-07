@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"github.com/fatih/color"
@@ -67,7 +68,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 	return err
 }
 
-func (o *Options) Run(exec func(*cluster.Manager, *cluster.Options) error) error {
+func (o *Options) Run(exec func(context.Context, *cluster.Manager, *cluster.Options) error) error {
 	if o.WorkingDir != "" {
 		log.Infof("Switching working dir to %s", o.WorkingDir)
 		if err := os.Chdir(o.WorkingDir); err != nil {
@@ -80,7 +81,10 @@ func (o *Options) Run(exec func(*cluster.Manager, *cluster.Options) error) error
 		return err
 	}
 
-	return exec(m, &o.ManagerOptions)
+	// TODO(mohmann): this is the place where we should setup proper signal handling.
+	ctx := context.Background()
+
+	return exec(ctx, m, &o.ManagerOptions)
 }
 
 func (o *Options) MergeConfig(filename string) error {

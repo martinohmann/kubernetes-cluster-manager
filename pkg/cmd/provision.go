@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
 	"github.com/spf13/cobra"
@@ -16,8 +18,8 @@ func NewProvisionCommand() *cobra.Command {
 			"resources and afterwards applying Kubernetes manifests.",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd))
-			cmdutil.CheckErr(o.Run(func(m *cluster.Manager, o *cluster.Options) error {
-				return m.Provision(o)
+			cmdutil.CheckErr(o.Run(func(ctx context.Context, m *cluster.Manager, o *cluster.Options) error {
+				return m.Provision(ctx, o)
 			}))
 		},
 	}

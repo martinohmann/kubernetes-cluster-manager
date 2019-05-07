@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -17,7 +18,7 @@ func TestApplyManifest(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.ApplyManifest([]byte{})
+		err := kubectl.ApplyManifest(context.Background(), []byte{})
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -39,7 +40,7 @@ func TestDeleteManifest(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteManifest([]byte{})
+		err := kubectl.DeleteManifest(context.Background(), []byte{})
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -65,7 +66,7 @@ func TestDeleteResource(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(selector)
+		err := kubectl.DeleteResource(context.Background(), selector)
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -97,7 +98,7 @@ func TestDeleteResources(t *testing.T) {
 
 		executor.NextCommand().WillSucceed()
 
-		remaining, err := kubectl.DeleteResources(resources)
+		remaining, err := kubectl.DeleteResources(context.Background(), resources)
 
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 0)
@@ -130,7 +131,7 @@ func TestDeleteResourcesError(t *testing.T) {
 		executor.NextCommand().WillSucceed()
 		executor.NextCommand().WillError()
 
-		remaining, err := kubectl.DeleteResources(resources)
+		remaining, err := kubectl.DeleteResources(context.Background(), resources)
 
 		assert.Error(t, err)
 		assert.Len(t, remaining, 1)
@@ -153,7 +154,7 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(selector)
+		err := kubectl.DeleteResource(context.Background(), selector)
 
 		assert.NoError(t, err)
 		if assert.Len(t, executor.ExecutedCommands, 1) {
@@ -178,7 +179,7 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(selector)
+		err := kubectl.DeleteResource(context.Background(), selector)
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "either a name or labels must be specified in the resource selector (kind=pod,namespace=default)")

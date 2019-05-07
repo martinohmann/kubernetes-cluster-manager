@@ -1,6 +1,8 @@
 package credentials
 
 import (
+	"context"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 )
 
@@ -16,8 +18,8 @@ func NewProvisionerOutputSource(o provisioner.Outputter) Source {
 }
 
 // GetCredentials implements Source.
-func (s *ProvisionerOutputSource) GetCredentials() (*Credentials, error) {
-	v, err := s.o.Output()
+func (s *ProvisionerOutputSource) GetCredentials(ctx context.Context) (*Credentials, error) {
+	v, err := s.o.Output(ctx)
 	if err != nil {
 		return nil, err
 	}
