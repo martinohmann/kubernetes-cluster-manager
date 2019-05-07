@@ -64,10 +64,11 @@ func TestRunSilentlyError(t *testing.T) {
 	assert.Equal(t, `Unknown command "nonexistent-command"`+"\n", out)
 }
 
-func TestRunSilentlyWithContextNoCancel(t *testing.T) {
+func TestRunSilentlyWithContextCancelAfter(t *testing.T) {
 	cmd := helperCommand("echo", "bar")
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	out, err := RunSilentlyWithContext(ctx, cmd)
 
