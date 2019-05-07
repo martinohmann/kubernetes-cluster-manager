@@ -65,7 +65,7 @@ func TestMockExecutorCommandMismatch(t *testing.T) {
 
 	expectedError := errors.New(`command "somecommand somearg" does not match "foo"`)
 
-	_, err := e.RunSilently(exec.Command("somecommand", "somearg"))
+	_, err := e.Run(exec.Command("somecommand", "somearg"))
 
 	assert.Equal(t, expectedError, err)
 }

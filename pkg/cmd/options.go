@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"os"
+	"os/signal"
 
 	"github.com/fatih/color"
 	"github.com/imdario/mergo"
@@ -82,7 +83,19 @@ func (o *Options) Run(exec func(context.Context, *cluster.Manager, *cluster.Opti
 	}
 
 	// TODO(mohmann): this is the place where we should setup proper signal handling.
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt)
+
+		select {
+		case <-signalChan:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
 
 	return exec(ctx, m, &o.ManagerOptions)
 }
