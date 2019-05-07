@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -15,7 +16,7 @@ func TestProcessResourceDeletions(t *testing.T) {
 
 		deletions := []ResourceSelector{{Name: "foo", Kind: "pod"}}
 
-		remaining, err := processResourceDeletions(&Options{}, kubectl, deletions)
+		remaining, err := processResourceDeletions(context.Background(), &Options{}, kubectl, deletions)
 
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 0)
@@ -28,7 +29,7 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 
 		deletions := []ResourceSelector{{Name: "foo", Kind: "pod"}}
 
-		remaining, err := processResourceDeletions(&Options{DryRun: true}, kubectl, deletions)
+		remaining, err := processResourceDeletions(context.Background(), &Options{DryRun: true}, kubectl, deletions)
 
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 1)

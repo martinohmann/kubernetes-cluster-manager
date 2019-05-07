@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"sort"
@@ -40,7 +41,7 @@ func NewKubectl(c *credentials.Credentials) *Kubectl {
 }
 
 // ApplyManifest applies the manifest via kubectl.
-func (k *Kubectl) ApplyManifest(manifest []byte) error {
+func (k *Kubectl) ApplyManifest(ctx context.Context, manifest []byte) error {
 	args := []string{
 		"kubectl",
 		"apply",
@@ -64,7 +65,7 @@ func (k *Kubectl) ApplyManifest(manifest []byte) error {
 }
 
 // DeleteManifest deletes the manifest via kubectl.
-func (k *Kubectl) DeleteManifest(manifest []byte) error {
+func (k *Kubectl) DeleteManifest(ctx context.Context, manifest []byte) error {
 	args := []string{
 		"kubectl",
 		"delete",
@@ -89,7 +90,7 @@ func (k *Kubectl) DeleteManifest(manifest []byte) error {
 }
 
 // DeleteResource deletes a resource via kubectl.
-func (k *Kubectl) DeleteResource(selector ResourceSelector) error {
+func (k *Kubectl) DeleteResource(ctx context.Context, selector ResourceSelector) error {
 	namespace := selector.Namespace
 	if namespace == "" {
 		namespace = DefaultNamespace
@@ -139,9 +140,9 @@ func (k *Kubectl) DeleteResource(selector ResourceSelector) error {
 
 // DeleteResources deletes resources via kubectl. Returns a slice containing
 // the resources that were not deleted to to an error.
-func (k *Kubectl) DeleteResources(resources []ResourceSelector) ([]ResourceSelector, error) {
+func (k *Kubectl) DeleteResources(ctx context.Context, resources []ResourceSelector) ([]ResourceSelector, error) {
 	for i, selector := range resources {
-		if err := k.DeleteResource(selector); err != nil {
+		if err := k.DeleteResource(ctx, selector); err != nil {
 			return resources[i:], err
 		}
 	}
@@ -150,7 +151,7 @@ func (k *Kubectl) DeleteResources(resources []ResourceSelector) ([]ResourceSelec
 }
 
 // ClusterInfo fetches the kubernetes cluster info.
-func (k *Kubectl) ClusterInfo() (string, error) {
+func (k *Kubectl) ClusterInfo(ctx context.Context) (string, error) {
 	args := []string{
 		"kubectl",
 		"cluster-info",

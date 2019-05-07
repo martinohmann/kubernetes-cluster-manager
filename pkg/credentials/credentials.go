@@ -1,5 +1,7 @@
 package credentials
 
+import "context"
+
 var (
 	// Empty are empty credentials.
 	Empty = Credentials{}
@@ -9,7 +11,7 @@ var (
 type Source interface {
 	// GetCredentials returns credentials for a Kubernetes cluster. Will return
 	// an error if retrieving credentials fails.
-	GetCredentials() (*Credentials, error)
+	GetCredentials(context.Context) (*Credentials, error)
 }
 
 // Credentials holds the credentials needed to communicate with a Kubernetes

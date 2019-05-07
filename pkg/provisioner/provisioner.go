@@ -1,6 +1,8 @@
 package provisioner
 
 import (
+	"context"
+
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
@@ -8,25 +10,25 @@ import (
 type Provisioner interface {
 	// Provision applies changes to the infrastructure. It should
 	// automatically create or update a kubernetes cluster.
-	Provision() error
+	Provision(context.Context) error
 
 	// Destroy performs all actions needed to destroy the underlying
 	// cluster infrastructure.
-	Destroy() error
+	Destroy(context.Context) error
 }
 
 // Reconciler can reconcile infrastucture status.
 type Reconciler interface {
 	// Reconcile retrieves the current state of the infrastructure and
 	// should log potential changes without actually applying them.
-	Reconcile() error
+	Reconcile(context.Context) error
 }
 
 // Outputter can output kcm.Values.
 type Outputter interface {
 	// Output obtains output values from the infrastructure provisioner. These
 	// values are made available during kubernetes manifest renderering.
-	Output() (kcm.Values, error)
+	Output(context.Context) (kcm.Values, error)
 }
 
 // Options are made available to infrastructure provisioners.

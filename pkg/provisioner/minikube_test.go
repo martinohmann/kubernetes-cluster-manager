@@ -1,6 +1,7 @@
 package provisioner
 
 import (
+	"context"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -16,7 +17,7 @@ func TestMinikubeProvision(t *testing.T) {
 		executor.Command("minikube status").WillError()
 		executor.Command("minikube start").WillSucceed()
 
-		err := m.Provision()
+		err := m.Provision(context.Background())
 
 		assert.NoError(t, err)
 	})
@@ -32,7 +33,7 @@ func TestMinikubeOutput(t *testing.T) {
 		"kubeconfig": home + "/.kube/config",
 	}
 
-	values, err := m.Output()
+	values, err := m.Output(context.Background())
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValues, values)
@@ -45,7 +46,7 @@ func TestMinikubeDestroy(t *testing.T) {
 		executor.Command("minikube status").WillSucceed()
 		executor.Command("minikube delete").WillSucceed()
 
-		err := m.Destroy()
+		err := m.Destroy(context.Background())
 
 		assert.NoError(t, err)
 	})

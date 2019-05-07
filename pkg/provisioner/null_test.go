@@ -1,6 +1,7 @@
 package provisioner
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,6 +10,6 @@ import (
 func TestNull(t *testing.T) {
 	p := NewNull(&Options{})
 
-	require.NoError(t, p.Provision())
-	require.NoError(t, p.Destroy())
+	require.NoError(t, p.Provision(context.Background()))
+	require.NoError(t, p.Destroy(context.Background()))
 }
