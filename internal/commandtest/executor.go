@@ -1,6 +1,7 @@
 package commandtest
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -55,7 +56,12 @@ func NewMockExecutor(executor command.Executor) *MockExecutor {
 }
 
 // Run implements Run from the command.Executor interface.
-func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
+func (e *MockExecutor) Run(cmd *exec.Cmd) (string, error) {
+	return e.RunWithContext(context.Background(), cmd)
+}
+
+// RunWithContext implements RunWithContext from the command.Executor interface.
+func (e *MockExecutor) RunWithContext(ctx context.Context, cmd *exec.Cmd) (out string, err error) {
 	commandLine := command.Line(cmd)
 
 	var ex *expectation
@@ -83,7 +89,7 @@ func (e *MockExecutor) Run(cmd *exec.Cmd) (out string, err error) {
 				)
 			}
 
-			out, err = e.executor.Run(cmd)
+			out, err = e.executor.RunWithContext(ctx, cmd)
 		} else {
 			if ex.err != nil {
 				err = ex.err
@@ -124,7 +130,12 @@ func validateExpectation(ex *expectation, cmd *exec.Cmd) error {
 
 // RunSilently implements RunSilently from the command.Executor interface.
 func (e *MockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
-	return e.Run(cmd)
+	return e.RunSilentlyWithContext(context.Background(), cmd)
+}
+
+// RunSilentlyWithContext implements RunSilentlyWithContext from the command.Executor interface.
+func (e *MockExecutor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
+	return e.RunWithContext(ctx, cmd)
 }
 
 // AnyCommand creates an expectation for any command that will be executed.

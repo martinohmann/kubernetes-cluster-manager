@@ -51,7 +51,7 @@ func (m *Terraform) Provision(ctx context.Context) error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := command.Run(cmd)
+	_, err := command.RunWithContext(ctx, cmd)
 
 	return err
 }
@@ -70,7 +70,7 @@ func (m *Terraform) Reconcile(ctx context.Context) (err error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	if _, err = command.Run(cmd); err != nil {
+	if _, err = command.RunWithContext(ctx, cmd); err != nil {
 		// ExitCode 2 means that there are infrastructure changes. This is not an error.
 		if exitErr, ok := errors.Cause(err).(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
 			err = nil
@@ -130,7 +130,7 @@ func (m *Terraform) Destroy(ctx context.Context) error {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	_, err := command.Run(cmd)
+	_, err := command.RunWithContext(ctx, cmd)
 
 	return err
 }

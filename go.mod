@@ -27,6 +27,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/apimachinery v0.0.0-20190503221204-7a17edec881a // indirect
 	k8s.io/helm v2.13.1+incompatible
