@@ -161,18 +161,17 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 
 		if manifest.IsBlank() {
 			log.Warnf("Manifest %s does not contain any resources, skipping apply", filename)
-			continue
-		}
-
-		if o.DryRun {
-			log.Warnf("Would apply manifest %s", filename)
-			log.Debug(string(manifest.Content))
 		} else {
-			log.Infof("Applying manifest %s", filename)
-			if err := kubectl.ApplyManifest(ctx, manifest.Content); err != nil {
-				return err
-			}
+			if o.DryRun {
+				log.Warnf("Would apply manifest %s", filename)
+				log.Debug(string(manifest.Content))
+			} else {
+				log.Infof("Applying manifest %s", filename)
+				if err := kubectl.ApplyManifest(ctx, manifest.Content); err != nil {
+					return err
+				}
 
+			}
 		}
 
 		if !o.DryRun && !o.NoSave {
