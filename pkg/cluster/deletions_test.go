@@ -7,6 +7,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,6 +39,18 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 1)
 
+		assert.NoError(t, executor.ExpectationsWereMet())
+	})
+}
+
+func TestDeleteManifestDryRun(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
+		kubectl := kubernetes.NewKubectl(&credentials.Credentials{})
+		manifest := &manifest.Manifest{Name: "foo"}
+
+		err := deleteManifest(context.Background(), &Options{DryRun: true}, kubectl, manifest)
+
+		assert.NoError(t, err)
 		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
