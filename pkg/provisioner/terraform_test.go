@@ -9,52 +9,35 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTerraformProvision(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		options := &Options{Parallelism: 4}
 
 		m := NewTerraform(options)
 
-		err := m.Provision(context.Background())
+		executor.ExpectCommand("terraform apply --auto-approve --parallelism=4")
 
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				"terraform apply --auto-approve --parallelism=4",
-				executor.ExecutedCommands[0],
-			)
-		}
+		assert.NoError(t, m.Provision(context.Background()))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestTerraformReconcile(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		m := &Terraform{}
 
-		err := m.Reconcile(context.Background())
+		executor.ExpectCommand("terraform plan --detailed-exitcode")
 
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				"terraform plan --detailed-exitcode",
-				executor.ExecutedCommands[0],
-			)
-		}
+		assert.NoError(t, m.Reconcile(context.Background()))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestTerraformOutput(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		m := &Terraform{}
 
 		output := `
@@ -67,7 +50,7 @@ func TestTerraformOutput(t *testing.T) {
   }
 }`
 
-		executor.NextCommand().WillReturn(output)
+		executor.ExpectCommand("terraform output --json").WillReturn(output)
 
 		expectedValues := kcm.Values{
 			"foo": "bar",
@@ -76,56 +59,38 @@ func TestTerraformOutput(t *testing.T) {
 
 		values, err := m.Output(context.Background())
 
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				"terraform output --json",
-				executor.ExecutedCommands[0],
-			)
-
-			assert.Equal(t, expectedValues, values)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, expectedValues, values)
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 // Ref: https://github.com/martinohmann/kubernetes-cluster-manager/issues/21
 func TestTerraformOutputIssue21(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		m := &Terraform{}
 
-		executor.NextCommand().WillReturnError(
+		executor.ExpectCommand("terraform output --json").WillReturnError(
 			errors.New(color.RedString("The module root could not be found. There is nothing to output.")),
 		)
 
 		values, err := m.Output(context.Background())
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, kcm.Values{}, values)
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestTerraformDestroy(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		options := &Options{Parallelism: 4}
 
 		m := NewTerraform(options)
 
-		err := m.Destroy(context.Background())
+		executor.ExpectCommand("terraform destroy --auto-approve --parallelism=4")
 
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				"terraform destroy --auto-approve --parallelism=4",
-				executor.ExecutedCommands[0],
-			)
-		}
+		assert.NoError(t, m.Destroy(context.Background()))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }

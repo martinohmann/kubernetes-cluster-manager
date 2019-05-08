@@ -1,19 +1,20 @@
 package commandtest
 
 import (
-	"errors"
 	"os/exec"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWithMockExecutor(t *testing.T) {
 	def := command.DefaultExecutor
 	called := false
 
-	WithMockExecutor(func(executor *MockExecutor) {
+	WithMockExecutor(func(executor MockExecutor) {
 		called = true
 
 		assert.Equal(t, executor, command.DefaultExecutor)
@@ -34,7 +35,7 @@ func TestWithMockExecutorPanic(t *testing.T) {
 		assert.Equal(t, def, command.DefaultExecutor)
 	}()
 
-	WithMockExecutor(func(executor *MockExecutor) {
+	WithMockExecutor(func(executor MockExecutor) {
 		called = true
 
 		panic("whoops")
@@ -44,10 +45,10 @@ func TestWithMockExecutorPanic(t *testing.T) {
 func TestWithMockExecutorWrapped(t *testing.T) {
 	wrapped := NewMockExecutor(nil)
 
-	wrapped.Command("foo").WillReturn("bar")
+	wrapped.ExpectCommand("foo").WillReturn("bar")
 
-	WithMockExecutor(func(executor *MockExecutor) {
-		executor.Command("foo").WillExecute()
+	WithMockExecutor(func(executor MockExecutor) {
+		executor.ExpectCommand("foo").WillExecute()
 
 		cmd := exec.Command("foo")
 
@@ -58,26 +59,88 @@ func TestWithMockExecutorWrapped(t *testing.T) {
 	}, wrapped)
 }
 
+func TestMockExecutorExpectationsWereMet(t *testing.T) {
+	e := NewMockExecutor(nil)
+
+	e.ExpectCommand("foo").WillReturn("foo")
+
+	e.Run(exec.Command("foo"))
+
+	assert.NoError(t, e.ExpectationsWereMet())
+}
+
+func TestMockExecutorExpectationsWereMetError(t *testing.T) {
+	e := NewMockExecutor(nil)
+
+	e.ExpectCommand("foo").WillReturn("foo")
+
+	assert.Error(t, e.ExpectationsWereMet())
+}
+
+func TestMockExecutorMultipleExpectations(t *testing.T) {
+	e := NewMockExecutor(nil)
+
+	e.ExpectCommand("foo").WillReturnError(errors.New("foo error"))
+	e.ExpectCommand("bar").WillReturn("bar")
+
+	_, err := e.Run(exec.Command("bar"))
+
+	assert.NoError(t, err)
+	assert.Error(t, e.ExpectationsWereMet())
+}
+
+func TestMockExecutorMultipleExpectationsAlreadyMet(t *testing.T) {
+	e := NewMockExecutor(nil)
+
+	expectedError := `all expectations were already fulfilled, command "bar" was not expected`
+
+	e.ExpectCommand("foo").WillReturn("foo")
+
+	_, err := e.Run(exec.Command("foo"))
+	assert.NoError(t, err)
+
+	_, err = e.Run(exec.Command("bar"))
+	require.Error(t, err)
+	assert.Equal(t, expectedError, err.Error())
+
+	assert.NoError(t, e.ExpectationsWereMet())
+}
+
+func TestMockExecutorMultipleExpectationsUnordered(t *testing.T) {
+	e := NewMockExecutor(nil)
+
+	e.ExpectCommand("foo").WillReturn("foo")
+	e.ExpectCommand("bar").WillReturn("bar")
+
+	_, err := e.Run(exec.Command("bar"))
+	assert.NoError(t, err)
+
+	_, err = e.Run(exec.Command("foo"))
+	assert.NoError(t, err)
+
+	assert.NoError(t, e.ExpectationsWereMet())
+}
+
 func TestMockExecutorCommandMismatch(t *testing.T) {
 	e := NewMockExecutor(nil)
 
-	e.Command("foo").WillReturn("foo")
+	e.ExpectCommand("foo").WillReturn("foo")
 
-	expectedError := errors.New(`command "somecommand somearg" does not match "foo"`)
+	expectedError := `command "somecommand somearg" was not expected`
 
 	_, err := e.Run(exec.Command("somecommand", "somearg"))
 
-	assert.Equal(t, expectedError, err)
+	assert.Equal(t, expectedError, err.Error())
 }
 
-func TestMockExecutorCommandPatternMismatch(t *testing.T) {
+func TestMockExecutorCommandError(t *testing.T) {
 	e := NewMockExecutor(nil)
 
-	e.Pattern("^foo$").WillReturn("foo")
+	expectedError := errors.New("foo error")
 
-	expectedError := errors.New(`command "somecommand somearg" does not match pattern "^foo$"`)
+	e.ExpectCommand("foo bar").WillReturnError(expectedError)
 
-	_, err := e.RunSilently(exec.Command("somecommand", "somearg"))
+	_, err := e.Run(exec.Command("foo", "bar"))
 
 	assert.Equal(t, expectedError, err)
 }
@@ -85,7 +148,7 @@ func TestMockExecutorCommandPatternMismatch(t *testing.T) {
 func TestMockExecutorCommandUnexpected(t *testing.T) {
 	e := NewMockExecutor(nil)
 
-	e.Command("foo").WillReturn("foo")
+	e.ExpectCommand("foo").WillReturn("foo")
 	_, err := e.RunSilently(exec.Command("foo"))
 
 	assert.NoError(t, err)
@@ -95,47 +158,14 @@ func TestMockExecutorCommandUnexpected(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMockExecutorNextCommand(t *testing.T) {
+func TestMockExecutorExecutorError(t *testing.T) {
 	e := NewMockExecutor(nil)
 
-	e.NextCommand().WillReturn("foo")
+	e.ExpectCommand("foo bar").WillExecute()
 
-	out, err := e.RunSilently(exec.Command("somecommand"))
+	expectedError := `cannot execute command "foo bar" because there is no executor defined`
 
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", out)
+	_, err := e.Run(exec.Command("foo", "bar"))
 
-	e.NextCommand().WillSucceed()
-
-	_, err = e.RunSilently(exec.Command("somecommand"))
-
-	assert.NoError(t, err)
-}
-
-func TestMockExecutorAnyCommand(t *testing.T) {
-	e := NewMockExecutor(nil)
-
-	e.AnyCommand().WillReturn("foo")
-
-	out, err := e.RunSilently(exec.Command("somecommand"))
-
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", out)
-
-	out, err = e.RunSilently(exec.Command("someothercommand"))
-
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", out)
-}
-
-func TestMockExecutorPattern(t *testing.T) {
-	e := NewMockExecutor(nil)
-
-	expectedError := errors.New("some error")
-
-	e.Pattern("^foo .*$").WillReturnError(expectedError)
-
-	_, err := e.RunSilently(exec.Command("foo", "bar"))
-
-	assert.Equal(t, expectedError, err)
+	assert.Equal(t, expectedError, err.Error())
 }

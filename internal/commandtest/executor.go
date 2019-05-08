@@ -2,20 +2,11 @@ package commandtest
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os/exec"
 	"regexp"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-)
-
-const (
-	anyCommandPattern = "^.*$"
-)
-
-var (
-	anyCommandRegexp = regexp.MustCompile(anyCommandPattern)
+	"github.com/pkg/errors"
 )
 
 // WithMockExecutor will replace the default command.Executor with a
@@ -24,7 +15,7 @@ var (
 // the previous default executor after f returns or panics. Optionally another
 // executor can be passed which will be used by the MockExecutor if passthrough
 // of a command is explicitly requested.
-func WithMockExecutor(f func(*MockExecutor), wrapped ...command.Executor) {
+func WithMockExecutor(f func(MockExecutor), wrapped ...command.Executor) {
 	var wrappedE command.Executor
 	if len(wrapped) > 0 {
 		wrappedE = wrapped[0]
@@ -37,178 +28,131 @@ func WithMockExecutor(f func(*MockExecutor), wrapped ...command.Executor) {
 	f(executor)
 }
 
-// MockExecutor can be used in tests to stub out command execution.
-type MockExecutor struct {
-	executor     command.Executor
-	expectation  *expectation
-	expectations []*expectation
-	index        int
+// MockExecutor is a command.Executor that allows to mock executed commands.
+type MockExecutor interface {
+	command.Executor
 
-	ExecutedCommands []string
+	// ExpectedCommand creates a new expectation for command cmd. Cmd can be a
+	// regular expression.
+	ExpectCommand(cmd string) *ExpectedCommand
+
+	// ExpectationsWereMet should be called after all test assertions have been
+	// made. It returns an error if there are commands that where expected but
+	// have not been called.
+	ExpectationsWereMet() error
 }
 
-// NewMockExecutor creates a new MockExecutor value.
-func NewMockExecutor(executor command.Executor) *MockExecutor {
-	return &MockExecutor{
-		executor:         executor,
-		ExecutedCommands: make([]string, 0),
+// mockExecutor can be used in tests to stub out command execution.
+type mockExecutor struct {
+	executor command.Executor
+	expected []*ExpectedCommand
+}
+
+// NewMockExecutor creates a new MockExecutor.
+func NewMockExecutor(executor command.Executor) MockExecutor {
+	return &mockExecutor{
+		executor: executor,
+		expected: make([]*ExpectedCommand, 0),
 	}
 }
 
 // Run implements Run from the command.Executor interface.
-func (e *MockExecutor) Run(cmd *exec.Cmd) (string, error) {
+func (e *mockExecutor) Run(cmd *exec.Cmd) (string, error) {
 	return e.RunWithContext(context.Background(), cmd)
 }
 
-// RunWithContext implements RunWithContext from the command.Executor interface.
-func (e *MockExecutor) RunWithContext(ctx context.Context, cmd *exec.Cmd) (out string, err error) {
-	commandLine := command.Line(cmd)
-
-	var ex *expectation
-	if e.expectation != nil {
-		ex = e.expectation
-	} else if e.expectations != nil {
-		if len(e.expectations) <= e.index {
-			return "", fmt.Errorf("unexpected command %q", commandLine)
-		}
-
-		ex = e.expectations[e.index]
-		e.index++
-	}
-
-	if ex != nil {
-		if err := validateExpectation(ex, cmd); err != nil {
-			return "", err
-		}
-
-		if ex.execute {
-			if e.executor == nil {
-				return "", fmt.Errorf(
-					"cannot execute command %q because there is no executor defined",
-					commandLine,
-				)
-			}
-
-			out, err = e.executor.RunWithContext(ctx, cmd)
-		} else {
-			if ex.err != nil {
-				err = ex.err
-			}
-
-			if ex.out != "" {
-				out = ex.out
-			}
-		}
-	}
-
-	e.ExecutedCommands = append(e.ExecutedCommands, commandLine)
-
-	return
+// RunSilently implements RunSilently from the command.Executor interface.
+func (e *mockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
+	return e.RunSilentlyWithContext(context.Background(), cmd)
 }
 
-func validateExpectation(ex *expectation, cmd *exec.Cmd) error {
-	commandLine := command.Line(cmd)
+// RunWithContext implements RunWithContext from the command.Executor interface.
+func (e *mockExecutor) RunWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
+	return e.run(ctx, cmd)
+}
 
-	if ex.re != nil {
-		if !ex.re.MatchString(commandLine) {
-			return fmt.Errorf(
-				"command %q does not match pattern %q",
-				commandLine,
-				ex.pattern,
-			)
+// RunSilentlyWithContext implements RunSilentlyWithContext from the command.Executor interface.
+func (e *mockExecutor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
+	return e.RunWithContext(ctx, cmd)
+}
+
+// ExpectCommand implements ExpectCommand from the MockExecutor interface.
+func (e *mockExecutor) ExpectCommand(cmd string) *ExpectedCommand {
+	expected := &ExpectedCommand{command: cmd}
+	e.expected = append(e.expected, expected)
+
+	return expected
+}
+
+// ExpectationsWereMet implements ExpectationsWereMet from the MockExecutor interface.
+func (e *mockExecutor) ExpectationsWereMet() error {
+	for _, expectation := range e.expected {
+		if !expectation.fulfilled {
+			return errors.Errorf("there is a remaining expectation which was not matched:\n%s", expectation)
 		}
-	} else if ex.cmd != commandLine {
-		return fmt.Errorf(
-			"command %q does not match %q",
-			commandLine,
-			ex.cmd,
-		)
 	}
 
 	return nil
 }
 
-// RunSilently implements RunSilently from the command.Executor interface.
-func (e *MockExecutor) RunSilently(cmd *exec.Cmd) (string, error) {
-	return e.RunSilentlyWithContext(context.Background(), cmd)
-}
+func (e *mockExecutor) run(ctx context.Context, cmd *exec.Cmd) (string, error) {
+	commandLine := command.Line(cmd)
 
-// RunSilentlyWithContext implements RunSilentlyWithContext from the command.Executor interface.
-func (e *MockExecutor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
-	return e.RunWithContext(ctx, cmd)
-}
-
-// AnyCommand creates an expectation for any command that will be executed.
-func (e *MockExecutor) AnyCommand() *expectation {
-	ex := &expectation{pattern: anyCommandPattern, re: anyCommandRegexp}
-	e.expectation = ex
-	e.expectations = nil
-	e.index = 0
-
-	return ex
-}
-
-// NextCommand creates an expectation for the next command to be executed.
-func (e *MockExecutor) NextCommand() *expectation {
-	ex := &expectation{pattern: anyCommandPattern, re: anyCommandRegexp}
-	e.expectation = nil
-	e.addExpectation(ex)
-
-	return ex
-}
-
-// Pattern creates an expectation for an exact cmd.
-func (e *MockExecutor) Command(cmd string) *expectation {
-	ex := &expectation{cmd: cmd}
-	e.expectation = nil
-	e.addExpectation(ex)
-
-	return ex
-}
-
-// Pattern creates an expectation for a cmd pattern.
-func (e *MockExecutor) Pattern(pattern string) *expectation {
-	re := regexp.MustCompile(pattern)
-	ex := &expectation{pattern: pattern, re: re}
-	e.expectation = nil
-	e.addExpectation(ex)
-
-	return ex
-}
-
-func (e *MockExecutor) addExpectation(ex *expectation) {
-	if e.expectations == nil {
-		e.expectations = make([]*expectation, 0)
+	ex, err := e.findExpectation(commandLine)
+	if err != nil {
+		return "", err
 	}
 
-	e.expectations = append(e.expectations, ex)
+	if ex.execute {
+		if e.executor == nil {
+			return "", errors.Errorf(
+				"cannot execute command %q because there is no executor defined",
+				commandLine,
+			)
+		}
+
+		return e.executor.RunWithContext(ctx, cmd)
+	}
+
+	return ex.out, ex.err
 }
 
-type expectation struct {
-	cmd     string
-	pattern string
-	re      *regexp.Regexp
-	execute bool
-	err     error
-	out     string
+func (e *mockExecutor) findExpectation(commandLine string) (*ExpectedCommand, error) {
+	var expected *ExpectedCommand
+	var fulfilled int
+
+	for _, next := range e.expected {
+		if next.fulfilled {
+			fulfilled++
+			continue
+		}
+
+		if err := matchCommand(next.command, commandLine); err == nil {
+			expected = next
+			break
+		}
+	}
+
+	if expected == nil {
+		msg := "command %q was not expected"
+		if fulfilled == len(e.expected) {
+			msg = "all expectations were already fulfilled, " + msg
+		}
+
+		return nil, errors.Errorf(msg, commandLine)
+	}
+
+	expected.fulfilled = true
+
+	return expected, nil
 }
 
-func (e *expectation) WillReturnError(err error) {
-	e.err = err
-}
+func matchCommand(expected, actual string) error {
+	re := regexp.MustCompile(expected)
 
-func (e *expectation) WillError() {
-	e.WillReturnError(errors.New("error"))
-}
+	if !re.MatchString(actual) {
+		return errors.Errorf("command %q does not match %q", actual, expected)
+	}
 
-func (e *expectation) WillReturn(out string) {
-	e.out = out
-}
-
-func (e *expectation) WillSucceed() {
-	e.err = nil
-}
-
-func (e *expectation) WillExecute() {
-	e.execute = true
+	return nil
 }
