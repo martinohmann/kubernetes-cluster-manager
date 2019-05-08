@@ -34,6 +34,16 @@ func helperCommand(s ...string) *exec.Cmd {
 	return helperCommandContext(nil, s...)
 }
 
+func TestRunWithContext(t *testing.T) {
+	cmd := helperCommand("echo", "yay")
+
+	out, err := RunWithContext(context.Background(), cmd)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, "yay\n", out)
+}
+
 func TestRunSilently(t *testing.T) {
 	cmd := helperCommand("echo", "foo")
 
@@ -79,13 +89,33 @@ func TestRunSilentlyWithContextCancelAfter(t *testing.T) {
 func TestCancelRunSilentlyWithContext(t *testing.T) {
 	ctx := context.Background()
 
-	testRunSilentlyWithContextCancel(t, ctx, "interrupt", "interrupt received\n")
+	testRunSilentlyWithContextCancel(t, ctx, "interrupt", "SIGINT received\n")
 }
 
 func TestCancelRunSilentlyWithContextSignal(t *testing.T) {
-	ctx := context.WithValue(context.Background(), CancelSignal, syscall.SIGHUP)
+	ctx := context.WithValue(context.Background(), CancelSignal, syscall.SIGTERM)
 
-	testRunSilentlyWithContextCancel(t, ctx, "sighup", "sighup received\n")
+	testRunSilentlyWithContextCancel(t, ctx, "terminated", "SIGTERM received\n")
+}
+
+type nopExecutor struct{}
+
+func (nopExecutor) Run(*exec.Cmd) (string, error)                                     { return "", nil }
+func (nopExecutor) RunWithContext(context.Context, *exec.Cmd) (string, error)         { return "", nil }
+func (nopExecutor) RunSilently(*exec.Cmd) (string, error)                             { return "", nil }
+func (nopExecutor) RunSilentlyWithContext(context.Context, *exec.Cmd) (string, error) { return "", nil }
+
+func TestRestoreExecutor(t *testing.T) {
+	initial := DefaultExecutor
+	custom := &nopExecutor{}
+
+	restore := SetExecutorWithRestore(custom)
+
+	require.Equal(t, custom, DefaultExecutor)
+
+	restore()
+
+	require.Equal(t, initial, DefaultExecutor)
 }
 
 func testRunSilentlyWithContextCancel(t *testing.T, ctx context.Context, c string, expected string) {
@@ -150,27 +180,24 @@ func TestHelperProcess(*testing.T) {
 			iargs = append(iargs, s)
 		}
 		fmt.Println(iargs...)
-	case "sleep":
-		time.Sleep(3 * time.Second)
-		os.Exit(0)
 	case "interrupt":
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 
 		select {
 		case <-signalChan:
-			fmt.Println("interrupt received")
-		case <-time.After(2 * time.Second):
+			fmt.Println("SIGINT received")
+		case <-time.After(500 * time.Millisecond):
 			fmt.Println("timeout")
 		}
-	case "sighup":
+	case "terminated":
 		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, syscall.SIGHUP)
+		signal.Notify(signalChan, syscall.SIGTERM)
 
 		select {
 		case <-signalChan:
-			fmt.Println("sighup received")
-		case <-time.After(2 * time.Second):
+			fmt.Println("SIGTERM received")
+		case <-time.After(500 * time.Millisecond):
 			fmt.Println("timeout")
 		}
 	default:

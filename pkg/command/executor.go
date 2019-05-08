@@ -129,21 +129,21 @@ func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (s
 	waitDone := make(chan struct{})
 	ctxDone := ctx.Done()
 
-	if ctxDone != nil {
-		go func() {
-			select {
-			case <-ctxDone:
-				signal := os.Interrupt
-
-				if s, ok := ctx.Value(CancelSignal).(os.Signal); ok {
-					signal = s
-				}
-
-				cmd.Process.Signal(signal)
-			case <-waitDone:
-			}
-		}()
+	cancelSignal := os.Interrupt
+	if s, ok := ctx.Value(CancelSignal).(os.Signal); ok {
+		cancelSignal = s
 	}
+
+	go func() {
+		select {
+		case <-ctxDone:
+			if cmd.Process != nil {
+				log.Infof("Terminating running process...")
+				cmd.Process.Signal(cancelSignal)
+			}
+		case <-waitDone:
+		}
+	}()
 
 	err := cmd.Wait()
 

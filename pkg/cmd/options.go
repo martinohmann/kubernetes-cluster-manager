@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/fatih/color"
 	"github.com/imdario/mergo"
@@ -85,18 +86,29 @@ func (o *Options) Run(exec func(context.Context, *cluster.Manager, *cluster.Opti
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go func() {
-		signalChan := make(chan os.Signal, 1)
-		signal.Notify(signalChan, os.Interrupt)
+	done := make(chan struct{}, 1)
+	signalChan := make(chan os.Signal, 2)
 
-		select {
-		case <-signalChan:
-			cancel()
-		case <-ctx.Done():
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signalChan)
+
+	go func() {
+		for {
+			select {
+			case s := <-signalChan:
+				log.Infof("Received signal %s, cleaning up...", s)
+				cancel()
+			case <-done:
+				return
+			}
 		}
 	}()
 
-	return exec(ctx, m, &o.ManagerOptions)
+	err = exec(ctx, m, &o.ManagerOptions)
+
+	close(done)
+
+	return err
 }
 
 func (o *Options) MergeConfig(filename string) error {
