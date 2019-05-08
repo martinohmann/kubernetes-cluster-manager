@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestApplyManifest(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Server: "https://localhost:6443",
 			Token:  "sometoken",
@@ -18,21 +19,15 @@ func TestApplyManifest(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.ApplyManifest(context.Background(), []byte{})
+		executor.ExpectCommand("kubectl apply -f - --server https://localhost:6443 --token sometoken")
 
-		assert.NoError(t, err)
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				executor.ExecutedCommands[0],
-				"kubectl apply -f - --server https://localhost:6443 --token sometoken",
-			)
-		}
+		assert.NoError(t, kubectl.ApplyManifest(context.Background(), []byte{}))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestDeleteManifest(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 			Context:    "test",
@@ -40,21 +35,15 @@ func TestDeleteManifest(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteManifest(context.Background(), []byte{})
+		executor.ExpectCommand("kubectl delete -f - --ignore-not-found --context test --kubeconfig /tmp/kubeconfig")
 
-		assert.NoError(t, err)
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				executor.ExecutedCommands[0],
-				"kubectl delete -f - --ignore-not-found --context test --kubeconfig /tmp/kubeconfig",
-			)
-		}
+		assert.NoError(t, kubectl.DeleteManifest(context.Background(), []byte{}))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestDeleteResource(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -66,21 +55,15 @@ func TestDeleteResource(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(context.Background(), selector)
+		executor.ExpectCommand("kubectl delete pod --ignore-not-found --namespace default --kubeconfig /tmp/kubeconfig foo")
 
-		assert.NoError(t, err)
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				executor.ExecutedCommands[0],
-				"kubectl delete pod --ignore-not-found --namespace default --kubeconfig /tmp/kubeconfig foo",
-			)
-		}
+		assert.NoError(t, kubectl.DeleteResource(context.Background(), selector))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestDeleteResources(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -96,17 +79,19 @@ func TestDeleteResources(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		executor.NextCommand().WillSucceed()
+		executor.ExpectCommand("kubectl delete pod .*")
 
 		remaining, err := kubectl.DeleteResources(context.Background(), resources)
 
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 0)
+
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestDeleteResourcesError(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -119,7 +104,7 @@ func TestDeleteResourcesError(t *testing.T) {
 				},
 			},
 			{
-				Kind: "bar",
+				Kind: "deployment",
 				Labels: map[string]string{
 					"app.kubernetes.io/name": "bar",
 				},
@@ -128,18 +113,20 @@ func TestDeleteResourcesError(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		executor.NextCommand().WillSucceed()
-		executor.NextCommand().WillError()
+		executor.ExpectCommand("kubectl delete pod .*")
+		executor.ExpectCommand("kubectl delete deployment .*").WillReturnError(errors.New("error"))
 
 		remaining, err := kubectl.DeleteResources(context.Background(), resources)
 
 		assert.Error(t, err)
 		assert.Len(t, remaining, 1)
+
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestDeleteResourceLabels(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -154,21 +141,15 @@ func TestDeleteResourceLabels(t *testing.T) {
 
 		kubectl := NewKubectl(creds)
 
-		err := kubectl.DeleteResource(context.Background(), selector)
+		executor.ExpectCommand("kubectl delete pod --ignore-not-found --namespace default --kubeconfig /tmp/kubeconfig --selector app.kubernetes.io/name=foo,app.kubernetes.io/version=v0.0.1")
 
-		assert.NoError(t, err)
-		if assert.Len(t, executor.ExecutedCommands, 1) {
-			assert.Equal(
-				t,
-				executor.ExecutedCommands[0],
-				"kubectl delete pod --ignore-not-found --namespace default --kubeconfig /tmp/kubeconfig --selector app.kubernetes.io/name=foo,app.kubernetes.io/version=v0.0.1",
-			)
-		}
+		assert.NoError(t, kubectl.DeleteResource(context.Background(), selector))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestDeleteResourceMissingSelector(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		creds := &credentials.Credentials{
 			Kubeconfig: "/tmp/kubeconfig",
 		}
@@ -183,5 +164,6 @@ func TestDeleteResourceMissingSelector(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "either a name or labels must be specified in the resource selector (kind=pod,namespace=default)")
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }

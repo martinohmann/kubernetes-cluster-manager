@@ -7,19 +7,19 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMinikubeProvision(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		m := NewMinikube(&Options{})
 
-		executor.Command("minikube status").WillError()
-		executor.Command("minikube start").WillSucceed()
+		executor.ExpectCommand("minikube status").WillReturnError(errors.New("not running"))
+		executor.ExpectCommand("minikube start")
 
-		err := m.Provision(context.Background())
-
-		assert.NoError(t, err)
+		assert.NoError(t, m.Provision(context.Background()))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
@@ -40,14 +40,13 @@ func TestMinikubeOutput(t *testing.T) {
 }
 
 func TestMinikubeDestroy(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		m := &Minikube{}
 
-		executor.Command("minikube status").WillSucceed()
-		executor.Command("minikube delete").WillSucceed()
+		executor.ExpectCommand("minikube status")
+		executor.ExpectCommand("minikube delete")
 
-		err := m.Destroy(context.Background())
-
-		assert.NoError(t, err)
+		assert.NoError(t, m.Destroy(context.Background()))
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }

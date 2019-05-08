@@ -11,20 +11,24 @@ import (
 )
 
 func TestProcessResourceDeletions(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&credentials.Credentials{})
 
 		deletions := []ResourceSelector{{Name: "foo", Kind: "pod"}}
+
+		executor.ExpectCommand("kubectl .*")
 
 		remaining, err := processResourceDeletions(context.Background(), &Options{}, kubectl, deletions)
 
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 0)
+
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
 
 func TestProcessResourceDeletionsDryRun(t *testing.T) {
-	commandtest.WithMockExecutor(func(executor *commandtest.MockExecutor) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
 		kubectl := kubernetes.NewKubectl(&credentials.Credentials{})
 
 		deletions := []ResourceSelector{{Name: "foo", Kind: "pod"}}
@@ -33,5 +37,7 @@ func TestProcessResourceDeletionsDryRun(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Len(t, remaining, 1)
+
+		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
