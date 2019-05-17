@@ -14,7 +14,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +22,7 @@ func createManager() *Manager {
 	m := NewManager(
 		credentials.NewStaticSource(&credentials.Credentials{Context: "test"}),
 		provisioner.NewTerraform(&provisioner.Options{}),
-		renderer.NewHelm(&renderer.Options{TemplatesDir: "testdata/charts"}),
+		template.NewRenderer(),
 	)
 
 	return m
@@ -50,6 +50,7 @@ postApply:
 			Values:       values.Name(),
 			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
+			TemplatesDir: "testdata/charts",
 		}
 
 		p := createManager()
@@ -62,17 +63,15 @@ postApply:
 		executor.ExpectCommand("kubectl delete deployment --ignore-not-found --namespace default --context test bar")
 
 		expectedManifest := `---
-# Source: testchart/templates/configmap.yaml
----
 apiVersion: v1
+data:
+  bar: baz
+  baz: somevalue
+  foo: output-from-terraform
 kind: ConfigMap
 metadata:
   name: test
   namespace: kube-system
-data:
-  foo: output-from-terraform
-  bar: baz
-  baz: somevalue
 
 `
 		expectedDeletions := `preApply: []
@@ -118,6 +117,7 @@ preDestroy:
 			Values:       values.Name(),
 			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
+			TemplatesDir: "testdata/charts",
 		}
 
 		p := createManager()

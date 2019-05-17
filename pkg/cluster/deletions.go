@@ -42,10 +42,10 @@ func deleteManifest(ctx context.Context, o *Options, kubectl *kubernetes.Kubectl
 
 	if o.DryRun {
 		log.Warnf("Would delete manifest %s", filename)
-		log.Debug(string(manifest.Content))
+		log.Debug(string(manifest.Content()))
 	} else {
 		log.Infof("Deleting manifest %s", filename)
-		if err := kubectl.DeleteManifest(ctx, manifest.Content); err != nil {
+		if err := kubectl.DeleteManifest(ctx, manifest.Content()); err != nil {
 			return err
 		}
 

@@ -11,7 +11,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -27,6 +27,7 @@ type Options struct {
 	Values        string `json:"values,omitempty" yaml:"values,omitempty"`
 	Deletions     string `json:"deletions,omitempty" yaml:"deletions,omitempty"`
 	ManifestsDir  string `json:"manifestsDir,omitempty" yaml:"manifestsDir,omitempty"`
+	TemplatesDir  string `json:"templatesDir,omitempty" yaml:"templatesDir,omitempty"`
 	SkipManifests bool   `json:"skipManifests,omitempty" yaml:"skipManifests,omitempty"`
 	AllManifests  bool   `json:"allManifests,omitempty" yaml:"allManifests,omitempty"`
 	NoSave        bool   `json:"noSave,omitempty" yaml:"noSave,omitempty"`
@@ -37,14 +38,14 @@ type Options struct {
 type Manager struct {
 	credentialSource credentials.Source
 	provisioner      provisioner.Provisioner
-	renderer         renderer.Renderer
+	renderer         template.Renderer
 }
 
 // NewManager creates a new cluster manager.
 func NewManager(
 	credentialSource credentials.Source,
 	provisioner provisioner.Provisioner,
-	renderer renderer.Renderer,
+	renderer template.Renderer,
 ) *Manager {
 	return &Manager{
 		credentialSource: credentialSource,
@@ -92,7 +93,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
-	nextManifests, err := m.renderer.RenderManifests(values)
+	nextManifests, err := manifest.RenderDir(m.renderer, o.TemplatesDir, values)
 	if err != nil {
 		return err
 	}
@@ -133,8 +134,8 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 	}
 
 	for _, revision := range revisions {
-		if !revision.HasNext() {
-			if err := deleteManifest(ctx, o, kubectl, revision.Prev); err != nil {
+		if revision.IsDelete() {
+			if err := deleteManifest(ctx, o, kubectl, revision.Current); err != nil {
 				return err
 			}
 
@@ -143,7 +144,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 
 		manifest := revision.Next
 		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
-		changeSet, err := file.NewChangeSet(filename, manifest.Content)
+		changeSet, err := file.NewChangeSet(filename, manifest.Content())
 		if err != nil {
 			return err
 		}
@@ -154,7 +155,9 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 			continue
 		}
 
-		_, err = processResourceDeletions(ctx, o, kubectl, revision.GetVanishedResources())
+		c := revision.ChangeSet()
+
+		_, err = processResourceDeletions(ctx, o, kubectl, c.RemovedResources.Selectors())
 		if err != nil {
 			return err
 		}
@@ -164,10 +167,10 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		} else {
 			if o.DryRun {
 				log.Warnf("Would apply manifest %s", filename)
-				log.Debug(string(manifest.Content))
+				log.Debug(string(manifest.Content()))
 			} else {
 				log.Infof("Applying manifest %s", filename)
-				if err := kubectl.ApplyManifest(ctx, manifest.Content); err != nil {
+				if err := kubectl.ApplyManifest(ctx, manifest.Content()); err != nil {
 					return err
 				}
 
@@ -218,7 +221,7 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
-	manifests, err := m.renderer.RenderManifests(values)
+	manifests, err := manifest.RenderDir(template.NewRenderer(), o.TemplatesDir, values)
 	if err != nil {
 		return err
 	}

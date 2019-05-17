@@ -7,15 +7,52 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
 )
 
-// Manifest contains a kubernetes manifest as raw bytes and its name.
+// Manifest contains a kubernetes manifest split into resources and hooks.
 type Manifest struct {
-	Name    string
-	Content []byte
+	Name string
+
+	content   []byte
+	resources ResourceSlice
+	hooks     HookSliceMap
+}
+
+// NewManifest creates a new manifest with name from given rendered template
+// files.
+func NewManifest(name string, renderedTemplates map[string]string) (*Manifest, error) {
+	resources := make(ResourceSlice, 0)
+	hooks := make(HookSliceMap)
+
+	for _, content := range renderedTemplates {
+		r, h, err := parseResources([]byte(content))
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, r...)
+
+		for k, v := range h {
+			if _, ok := hooks[k]; ok {
+				hooks[k] = append(hooks[k], v...)
+			} else {
+				hooks[k] = v
+			}
+		}
+	}
+
+	m := &Manifest{
+		Name:      name,
+		resources: resources,
+		hooks:     hooks,
+	}
+
+	return m, nil
 }
 
 // Filename returns the filename for the manifest.
@@ -27,11 +64,11 @@ func (m *Manifest) Filename() string {
 // comments and document separators (`---`). In this case it is semantically
 // equivalent to an empty manifest. A nil manifest is considered blank.
 func (m *Manifest) IsBlank() bool {
-	if m == nil || len(m.Content) == 0 {
+	if m == nil || len(m.Content()) == 0 {
 		return true
 	}
 
-	buf := bytes.NewBuffer(m.Content)
+	buf := bytes.NewBuffer(m.Content())
 	s := bufio.NewScanner(buf)
 
 	for s.Scan() {
@@ -46,17 +83,30 @@ func (m *Manifest) IsBlank() bool {
 	return true
 }
 
-// Matches returns true if other matches m.
-func (m *Manifest) Matches(other *Manifest) bool {
-	if m == other {
-		return true
+// Content returns the rendered manifest as raw bytes.
+func (m *Manifest) Content() []byte {
+	if m.content == nil {
+		keys := make([]string, 0, len(m.hooks))
+
+		for k := range m.hooks {
+			keys = append(keys, string(k))
+		}
+
+		sort.Strings(keys)
+
+		var buf bytes.Buffer
+
+		buf.Write(m.resources.Bytes())
+
+		for _, k := range keys {
+			t := HookType(k)
+			buf.Write(m.hooks[t].Bytes())
+		}
+
+		m.content = buf.Bytes()
 	}
 
-	if m == nil || other == nil {
-		return false
-	}
-
-	return m.Name == other.Name
+	return m.content
 }
 
 // ReadDir reads dir and returns all found manifests. It will ignore
@@ -90,12 +140,49 @@ func ReadDir(dir string) ([]*Manifest, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		m := &Manifest{
-			Name:    strings.TrimSuffix(f.Name(), ext),
-			Content: buf,
+		resources, hooks, err := parseResources(buf)
+		if err != nil {
+			return nil, err
 		}
 
-		manifests = append(manifests, m)
+		manifests = append(manifests, &Manifest{
+			Name:      strings.TrimSuffix(f.Name(), ext),
+			resources: resources,
+			hooks:     hooks,
+		})
+	}
+
+	return manifests, nil
+}
+
+// RenderDir renders manifests for all subdirectories of dir.
+func RenderDir(r template.Renderer, dir string, v map[string]interface{}) ([]*Manifest, error) {
+	dirs, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open component dir")
+	}
+
+	manifests := make([]*Manifest, 0)
+
+	for _, d := range dirs {
+		if !d.IsDir() {
+			continue
+		}
+
+		name := d.Name()
+		dirPath := filepath.Join(dir, name)
+
+		renderedTemplates, err := r.Render(dirPath, v)
+		if err != nil {
+			return nil, err
+		}
+
+		manifest, err := NewManifest(name, renderedTemplates)
+		if err != nil {
+			return nil, err
+		}
+
+		manifests = append(manifests, manifest)
 	}
 
 	return manifests, nil

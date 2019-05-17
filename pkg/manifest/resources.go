@@ -5,82 +5,145 @@ import (
 	"io"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
-// ResourceSelector is a type alias for kubernetes.ResourceSelector.
-type ResourceSelector = kubernetes.ResourceSelector
+type Resource struct {
+	Kind        string
+	Name        string
+	Namespace   string
+	Annotations map[string]string
+	Content     []byte
+}
 
-// resource defines the parts of a Kubernetes resource we are interested in
-// when decoding a manifest.
-type resource struct {
+func newResource(content []byte, head resourceHead) *Resource {
+	return &Resource{
+		Kind:        head.Kind,
+		Name:        head.Metadata.Name,
+		Namespace:   head.Metadata.Namespace,
+		Annotations: head.Metadata.Annotations,
+		Content:     content,
+	}
+}
+
+func (r *Resource) matches(other *Resource) bool {
+	if r == other {
+		return true
+	}
+
+	if r == nil || other == nil {
+		return false
+	}
+
+	if r.Kind != other.Kind || r.Namespace != other.Namespace {
+		return false
+	}
+
+	return r.Name == other.Name
+}
+
+func (r *Resource) Selector() kubernetes.ResourceSelector {
+	return kubernetes.ResourceSelector{
+		Name:      r.Name,
+		Namespace: r.Namespace,
+		Kind:      r.Kind,
+	}
+}
+
+type ResourceSlice []*Resource
+
+func (s ResourceSlice) Bytes() []byte {
+	var buf resourceBuffer
+
+	for _, r := range s {
+		buf.Write(r.Content)
+	}
+
+	return buf.Bytes()
+}
+
+func (s ResourceSlice) Selectors() []kubernetes.ResourceSelector {
+	rs := make([]kubernetes.ResourceSelector, 0)
+
+	for _, res := range s {
+		rs = append(rs, res.Selector())
+	}
+
+	return rs
+}
+
+func (s ResourceSlice) Sort(order ResourceOrder) ResourceSlice {
+	return sortResources(s, order)
+}
+
+type resourceHead struct {
 	Kind     string `yaml:"kind"`
 	Metadata struct {
-		Name      string `yaml:"name"`
-		Namespace string `yaml:"namespace"`
+		Name        string            `yaml:"name"`
+		Namespace   string            `yaml:"namespace"`
+		Annotations map[string]string `yaml:"annotations"`
 	} `yaml:"metadata"`
 }
 
-// Resources returns a slice of ResourceSelector for all resources defined in
-// the manifest.
-func (m *Manifest) Resources() []ResourceSelector {
-	resources := make([]ResourceSelector, 0)
+func parseResources(buf []byte) (ResourceSlice, HookSliceMap, error) {
+	resources := make(ResourceSlice, 0)
+	hooks := make(HookSliceMap)
 
-	if m == nil {
-		return resources
-	}
-
-	buf := bytes.NewBuffer(m.Content)
-	d := yaml.NewDecoder(buf)
+	r := bytes.NewBuffer(buf)
+	d := yaml.NewDecoder(r)
 
 	for {
-		var r resource
-		err := d.Decode(&r)
+		// since the yaml parser does not support unmarshaling into raw bytes
+		// (e.g. like json.RawMessage) we have to unmarshal into a map first,
+		// then marshal to get the content of the single manifest and then
+		// unmarshal again to get the manifest metadata.
+		var v map[string]interface{}
+
+		err := d.Decode(&v)
 		if err == io.EOF {
 			break
 		}
 
 		if err != nil {
-			log.Debugf("error while decoding manifest resources: %s", err.Error())
+			return nil, nil, err
+		}
+
+		buf, err := yaml.Marshal(v)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var head resourceHead
+
+		err = yaml.Unmarshal(buf, &head)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if head.Kind == "" || head.Metadata.Name == "" {
 			continue
 		}
 
-		if r.Kind == "" || r.Metadata.Name == "" {
+		resource := newResource(buf, head)
+
+		if _, ok := head.Metadata.Annotations[HooksAnnotation]; ok {
+			h, err := newHook(resource, head)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			for _, t := range h.types {
+				if hooks[t] == nil {
+					hooks[t] = make(HookSlice, 0)
+				}
+
+				hooks[t] = append(hooks[t], h)
+			}
 			continue
 		}
 
-		resources = append(resources, ResourceSelector{
-			Kind:      r.Kind,
-			Name:      r.Metadata.Name,
-			Namespace: r.Metadata.Namespace,
-		})
+		resources = append(resources, resource)
 	}
 
-	return resources
-}
-
-// GetVanishedResources returns selectors for all resources that are not present
-// in the next revision of the manifests.
-func (r Revision) GetVanishedResources() []ResourceSelector {
-	vanished := make([]ResourceSelector, 0)
-	nextResources := r.Next.Resources()
-
-	for _, r := range r.Prev.Resources() {
-		if i := findMatchingResource(nextResources, r); i == -1 {
-			vanished = append(vanished, r)
-		}
-	}
-
-	return vanished
-}
-
-func findMatchingResource(haystack []ResourceSelector, needle ResourceSelector) int {
-	for i, r := range haystack {
-		if r.Matches(needle) {
-			return i
-		}
-	}
-
-	return -1
+	return resources, hooks, nil
 }

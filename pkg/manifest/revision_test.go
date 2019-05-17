@@ -8,51 +8,51 @@ import (
 
 func TestCreateRevisions(t *testing.T) {
 	cases := []struct {
-		name       string
-		prev, next []*Manifest
-		expected   []Revision
-		hasNext    bool
+		name          string
+		current, next []*Manifest
+		expected      RevisionSlice
+		hasNext       bool
 	}{
 		{
 			name:     "empty",
-			expected: []Revision{},
+			expected: RevisionSlice{},
 		},
 		{
-			name: "one removed",
-			prev: []*Manifest{{Name: "one"}},
-			expected: []Revision{
+			name:    "one removed",
+			current: []*Manifest{{Name: "one"}},
+			expected: RevisionSlice{
 				{
-					Prev: &Manifest{Name: "one"},
+					Current: &Manifest{Name: "one"},
 				},
 			},
 		},
 		{
-			name: "present in both",
-			prev: []*Manifest{{Name: "one"}},
-			next: []*Manifest{{Name: "one"}},
-			expected: []Revision{
+			name:    "present in both",
+			current: []*Manifest{{Name: "one"}},
+			next:    []*Manifest{{Name: "one"}},
+			expected: RevisionSlice{
 				{
-					Prev: &Manifest{Name: "one"},
-					Next: &Manifest{Name: "one"},
+					Current: &Manifest{Name: "one"},
+					Next:    &Manifest{Name: "one"},
 				},
 			},
 		},
 		{
 			name: "one added",
 			next: []*Manifest{{Name: "one"}},
-			expected: []Revision{
+			expected: RevisionSlice{
 				{
 					Next: &Manifest{Name: "one"},
 				},
 			},
 		},
 		{
-			name: "one added, one removed",
-			prev: []*Manifest{{Name: "one"}},
-			next: []*Manifest{{Name: "two"}},
-			expected: []Revision{
+			name:    "one added, one removed",
+			current: []*Manifest{{Name: "one"}},
+			next:    []*Manifest{{Name: "two"}},
+			expected: RevisionSlice{
 				{
-					Prev: &Manifest{Name: "one"},
+					Current: &Manifest{Name: "one"},
 				},
 				{
 					Next: &Manifest{Name: "two"},
@@ -60,16 +60,16 @@ func TestCreateRevisions(t *testing.T) {
 			},
 		},
 		{
-			name: "one added, one removed, one in both",
-			prev: []*Manifest{{Name: "three"}, {Name: "one"}},
-			next: []*Manifest{{Name: "two"}, {Name: "three"}},
-			expected: []Revision{
+			name:    "one added, one removed, one in both",
+			current: []*Manifest{{Name: "three"}, {Name: "one"}},
+			next:    []*Manifest{{Name: "two"}, {Name: "three"}},
+			expected: RevisionSlice{
 				{
-					Prev: &Manifest{Name: "three"},
-					Next: &Manifest{Name: "three"},
+					Current: &Manifest{Name: "three"},
+					Next:    &Manifest{Name: "three"},
 				},
 				{
-					Prev: &Manifest{Name: "one"},
+					Current: &Manifest{Name: "one"},
 				},
 				{
 					Next: &Manifest{Name: "two"},
@@ -80,7 +80,7 @@ func TestCreateRevisions(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := CreateRevisions(tc.prev, tc.next)
+			actual := CreateRevisions(tc.current, tc.next)
 
 			assert.Equal(t, tc.expected, actual)
 		})
