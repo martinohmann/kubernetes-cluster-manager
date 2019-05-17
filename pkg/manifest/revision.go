@@ -10,6 +10,8 @@ type Revision struct {
 	Next    *Manifest
 }
 
+// ChangeSet is a container for resources that are sorted into buckets. These
+// buckets help in finding the best upgrade strategy for a given manifest.
 type ChangeSet struct {
 	Revision           *Revision
 	AddedResources     ResourceSlice
@@ -32,16 +34,21 @@ func (s RevisionSlice) Reverse() RevisionSlice {
 	return s
 }
 
-func (r *Revision) IsInstall() bool {
-	return r.Current == nil
+// IsInitial returns true if r contains a new manifest, meaning that there is
+// no current revision.
+func (r *Revision) IsInitial() bool {
+	return r.Current == nil && r.Next != nil
 }
 
-func (r *Revision) IsDelete() bool {
-	return r.Next == nil
+// IsRemoval returns true if r does not have a next manifest. This denotes that
+// the manifest should be deleted from the cluster using the current revision.
+func (r *Revision) IsRemoval() bool {
+	return r.Current != nil && r.Next == nil
 }
 
+// IsUpgrade returns true if the manifest still exists in the next revision.
 func (r *Revision) IsUpgrade() bool {
-	return !r.IsInstall() && !r.IsDelete()
+	return r.Current != nil && r.Next != nil
 }
 
 // CreateRevisions takes two slices of manifests and pairs matching
@@ -68,11 +75,11 @@ func CreateRevisions(current, next []*Manifest) RevisionSlice {
 	return revisions
 }
 
-// ChangeSet creates the change set for r. The change set categorizes resources
+// ChangeSet creates a ChangeSet for r. The change set categorizes resources
 // into buckets (e.g. added, changed, unchanged, removed) and also contains the
 // most recent hooks for this revision.
 func (r *Revision) ChangeSet() *ChangeSet {
-	if r.IsDelete() {
+	if r.IsRemoval() {
 		return &ChangeSet{
 			Revision:         r,
 			RemovedResources: r.Current.resources,
@@ -80,22 +87,17 @@ func (r *Revision) ChangeSet() *ChangeSet {
 		}
 	}
 
-	if r.IsInstall() {
+	if r.IsInitial() {
 		return &ChangeSet{
 			Revision:       r,
 			AddedResources: r.Next.resources,
 			Hooks:          r.Next.hooks,
 		}
-
 	}
 
 	c := &ChangeSet{
-		Revision:           r,
-		AddedResources:     make(ResourceSlice, 0),
-		ChangedResources:   make(ResourceSlice, 0),
-		UnchangedResources: make(ResourceSlice, 0),
-		RemovedResources:   make(ResourceSlice, 0),
-		Hooks:              r.Next.hooks,
+		Revision: r,
+		Hooks:    r.Next.hooks,
 	}
 
 	for _, current := range r.Current.resources {

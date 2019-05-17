@@ -134,7 +134,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 	}
 
 	for _, revision := range revisions {
-		if revision.IsDelete() {
+		if revision.IsRemoval() {
 			if err := deleteManifest(ctx, o, kubectl, revision.Current); err != nil {
 				return err
 			}
