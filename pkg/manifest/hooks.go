@@ -59,6 +59,10 @@ func newHook(r *Resource, annotations map[string]string) (*Hook, error) {
 	return h, nil
 }
 
+func (s HookSlice) Sort(order ResourceOrder) HookSlice {
+	return sortHooks(s, order)
+}
+
 func (s HookSlice) Bytes() []byte {
 	var buf resourceBuffer
 
@@ -96,4 +100,12 @@ func (m HookSliceMap) Bytes() []byte {
 	}
 
 	return buf.Bytes()
+}
+
+func (m HookSliceMap) Sort(order ResourceOrder) HookSliceMap {
+	for _, v := range m {
+		v.Sort(order)
+	}
+
+	return m
 }

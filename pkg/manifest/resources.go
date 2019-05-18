@@ -150,6 +150,7 @@ func parseResources(buf []byte) (ResourceSlice, HookSliceMap, error) {
 	}
 
 	resources.Sort(ApplyOrder)
+	hooks.Sort(ApplyOrder)
 
 	return resources, hooks, nil
 }

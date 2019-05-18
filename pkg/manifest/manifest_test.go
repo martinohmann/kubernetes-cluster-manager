@@ -92,7 +92,7 @@ func TestManifest_Content(t *testing.T) {
 apiVersion: v1
 kind: Job
 metadata:
-  name: install-job
+  name: another-job
   annotations:
     kcm/hooks: post-apply
   labels:
@@ -113,6 +113,18 @@ metadata:
 spec: {}
 ---
 apiVersion: v1
+kind: Job
+metadata:
+  name: install-job
+  annotations:
+    kcm/hooks: post-apply
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kcm-chart
@@ -122,6 +134,18 @@ metadata:
     app.kubernetes.io/instance: kcm
 data:
   SOMEVAR: someval
+---
+apiVersion: v1
+kind: Job
+metadata:
+  name: deletion-job
+  annotations:
+    kcm/hooks: pre-delete
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
 `,
 	}
 
@@ -158,7 +182,33 @@ metadata:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
     helm.sh/chart: cluster-0.1.0
+  name: another-job
+spec: {}
+
+---
+apiVersion: v1
+kind: Job
+metadata:
+  annotations:
+    kcm/hooks: post-apply
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
   name: install-job
+spec: {}
+
+---
+apiVersion: v1
+kind: Job
+metadata:
+  annotations:
+    kcm/hooks: pre-delete
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: deletion-job
 spec: {}
 
 `
