@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"bytes"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -31,9 +33,9 @@ type Hook struct {
 	policy HookPolicy
 }
 
-func newHook(r *Resource, head resourceHead) (*Hook, error) {
-	if head.Kind != "Job" {
-		return nil, errors.Errorf(`Unsupported hook kind %q. Currently only "Job" is supported.`, head.Kind)
+func newHook(r *Resource, annotations map[string]string) (*Hook, error) {
+	if r.Kind != "Job" {
+		return nil, errors.Errorf(`Unsupported hook kind %q. Currently only "Job" is supported.`, r.Kind)
 	}
 
 	h := &Hook{
@@ -41,12 +43,12 @@ func newHook(r *Resource, head resourceHead) (*Hook, error) {
 		types:    make([]HookType, 0),
 	}
 
-	p, ok := head.Metadata.Annotations[HookPolicyAnnotation]
+	p, ok := annotations[HookPolicyAnnotation]
 	if ok {
 		h.policy = HookPolicy(p)
 	}
 
-	hooks := head.Metadata.Annotations[HooksAnnotation]
+	hooks := annotations[HooksAnnotation]
 
 	parts := strings.Split(hooks, ",")
 	for _, p := range parts {
@@ -75,4 +77,23 @@ func (m HookSliceMap) Has(typ HookType) bool {
 	hooks, ok := m[typ]
 
 	return ok && len(hooks) > 0
+}
+
+func (m HookSliceMap) Bytes() []byte {
+	var buf bytes.Buffer
+
+	keys := make([]string, 0, len(m))
+
+	for k := range m {
+		keys = append(keys, string(k))
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		t := HookType(k)
+		buf.Write(m[t].Bytes())
+	}
+
+	return buf.Bytes()
 }

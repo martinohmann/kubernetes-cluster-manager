@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestManifestFilename(t *testing.T) {
+func TestManifest_Filename(t *testing.T) {
 	m := &Manifest{Name: "manifest"}
 
 	assert.Equal(t, "manifest.yaml", m.Filename())
 }
 
-func TestIsBlank(t *testing.T) {
+func TestManifest_IsBlank(t *testing.T) {
 	cases := []struct {
 		name  string
 		m     *Manifest
@@ -83,6 +83,91 @@ data:
 			assert.Equal(t, tc.blank, tc.m.IsBlank())
 		})
 	}
+}
+
+func TestManifest_Content(t *testing.T) {
+	renderedTemplates := map[string]string{
+		"templates/NOTES.txt": "this note should not appear in the manifest content",
+		"templates/job.yaml": `---
+apiVersion: v1
+kind: Job
+metadata:
+  name: install-job
+  annotations:
+    kcm/hooks: post-apply
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+`,
+		"templates/misc.yaml": `---
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: kcm-chart
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kcm-chart
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+data:
+  SOMEVAR: someval
+`,
+	}
+
+	expected := `---
+apiVersion: v1
+data:
+  SOMEVAR: someval
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: kcm-chart
+
+---
+apiVersion: v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: kcm-chart
+spec: {}
+
+---
+apiVersion: v1
+kind: Job
+metadata:
+  annotations:
+    kcm/hooks: post-apply
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: install-job
+spec: {}
+
+`
+
+	m, err := NewManifest("foo", renderedTemplates)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, expected, string(m.Content()))
 }
 
 func TestReadDir(t *testing.T) {

@@ -5,24 +5,23 @@ import (
 	"io"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
-	"gopkg.in/yaml.v2"
+	log "github.com/sirupsen/logrus"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type Resource struct {
-	Kind        string
-	Name        string
-	Namespace   string
-	Annotations map[string]string
-	Content     []byte
+	Kind      string
+	Name      string
+	Namespace string
+	Content   []byte
 }
 
 func newResource(content []byte, head resourceHead) *Resource {
 	return &Resource{
-		Kind:        head.Kind,
-		Name:        head.Metadata.Name,
-		Namespace:   head.Metadata.Namespace,
-		Annotations: head.Metadata.Annotations,
-		Content:     content,
+		Kind:      head.Kind,
+		Name:      head.Metadata.Name,
+		Namespace: head.Metadata.Namespace,
+		Content:   content,
 	}
 }
 
@@ -42,6 +41,7 @@ func (r *Resource) matches(other *Resource) bool {
 	return r.Name == other.Name
 }
 
+// Selector creates a kubernetes.ResourceSelector for r.
 func (r *Resource) Selector() kubernetes.ResourceSelector {
 	return kubernetes.ResourceSelector{
 		Name:      r.Name,
@@ -52,6 +52,7 @@ func (r *Resource) Selector() kubernetes.ResourceSelector {
 
 type ResourceSlice []*Resource
 
+// Bytes converts the resource slice to raw bytes.
 func (s ResourceSlice) Bytes() []byte {
 	var buf resourceBuffer
 
@@ -62,6 +63,7 @@ func (s ResourceSlice) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// Selectors creates a kubernetes.ResourceSelector for each Resource in s.
 func (s ResourceSlice) Selectors() []kubernetes.ResourceSelector {
 	rs := make([]kubernetes.ResourceSelector, 0)
 
@@ -72,6 +74,7 @@ func (s ResourceSlice) Selectors() []kubernetes.ResourceSelector {
 	return rs
 }
 
+// Sort sorts the slice in the given order.
 func (s ResourceSlice) Sort(order ResourceOrder) ResourceSlice {
 	return sortResources(s, order)
 }
@@ -105,7 +108,8 @@ func parseResources(buf []byte) (ResourceSlice, HookSliceMap, error) {
 		}
 
 		if err != nil {
-			return nil, nil, err
+			log.Debugf("error while parsing resources, skipping resource: %s", err.Error())
+			continue
 		}
 
 		buf, err := yaml.Marshal(v)
@@ -127,23 +131,25 @@ func parseResources(buf []byte) (ResourceSlice, HookSliceMap, error) {
 		resource := newResource(buf, head)
 
 		if _, ok := head.Metadata.Annotations[HooksAnnotation]; ok {
-			h, err := newHook(resource, head)
+			h, err := newHook(resource, head.Metadata.Annotations)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			for _, t := range h.types {
-				if hooks[t] == nil {
-					hooks[t] = make(HookSlice, 0)
+				if _, ok := hooks[t]; ok {
+					hooks[t] = append(hooks[t], h)
+				} else {
+					hooks[t] = HookSlice{h}
 				}
-
-				hooks[t] = append(hooks[t], h)
 			}
 			continue
 		}
 
 		resources = append(resources, resource)
 	}
+
+	resources.Sort(ApplyOrder)
 
 	return resources, hooks, nil
 }

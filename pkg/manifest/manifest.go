@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
@@ -86,22 +85,10 @@ func (m *Manifest) IsBlank() bool {
 // Content returns the rendered manifest as raw bytes.
 func (m *Manifest) Content() []byte {
 	if m.content == nil {
-		keys := make([]string, 0, len(m.hooks))
-
-		for k := range m.hooks {
-			keys = append(keys, string(k))
-		}
-
-		sort.Strings(keys)
-
 		var buf bytes.Buffer
 
 		buf.Write(m.resources.Bytes())
-
-		for _, k := range keys {
-			t := HookType(k)
-			buf.Write(m.hooks[t].Bytes())
-		}
+		buf.Write(m.hooks.Bytes())
 
 		m.content = buf.Bytes()
 	}
