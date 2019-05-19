@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	HooksAnnotation  = "kcm/hooks"
+	Annotation       = "kcm/hooks"
 	PolicyAnnotation = "kcm/hook-policy"
 
 	TypePreApply   Type = "pre-apply"
@@ -22,10 +22,9 @@ type Policy string
 type Type string
 
 type Hook struct {
-	*resource.Resource
-
-	Types  []Type
-	policy Policy
+	Resource *resource.Resource
+	Types    []Type
+	Policy   Policy
 }
 
 func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
@@ -40,10 +39,10 @@ func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 
 	p, ok := annotations[PolicyAnnotation]
 	if ok {
-		h.policy = Policy(p)
+		h.Policy = Policy(p)
 	}
 
-	hooks := annotations[HooksAnnotation]
+	hooks := annotations[Annotation]
 
 	parts := strings.Split(hooks, ",")
 	for _, p := range parts {

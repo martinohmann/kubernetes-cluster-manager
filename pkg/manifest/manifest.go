@@ -50,7 +50,7 @@ func NewManifest(name string, renderedTemplates map[string]string) (*Manifest, e
 	m := &Manifest{
 		Name:      name,
 		Resources: resources.Sort(resource.ApplyOrder),
-		Hooks:     hooks.Sort(resource.ApplyOrder),
+		Hooks:     hooks.Sort(),
 	}
 
 	return m, nil

@@ -52,7 +52,7 @@ func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 
 		r := resource.New(buf, head)
 
-		if _, ok := head.Metadata.Annotations[hook.HooksAnnotation]; ok {
+		if _, ok := head.Metadata.Annotations[hook.Annotation]; ok {
 			h, err := hook.New(r, head.Metadata.Annotations)
 			if err != nil {
 				return nil, nil, err
@@ -72,7 +72,7 @@ func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 	}
 
 	resources.Sort(resource.ApplyOrder)
-	hooks.Sort(resource.ApplyOrder)
+	hooks.Sort()
 
 	return resources, hooks, nil
 }

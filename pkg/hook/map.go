@@ -3,8 +3,6 @@ package hook
 import (
 	"bytes"
 	"sort"
-
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 )
 
 type SliceMap map[Type]Slice
@@ -38,9 +36,9 @@ func (m SliceMap) Bytes() []byte {
 	return buf.Bytes()
 }
 
-func (m SliceMap) Sort(order resource.ResourceOrder) SliceMap {
+func (m SliceMap) Sort() SliceMap {
 	for _, v := range m {
-		v.Sort(order)
+		v.Sort()
 	}
 
 	return m
