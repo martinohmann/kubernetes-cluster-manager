@@ -11,6 +11,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/revision"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
@@ -158,7 +159,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 
 		c := revision.ChangeSet()
 
-		_, err = processResourceDeletions(ctx, o, kubectl, c.RemovedResources.Selectors())
+		_, err = processResourceDeletions(ctx, o, kubectl, selectors(c.RemovedResources))
 		if err != nil {
 			return err
 		}
@@ -324,4 +325,18 @@ func (m *Manager) readCredentials(ctx context.Context, o *Options) (*credentials
 	log.Debugf("Using kubernetes credentials: %#v", c)
 
 	return creds, nil
+}
+
+func selectors(resources resource.Slice) []kubernetes.ResourceSelector {
+	rs := make([]kubernetes.ResourceSelector, 0)
+
+	for _, r := range resources {
+		rs = append(rs, kubernetes.ResourceSelector{
+			Name:      r.Name,
+			Namespace: r.Namespace,
+			Kind:      r.Kind,
+		})
+	}
+
+	return rs
 }

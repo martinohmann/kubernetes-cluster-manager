@@ -1,7 +1,5 @@
 package resource
 
-import "github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
-
 type Slice []*Resource
 
 // Bytes converts the resource slice to raw bytes.
@@ -13,17 +11,6 @@ func (s Slice) Bytes() []byte {
 	}
 
 	return buf.Bytes()
-}
-
-// Selectors creates a kubernetes.ResourceSelector for each Resource in s.
-func (s Slice) Selectors() []kubernetes.ResourceSelector {
-	rs := make([]kubernetes.ResourceSelector, 0)
-
-	for _, res := range s {
-		rs = append(rs, res.Selector())
-	}
-
-	return rs
 }
 
 // Sort sorts the slice in the given order.

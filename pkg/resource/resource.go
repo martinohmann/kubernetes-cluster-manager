@@ -1,7 +1,5 @@
 package resource
 
-import "github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
-
 // Resource is a kubernetes resource.
 type Resource struct {
 	Kind      string
@@ -30,15 +28,6 @@ func New(content []byte, head Head) *Resource {
 		Name:      head.Metadata.Name,
 		Namespace: head.Metadata.Namespace,
 		Content:   content,
-	}
-}
-
-// Selector creates a kubernetes.ResourceSelector for r.
-func (r *Resource) Selector() kubernetes.ResourceSelector {
-	return kubernetes.ResourceSelector{
-		Name:      r.Name,
-		Namespace: r.Namespace,
-		Kind:      r.Kind,
 	}
 }
 
