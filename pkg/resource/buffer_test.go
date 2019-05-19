@@ -1,4 +1,4 @@
-package manifest
+package resource
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ foo
 barbaz
 `)
 
-	var buf resourceBuffer
+	var buf buffer
 
 	n, err := buf.Write([]byte("foo"))
 

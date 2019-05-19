@@ -1,15 +1,19 @@
 // Adapted from https://github.com/helm/helm/blob/master/pkg/tiller/kind_sorter.go
 
-package manifest
+package hook
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
+)
 
 type hookSorter struct {
 	order map[string]int
 	hooks []*Hook
 }
 
-func newHookSorter(hooks []*Hook, order ResourceOrder) *hookSorter {
+func newHookSorter(hooks []*Hook, order resource.ResourceOrder) *hookSorter {
 	o := make(map[string]int)
 
 	for k, v := range order {
@@ -58,7 +62,7 @@ func (s *hookSorter) Less(i, j int) bool {
 	return aPos < bPos
 }
 
-func sortHooks(hooks []*Hook, order ResourceOrder) []*Hook {
+func sortHooks(hooks []*Hook, order resource.ResourceOrder) []*Hook {
 	s := newHookSorter(hooks, order)
 
 	sort.Sort(s)

@@ -9,27 +9,29 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
 )
 
 // Manifest contains a kubernetes manifest split into resources and hooks.
 type Manifest struct {
-	Name string
+	Name      string
+	Resources resource.Slice
+	Hooks     hook.SliceMap
 
-	content   []byte
-	resources ResourceSlice
-	hooks     HookSliceMap
+	content []byte
 }
 
 // NewManifest creates a new manifest with name from given rendered template
 // files.
 func NewManifest(name string, renderedTemplates map[string]string) (*Manifest, error) {
-	resources := make(ResourceSlice, 0)
-	hooks := make(HookSliceMap)
+	resources := make(resource.Slice, 0)
+	hooks := make(hook.SliceMap)
 
 	for _, content := range renderedTemplates {
-		r, h, err := parseResources([]byte(content))
+		r, h, err := Parse([]byte(content))
 		if err != nil {
 			return nil, err
 		}
@@ -47,8 +49,8 @@ func NewManifest(name string, renderedTemplates map[string]string) (*Manifest, e
 
 	m := &Manifest{
 		Name:      name,
-		resources: resources.Sort(ApplyOrder),
-		hooks:     hooks.Sort(ApplyOrder),
+		Resources: resources.Sort(resource.ApplyOrder),
+		Hooks:     hooks.Sort(resource.ApplyOrder),
 	}
 
 	return m, nil
@@ -87,8 +89,8 @@ func (m *Manifest) Content() []byte {
 	if m.content == nil {
 		var buf bytes.Buffer
 
-		buf.Write(m.resources.Bytes())
-		buf.Write(m.hooks.Bytes())
+		buf.Write(m.Resources.Bytes())
+		buf.Write(m.Hooks.Bytes())
 
 		m.content = buf.Bytes()
 	}
@@ -127,15 +129,15 @@ func ReadDir(dir string) ([]*Manifest, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		resources, hooks, err := parseResources(buf)
+		resources, hooks, err := Parse(buf)
 		if err != nil {
 			return nil, err
 		}
 
 		manifests = append(manifests, &Manifest{
 			Name:      strings.TrimSuffix(f.Name(), ext),
-			resources: resources,
-			hooks:     hooks,
+			Resources: resources,
+			Hooks:     hooks,
 		})
 	}
 
@@ -173,4 +175,14 @@ func RenderDir(r template.Renderer, dir string, v map[string]interface{}) ([]*Ma
 	}
 
 	return manifests, nil
+}
+
+func FindMatching(haystack []*Manifest, needle *Manifest) (*Manifest, bool) {
+	for _, m := range haystack {
+		if m.Name == needle.Name {
+			return m, true
+		}
+	}
+
+	return nil, false
 }

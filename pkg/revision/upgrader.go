@@ -1,6 +1,9 @@
-package upgrader
+package revision
 
-import "github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
+import (
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
+)
 
 type Applier interface {
 	ApplyManifest([]byte) error
@@ -8,7 +11,7 @@ type Applier interface {
 }
 
 type Upgrader interface {
-	Upgrade(*manifest.Revision) error
+	Upgrade(*Revision) error
 }
 
 type Options struct {
@@ -30,7 +33,7 @@ func New(applier Applier, o *Options) Upgrader {
 	}
 }
 
-func (u *upgrader) Upgrade(rev *manifest.Revision) error {
+func (u *upgrader) Upgrade(rev *Revision) error {
 	c := rev.ChangeSet()
 	err := u.deleteResources(c.RemovedResources, c.Hooks)
 	if err != nil {
@@ -46,30 +49,30 @@ func (u *upgrader) Upgrade(rev *manifest.Revision) error {
 	return u.applyResources(updates, c.Hooks)
 }
 
-func (u *upgrader) deleteResources(r manifest.ResourceSlice, h manifest.HookSliceMap) error {
+func (u *upgrader) deleteResources(r resource.Slice, h hook.SliceMap) error {
 	if len(r) == 0 {
 		return nil
 	}
 
-	err := u.execHooks(manifest.HookTypePreDelete, h)
+	err := u.execHooks(hook.TypePreDelete, h)
 	if err != nil {
 		return err
 	}
 
-	err = u.applier.DeleteManifest(r.Sort(manifest.DeleteOrder).Bytes())
+	err = u.applier.DeleteManifest(r.Sort(resource.DeleteOrder).Bytes())
 	if err != nil {
 		return err
 	}
 
-	return u.execHooks(manifest.HookTypePostDelete, h)
+	return u.execHooks(hook.TypePostDelete, h)
 }
 
-func (u *upgrader) applyResources(r manifest.ResourceSlice, h manifest.HookSliceMap) error {
+func (u *upgrader) applyResources(r resource.Slice, h hook.SliceMap) error {
 	if len(r) == 0 {
 		return nil
 	}
 
-	err := u.execHooks(manifest.HookTypePreDelete, h)
+	err := u.execHooks(hook.TypePreApply, h)
 	if err != nil {
 		return err
 	}
@@ -79,15 +82,15 @@ func (u *upgrader) applyResources(r manifest.ResourceSlice, h manifest.HookSlice
 		return err
 	}
 
-	return u.execHooks(manifest.HookTypePostDelete, h)
+	return u.execHooks(hook.TypePostApply, h)
 }
 
-func (u *upgrader) execHooks(typ manifest.HookType, hooks manifest.HookSliceMap) error {
+func (u *upgrader) execHooks(typ hook.Type, hooks hook.SliceMap) error {
 	if !hooks.Has(typ) {
 		return nil
 	}
 
 	typeHooks := hooks.Get(typ)
 
-	return u.applier.ApplyManifest(typeHooks.Bytes())
+	return u.applier.ApplyManifest(typeHooks.Resources().Bytes())
 }

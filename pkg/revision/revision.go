@@ -1,32 +1,38 @@
-package manifest
+package revision
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
+)
 
 // Revision is the step before applying the next version of a manifest and
 // potentially deleting leftovers from the old version. A revision with nil
 // Next is considered as a deletion of all resources defined in the manifest.
 type Revision struct {
-	Current *Manifest
-	Next    *Manifest
+	Current *manifest.Manifest
+	Next    *manifest.Manifest
 }
 
 // ChangeSet is a container for resources that are sorted into buckets. These
 // buckets help in finding the best upgrade strategy for a given manifest.
 type ChangeSet struct {
 	Revision           *Revision
-	AddedResources     ResourceSlice
-	ChangedResources   ResourceSlice
-	UnchangedResources ResourceSlice
-	RemovedResources   ResourceSlice
+	AddedResources     resource.Slice
+	ChangedResources   resource.Slice
+	UnchangedResources resource.Slice
+	RemovedResources   resource.Slice
 
-	Hooks HookSliceMap
+	Hooks hook.SliceMap
 }
 
-type RevisionSlice []*Revision
+type Slice []*Revision
 
 // Reverse reverses the order of a slice of *Revision. This is necessary to
 // allow iterating all revisions in reverse order while deleting all manifests.
-func (s RevisionSlice) Reverse() RevisionSlice {
+func (s Slice) Reverse() Slice {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
@@ -51,15 +57,15 @@ func (r *Revision) IsUpgrade() bool {
 	return r.Current != nil && r.Next != nil
 }
 
-// CreateRevisions takes two slices of manifests and pairs matching
-// manifests into revisions with previous and next manifest.
-func CreateRevisions(current, next []*Manifest) RevisionSlice {
-	revisions := make(RevisionSlice, 0)
+// NewSlice takes two slices of manifests and pairs matching
+// manifests into revisions with current and next manifest.
+func NewSlice(current, next []*manifest.Manifest) Slice {
+	revisions := make(Slice, 0)
 
 	for _, c := range current {
 		r := &Revision{Current: c}
 
-		if n, ok := findMatchingManifest(next, c); ok {
+		if n, ok := manifest.FindMatching(next, c); ok {
 			r.Next = n
 		}
 
@@ -67,7 +73,7 @@ func CreateRevisions(current, next []*Manifest) RevisionSlice {
 	}
 
 	for _, n := range next {
-		if _, ok := findMatchingManifest(current, n); !ok {
+		if _, ok := manifest.FindMatching(current, n); !ok {
 			revisions = append(revisions, &Revision{Next: n})
 		}
 	}
@@ -82,26 +88,26 @@ func (r *Revision) ChangeSet() *ChangeSet {
 	if r.IsRemoval() {
 		return &ChangeSet{
 			Revision:         r,
-			RemovedResources: r.Current.resources,
-			Hooks:            r.Current.hooks,
+			RemovedResources: r.Current.Resources,
+			Hooks:            r.Current.Hooks,
 		}
 	}
 
 	if r.IsInitial() {
 		return &ChangeSet{
 			Revision:       r,
-			AddedResources: r.Next.resources,
-			Hooks:          r.Next.hooks,
+			AddedResources: r.Next.Resources,
+			Hooks:          r.Next.Hooks,
 		}
 	}
 
 	c := &ChangeSet{
 		Revision: r,
-		Hooks:    r.Next.hooks,
+		Hooks:    r.Next.Hooks,
 	}
 
-	for _, current := range r.Current.resources {
-		res, ok := findMatchingResource(r.Next.resources, current)
+	for _, current := range r.Current.Resources {
+		res, ok := resource.FindMatching(r.Next.Resources, current)
 		if !ok {
 			c.RemovedResources = append(c.RemovedResources, current)
 		} else if bytes.Compare(current.Content, res.Content) == 0 {
@@ -111,32 +117,12 @@ func (r *Revision) ChangeSet() *ChangeSet {
 		}
 	}
 
-	for _, next := range r.Next.resources {
-		_, ok := findMatchingResource(r.Current.resources, next)
+	for _, next := range r.Next.Resources {
+		_, ok := resource.FindMatching(r.Current.Resources, next)
 		if !ok {
 			c.AddedResources = append(c.AddedResources, next)
 		}
 	}
 
 	return c
-}
-
-func findMatchingManifest(haystack []*Manifest, needle *Manifest) (*Manifest, bool) {
-	for _, m := range haystack {
-		if m.Name == needle.Name {
-			return m, true
-		}
-	}
-
-	return nil, false
-}
-
-func findMatchingResource(haystack []*Resource, needle *Resource) (*Resource, bool) {
-	for _, r := range haystack {
-		if r.matches(needle) {
-			return r, true
-		}
-	}
-
-	return nil, false
 }

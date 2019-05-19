@@ -3,65 +3,24 @@ package manifest
 import (
 	"testing"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestResource_matches(t *testing.T) {
-	cases := []struct {
-		description string
-		a, b        *Resource
-		matches     bool
-	}{
-		{
-			description: "both nil",
-			matches:     true,
-		},
-		{
-			description: "a nil",
-			b:           &Resource{Name: "foo"},
-		},
-		{
-			description: "b nil",
-			a:           &Resource{Name: "foo"},
-		},
-		{
-			description: "different kind",
-			a:           &Resource{Name: "foo", Kind: "Deployment"},
-			b:           &Resource{Name: "foo", Kind: "Pod"},
-		},
-		{
-			description: "different namespace",
-			a:           &Resource{Name: "foo", Kind: "Pod", Namespace: "default"},
-			b:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-		},
-		{
-			description: "same name, kind and namespace",
-			a:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-			b:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-			matches:     true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.description, func(t *testing.T) {
-			assert.Equal(t, tc.matches, tc.a.matches(tc.b))
-		})
-	}
-}
-
-func TestParseResources(t *testing.T) {
+func TestParse(t *testing.T) {
 	cases := []struct {
 		description       string
 		buf               []byte
 		expectError       bool
-		expectedResources ResourceSlice
-		expectedHooks     HookSliceMap
+		expectedResources resource.Slice
+		expectedHooks     hook.SliceMap
 	}{
 		{
 			description:       "empty",
-			expectedResources: ResourceSlice{},
-			expectedHooks:     HookSliceMap{},
+			expectedResources: resource.Slice{},
+			expectedHooks:     hook.SliceMap{},
 		},
 		{
 			description: "missing resource name should be skipped",
@@ -75,8 +34,8 @@ metadata:
     helm.sh/chart: cluster-0.1.0
 spec: {}
 `),
-			expectedResources: ResourceSlice{},
-			expectedHooks:     HookSliceMap{},
+			expectedResources: resource.Slice{},
+			expectedHooks:     hook.SliceMap{},
 		},
 		{
 			description: "missing resource kind should be skipped",
@@ -90,8 +49,8 @@ metadata:
   name: some-statefulset
 spec: {}
 `),
-			expectedResources: ResourceSlice{},
-			expectedHooks:     HookSliceMap{},
+			expectedResources: resource.Slice{},
+			expectedHooks:     hook.SliceMap{},
 		},
 		{
 			description: "resources",
@@ -126,7 +85,7 @@ metadata:
   name: another-prometheus
 spec: {}
 `),
-			expectedResources: ResourceSlice{
+			expectedResources: resource.Slice{
 				{
 					Name: "cm",
 					Kind: "ConfigMap",
@@ -178,7 +137,7 @@ spec: {}
 `),
 				},
 			},
-			expectedHooks: HookSliceMap{},
+			expectedHooks: hook.SliceMap{},
 		},
 		{
 			description: "unparsable yaml should be ignored",
@@ -195,7 +154,7 @@ metadata:
   name: some-statefulset
 spec: {}
 `),
-			expectedResources: ResourceSlice{
+			expectedResources: resource.Slice{
 				{
 					Name: "some-statefulset",
 					Kind: "StatefulSet",
@@ -211,7 +170,7 @@ spec: {}
 `),
 				},
 			},
-			expectedHooks: HookSliceMap{},
+			expectedHooks: hook.SliceMap{},
 		},
 		{
 			description: "unsupported hook resource kind",
@@ -257,11 +216,11 @@ metadata:
   name: deletion-job
 spec: {}
 `),
-			expectedResources: ResourceSlice{},
-			expectedHooks: HookSliceMap{
-				HookTypePreDelete: HookSlice{
+			expectedResources: resource.Slice{},
+			expectedHooks: hook.SliceMap{
+				hook.TypePreDelete: hook.Slice{
 					{
-						Resource: &Resource{
+						Resource: &resource.Resource{
 							Name: "deletion-job",
 							Kind: "Job",
 							Content: []byte(`apiVersion: v1
@@ -277,10 +236,10 @@ metadata:
 spec: {}
 `),
 						},
-						types: []HookType{HookTypePreDelete},
+						Types: []hook.Type{hook.TypePreDelete},
 					},
 					{
-						Resource: &Resource{
+						Resource: &resource.Resource{
 							Name: "deletion-job2",
 							Kind: "Job",
 							Content: []byte(`apiVersion: v1
@@ -296,7 +255,7 @@ metadata:
 spec: {}
 `),
 						},
-						types: []HookType{HookTypePreDelete},
+						Types: []hook.Type{hook.TypePreDelete},
 					},
 				},
 			},
@@ -305,7 +264,7 @@ spec: {}
 
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
-			r, h, err := parseResources(tc.buf)
+			r, h, err := Parse(tc.buf)
 
 			if tc.expectError {
 				require.Error(t, err)

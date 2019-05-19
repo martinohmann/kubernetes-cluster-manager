@@ -1,13 +1,13 @@
-package manifest
+package resource
 
 import "bytes"
 
-type resourceBuffer struct {
+type buffer struct {
 	w bytes.Buffer
 }
 
 // Write implements io.Writer.
-func (w *resourceBuffer) Write(p []byte) (n int, err error) {
+func (w *buffer) Write(p []byte) (n int, err error) {
 	_, err = w.w.Write([]byte("---\n"))
 	if err != nil {
 		return
@@ -27,6 +27,6 @@ func (w *resourceBuffer) Write(p []byte) (n int, err error) {
 }
 
 // Bytes returns the content of the underlying bytes.Buffer.
-func (w *resourceBuffer) Bytes() []byte {
+func (w *buffer) Bytes() []byte {
 	return w.w.Bytes()
 }

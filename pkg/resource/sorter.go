@@ -1,6 +1,6 @@
 // Adapted from https://github.com/helm/helm/blob/master/pkg/tiller/kind_sorter.go
 
-package manifest
+package resource
 
 import "sort"
 

@@ -11,6 +11,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/revision"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -98,12 +99,12 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
-	previousManifests, err := manifest.ReadDir(o.ManifestsDir)
+	currentManifests, err := manifest.ReadDir(o.ManifestsDir)
 	if err != nil {
 		return err
 	}
 
-	revisions := manifest.CreateRevisions(previousManifests, nextManifests)
+	revisions := revision.NewSlice(currentManifests, nextManifests)
 
 	creds, err := m.readCredentials(ctx, o)
 	if err != nil {
@@ -226,6 +227,8 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
+	revisions := revision.NewSlice(manifests, nil)
+
 	creds, err := m.readCredentials(ctx, o)
 	if err != nil {
 		return err
@@ -239,8 +242,8 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		}
 	}
 
-	for _, manifest := range manifests {
-		if err = deleteManifest(ctx, o, kubectl, manifest); err != nil {
+	for _, revision := range revisions.Reverse() {
+		if err = deleteManifest(ctx, o, kubectl, revision.Current); err != nil {
 			return err
 		}
 	}
