@@ -263,3 +263,19 @@ func TestRenderDir(t *testing.T) {
 	assert.Equal(t, "one", manifests[0].Name)
 	assert.Equal(t, "two", manifests[1].Name)
 }
+
+func TestFindMatching(t *testing.T) {
+	manifests := []*Manifest{
+		{Name: "foo"},
+		{Name: "bar"},
+	}
+
+	m, ok := FindMatching(manifests, &Manifest{Name: "bar"})
+
+	assert.True(t, ok)
+	assert.Equal(t, "bar", m.Name)
+
+	_, ok = FindMatching(manifests, &Manifest{Name: "baz"})
+
+	assert.False(t, ok)
+}

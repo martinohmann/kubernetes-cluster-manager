@@ -13,12 +13,14 @@ type Resource struct {
 // Head defines the yaml structure of a manifest resource head. This is used
 // for parsing metadata from raw yaml documents.
 type Head struct {
-	Kind     string `yaml:"kind"`
-	Metadata struct {
-		Name        string            `yaml:"name"`
-		Namespace   string            `yaml:"namespace"`
-		Annotations map[string]string `yaml:"annotations"`
-	} `yaml:"metadata"`
+	Kind     string   `yaml:"kind"`
+	Metadata Metadata `yaml:"metadata"`
+}
+
+type Metadata struct {
+	Name        string            `yaml:"name"`
+	Namespace   string            `yaml:"namespace"`
+	Annotations map[string]string `yaml:"annotations"`
 }
 
 // New creates a new resource value with content and head.

@@ -18,7 +18,7 @@ var ApplyOrder ResourceOrder = []string{
 	"PersistentVolume",
 	"PersistentVolumeClaim",
 	"ServiceAccount",
-	"CustomResourceResource",
+	"CustomResourceDefinition",
 	"ClusterRole",
 	"ClusterRoleBinding",
 	"Role",
@@ -52,7 +52,7 @@ var DeleteOrder ResourceOrder = []string{
 	"Role",
 	"ClusterRoleBinding",
 	"ClusterRole",
-	"CustomResourceResource",
+	"CustomResourceDefinition",
 	"ServiceAccount",
 	"PersistentVolumeClaim",
 	"PersistentVolume",
@@ -69,6 +69,7 @@ var DeleteOrder ResourceOrder = []string{
 type resourceSorter struct {
 	order     map[string]int
 	resources []*Resource
+	isDelete  bool
 }
 
 func newResourceSorter(resources []*Resource, order ResourceOrder) *resourceSorter {
@@ -81,6 +82,10 @@ func newResourceSorter(resources []*Resource, order ResourceOrder) *resourceSort
 	return &resourceSorter{
 		resources: resources,
 		order:     o,
+		// TODO(mohmann): this is a little hacky and needs to be improved. We
+		// need a way to make the sorter aware of the fact that custom
+		// resources should be deleted before their CustomResourceDefinition.
+		isDelete: order[len(order)-1] == "Namespace",
 	}
 }
 
@@ -109,8 +114,12 @@ func (s *resourceSorter) Less(i, j int) bool {
 		return a.Kind < b.Kind
 	}
 
-	if !aok || !bok {
-		return aok
+	if !aok {
+		return s.isDelete
+	}
+
+	if !bok {
+		return !s.isDelete
 	}
 
 	if aPos == bPos {

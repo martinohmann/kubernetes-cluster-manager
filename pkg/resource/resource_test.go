@@ -6,45 +6,56 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResource_matches(t *testing.T) {
+func TestFindMatching(t *testing.T) {
 	cases := []struct {
 		description string
-		a, b        *Resource
-		matches     bool
+		r           *Resource
+		expected    bool
 	}{
 		{
 			description: "both nil",
-			matches:     true,
+			expected:    true,
 		},
 		{
 			description: "a nil",
-			b:           &Resource{Name: "foo"},
+			r:           &Resource{Name: "foo"},
 		},
 		{
 			description: "b nil",
-			a:           &Resource{Name: "foo"},
+			r:           &Resource{Name: "foo"},
 		},
 		{
 			description: "different kind",
-			a:           &Resource{Name: "foo", Kind: "Deployment"},
-			b:           &Resource{Name: "foo", Kind: "Pod"},
+			r:           &Resource{Name: "foo", Kind: "Deployment"},
 		},
 		{
 			description: "different namespace",
-			a:           &Resource{Name: "foo", Kind: "Pod", Namespace: "default"},
-			b:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
+			r:           &Resource{Name: "foo", Kind: "Pod", Namespace: "default"},
 		},
 		{
 			description: "same name, kind and namespace",
-			a:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-			b:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-			matches:     true,
+			r:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
+			expected:    true,
 		},
 	}
 
+	resources := []*Resource{
+		nil,
+		{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
+		New(nil, Head{Kind: "Pod", Metadata: Metadata{Name: "foo", Namespace: "kube-system"}}),
+	}
+
+	_ = resources
+
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
-			assert.Equal(t, tc.matches, tc.a.matches(tc.b))
+			r, ok := FindMatching(resources, tc.r)
+
+			assert.Equal(t, tc.expected, ok)
+
+			if tc.expected {
+				assert.Equal(t, tc.r, r)
+			}
 		})
 	}
 }

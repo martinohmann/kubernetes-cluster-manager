@@ -25,7 +25,7 @@ type upgrader struct {
 	includeUnchanged bool
 }
 
-func New(applier Applier, o *Options) Upgrader {
+func NewUpgrader(applier Applier, o *Options) Upgrader {
 	return &upgrader{
 		applier:          applier,
 		dryRun:           o.DryRun,
