@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"os"
-	"path/filepath"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
@@ -11,7 +10,6 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/revision"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
@@ -135,54 +133,17 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
+	upgrader := revision.NewUpgrader(kubectl, &revision.UpgraderOptions{
+		DryRun:           o.DryRun,
+		ManifestsDir:     o.ManifestsDir,
+		NoSave:           o.NoSave,
+		IncludeUnchanged: o.AllManifests,
+		NoHooks:          false,
+	})
+
 	for _, revision := range revisions {
-		if revision.IsRemoval() {
-			if err := deleteManifest(ctx, o, kubectl, revision.Current); err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		manifest := revision.Next
-		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
-		changeSet, err := file.NewChangeSet(filename, manifest.Content())
-		if err != nil {
+		if err = upgrader.Upgrade(ctx, revision); err != nil {
 			return err
-		}
-
-		m.logChanges(changeSet)
-
-		if !o.AllManifests && !changeSet.HasChanges() {
-			continue
-		}
-
-		c := revision.ChangeSet()
-
-		_, err = processResourceDeletions(ctx, o, kubectl, selectors(c.RemovedResources))
-		if err != nil {
-			return err
-		}
-
-		if manifest.IsBlank() {
-			log.Warnf("Manifest %s does not contain any resources, skipping apply", filename)
-		} else {
-			if o.DryRun {
-				log.Warnf("Would apply manifest %s", filename)
-				log.Debug(string(manifest.Content()))
-			} else {
-				log.Infof("Applying manifest %s", filename)
-				if err := kubectl.ApplyManifest(ctx, manifest.Content()); err != nil {
-					return err
-				}
-
-			}
-		}
-
-		if !o.DryRun && !o.NoSave {
-			if err := changeSet.Apply(); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -243,8 +204,16 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		}
 	}
 
+	upgrader := revision.NewUpgrader(kubectl, &revision.UpgraderOptions{
+		DryRun:           o.DryRun,
+		ManifestsDir:     o.ManifestsDir,
+		NoSave:           o.NoSave,
+		IncludeUnchanged: o.AllManifests,
+		NoHooks:          false,
+	})
+
 	for _, revision := range revisions.Reverse() {
-		if err = deleteManifest(ctx, o, kubectl, revision.Current); err != nil {
+		if err = upgrader.Upgrade(ctx, revision); err != nil {
 			return err
 		}
 	}
@@ -252,15 +221,6 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 	deletions.PreDestroy, _ = processResourceDeletions(ctx, o, kubectl, deletions.PreDestroy)
 
 	return m.finalizeChanges(o, o.Deletions, deletions)
-}
-
-func (m *Manager) logChanges(changeSet *file.ChangeSet) {
-	filename := changeSet.Filename()
-	if changeSet.HasChanges() {
-		log.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
-	} else {
-		log.Infof("No changes to %s", filename)
-	}
 }
 
 func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) error {
@@ -274,7 +234,11 @@ func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) er
 		return err
 	}
 
-	m.logChanges(changeSet)
+	if changeSet.HasChanges() {
+		log.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
+	} else {
+		log.Infof("No changes to %s", filename)
+	}
 
 	if o.DryRun || o.NoSave {
 		return nil
@@ -325,18 +289,4 @@ func (m *Manager) readCredentials(ctx context.Context, o *Options) (*credentials
 	log.Debugf("Using kubernetes credentials: %#v", c)
 
 	return creds, nil
-}
-
-func selectors(resources resource.Slice) []kubernetes.ResourceSelector {
-	rs := make([]kubernetes.ResourceSelector, 0)
-
-	for _, r := range resources {
-		rs = append(rs, kubernetes.ResourceSelector{
-			Name:      r.Name,
-			Namespace: r.Namespace,
-			Kind:      r.Kind,
-		})
-	}
-
-	return rs
 }

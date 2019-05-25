@@ -21,11 +21,15 @@ type Revision struct {
 type ChangeSet struct {
 	Revision           *Revision
 	AddedResources     resource.Slice
-	ChangedResources   resource.Slice
+	UpdatedResources   resource.Slice
 	UnchangedResources resource.Slice
 	RemovedResources   resource.Slice
 
 	Hooks hook.SliceMap
+}
+
+func (c *ChangeSet) HasChanges() bool {
+	return len(c.AddedResources) > 0 || len(c.UpdatedResources) > 0 || len(c.RemovedResources) > 0
 }
 
 type Slice []*Revision
@@ -55,6 +59,38 @@ func (r *Revision) IsRemoval() bool {
 // IsUpgrade returns true if the manifest still exists in the next revision.
 func (r *Revision) IsUpgrade() bool {
 	return r.Current != nil && r.Next != nil
+}
+
+// IsValid returns true if there is at least a current or a next manifest in
+// the revision.
+func (r *Revision) IsValid() bool {
+	return r.Current != nil || r.Next != nil
+}
+
+func (r *Revision) Name() string {
+	m := r.Manifest()
+	if m != nil {
+		return m.Name
+	}
+
+	return ""
+}
+
+func (r *Revision) Filename() string {
+	m := r.Manifest()
+	if m != nil {
+		return m.Filename()
+	}
+
+	return ""
+}
+
+func (r *Revision) Manifest() *manifest.Manifest {
+	if r.Next != nil {
+		return r.Next
+	}
+
+	return r.Current
 }
 
 // NewSlice takes two slices of manifests and pairs matching
@@ -113,7 +149,7 @@ func (r *Revision) ChangeSet() *ChangeSet {
 		} else if bytes.Compare(current.Content, res.Content) == 0 {
 			c.UnchangedResources = append(c.UnchangedResources, res)
 		} else {
-			c.ChangedResources = append(c.ChangedResources, res)
+			c.UpdatedResources = append(c.UpdatedResources, res)
 		}
 	}
 

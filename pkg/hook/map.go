@@ -5,13 +5,13 @@ import (
 	"sort"
 )
 
-type SliceMap map[Type]Slice
+type SliceMap map[string]Slice
 
-func (m SliceMap) Get(typ Type) Slice {
+func (m SliceMap) Get(typ string) Slice {
 	return m[typ]
 }
 
-func (m SliceMap) Has(typ Type) bool {
+func (m SliceMap) Has(typ string) bool {
 	hooks, ok := m[typ]
 
 	return ok && len(hooks) > 0
@@ -29,8 +29,7 @@ func (m SliceMap) Bytes() []byte {
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		t := Type(k)
-		buf.Write(m[t].Resources().Bytes())
+		buf.Write(m[k].Resources().Bytes())
 	}
 
 	return buf.Bytes()

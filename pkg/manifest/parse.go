@@ -58,13 +58,12 @@ func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 				return nil, nil, err
 			}
 
-			for _, t := range h.Types {
-				if _, ok := hooks[t]; ok {
-					hooks[t] = append(hooks[t], h)
-				} else {
-					hooks[t] = hook.Slice{h}
-				}
+			if _, ok := hooks[h.Type]; ok {
+				hooks[h.Type] = append(hooks[h.Type], h)
+			} else {
+				hooks[h.Type] = hook.Slice{h}
 			}
+
 			continue
 		}
 

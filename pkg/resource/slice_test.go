@@ -40,3 +40,19 @@ metadata:
 
 	assert.Equal(t, string(expected), string(s.Bytes()))
 }
+
+func TestSlice_String(t *testing.T) {
+	s := Slice{
+		{Name: "foo", Kind: "Pod"},
+		{Name: "bar", Kind: "Deployment"},
+		{Name: "baz", Kind: "StatefulSet"},
+		{Name: "prometheus", Kind: "CustomResourceDefinition"},
+	}
+
+	expected := `pod/foo
+deployment/bar
+statefulset/baz
+customresourcedefinition/prometheus`
+
+	assert.Equal(t, expected, s.String())
+}

@@ -147,7 +147,7 @@ func TestRevision_ChangeSet(t *testing.T) {
 		description string
 		revision    *Revision
 		added       resource.Slice
-		changed     resource.Slice
+		updated     resource.Slice
 		unchanged   resource.Slice
 		removed     resource.Slice
 		hooks       hook.SliceMap
@@ -199,7 +199,7 @@ func TestRevision_ChangeSet(t *testing.T) {
 				},
 			},
 			added:     testResourceNameSlice("baz"),
-			changed:   resource.Slice{{Name: "qux", Content: []byte("---\nchanges")}},
+			updated:   resource.Slice{{Name: "qux", Content: []byte("---\nchanges")}},
 			unchanged: testResourceNameSlice("bar"),
 			removed:   testResourceNameSlice("foo"),
 			hooks: hook.SliceMap{
@@ -213,7 +213,7 @@ func TestRevision_ChangeSet(t *testing.T) {
 			c := tc.revision.ChangeSet()
 
 			assert.Equal(t, tc.added, c.AddedResources)
-			assert.Equal(t, tc.changed, c.ChangedResources)
+			assert.Equal(t, tc.updated, c.UpdatedResources)
 			assert.Equal(t, tc.unchanged, c.UnchangedResources)
 			assert.Equal(t, tc.removed, c.RemovedResources)
 			assert.Equal(t, tc.hooks, c.Hooks)

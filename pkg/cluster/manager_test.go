@@ -73,6 +73,40 @@ metadata:
   name: test
   namespace: kube-system
 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9376
+  selector:
+    app: MyApp
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    kcm/hook: post-create
+  name: pi
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - perl
+        - -Mbignum=bpi
+        - -wle
+        - print bpi(2000)
+        image: perl
+        name: pi
+      restartPolicy: Never
+
 `
 		expectedDeletions := `preApply: []
 postApply: []

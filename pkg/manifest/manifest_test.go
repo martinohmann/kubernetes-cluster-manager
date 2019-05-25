@@ -94,7 +94,7 @@ kind: Job
 metadata:
   name: another-job
   annotations:
-    kcm/hooks: post-apply
+    kcm/hook: post-apply
   labels:
     app.kubernetes.io/name: chart
     helm.sh/chart: cluster-0.1.0
@@ -117,7 +117,7 @@ kind: Job
 metadata:
   name: install-job
   annotations:
-    kcm/hooks: post-apply
+    kcm/hook: post-apply
   labels:
     app.kubernetes.io/name: chart
     helm.sh/chart: cluster-0.1.0
@@ -140,7 +140,7 @@ kind: Job
 metadata:
   name: deletion-job
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/name: chart
     helm.sh/chart: cluster-0.1.0
@@ -177,7 +177,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: post-apply
+    kcm/hook: post-apply
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -190,7 +190,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: post-apply
+    kcm/hook: post-apply
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -203,7 +203,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart

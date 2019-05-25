@@ -8,23 +8,45 @@ import (
 )
 
 const (
-	Annotation       = "kcm/hooks"
+	Annotation       = "kcm/hook"
 	PolicyAnnotation = "kcm/hook-policy"
 
-	TypePreApply   Type = "pre-apply"
-	TypePreDelete  Type = "pre-delete"
-	TypePostApply  Type = "post-apply"
-	TypePostDelete Type = "post-delete"
+	TypePreApply    = "pre-apply"
+	TypePreCreate   = "pre-create"
+	TypePreDelete   = "pre-delete"
+	TypePreUpgrade  = "pre-upgrade"
+	TypePostApply   = "post-apply"
+	TypePostCreate  = "post-create"
+	TypePostDelete  = "post-delete"
+	TypePostUpgrade = "post-upgrade"
 )
 
-type Policy string
+var (
+	Types = []string{
+		TypePreApply,
+		TypePreCreate,
+		TypePreDelete,
+		TypePreUpgrade,
+		TypePostApply,
+		TypePostCreate,
+		TypePostDelete,
+		TypePostUpgrade,
+	}
 
-type Type string
+	TypeApply   = TypePair{TypePreApply, TypePostApply}
+	TypeCreate  = TypePair{TypePreCreate, TypePostCreate}
+	TypeDelete  = TypePair{TypePreDelete, TypePostDelete}
+	TypeUpgrade = TypePair{TypePreUpgrade, TypePostUpgrade}
+)
+
+type TypePair struct {
+	Pre, Post string
+}
 
 type Hook struct {
 	Resource *resource.Resource
-	Types    []Type
-	Policy   Policy
+	Type     string
+	Policy   string
 }
 
 func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
@@ -32,23 +54,26 @@ func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 		return nil, errors.Errorf(`Unsupported hook kind %q. Currently only "Job" is supported.`, r.Kind)
 	}
 
+	typ := annotations[Annotation]
+	if !isValidType(typ) {
+		return nil, errors.Errorf(`Invalid hook type %q. Allowed values: %s`, typ, strings.Join(Types, ", "))
+	}
+
 	h := &Hook{
 		Resource: r,
-		Types:    make([]Type, 0),
-	}
-
-	p, ok := annotations[PolicyAnnotation]
-	if ok {
-		h.Policy = Policy(p)
-	}
-
-	hooks := annotations[Annotation]
-
-	parts := strings.Split(hooks, ",")
-	for _, p := range parts {
-		hookType := Type(strings.TrimSpace(p))
-		h.Types = append(h.Types, hookType)
+		Type:     typ,
+		Policy:   annotations[PolicyAnnotation],
 	}
 
 	return h, nil
+}
+
+func isValidType(typ string) bool {
+	for _, t := range Types {
+		if t == typ {
+			return true
+		}
+	}
+
+	return false
 }

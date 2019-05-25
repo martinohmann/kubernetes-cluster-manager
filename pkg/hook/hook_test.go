@@ -15,15 +15,15 @@ func TestNew(t *testing.T) {
 	}
 
 	annotations := map[string]string{
-		Annotation:       "pre-apply, post-delete ",
+		Annotation:       "pre-apply",
 		PolicyAnnotation: "foo",
 	}
 
 	hook, err := New(r, annotations)
 
 	require.NoError(t, err)
-	assert.Equal(t, []Type{TypePreApply, TypePostDelete}, hook.Types)
-	assert.Equal(t, Policy("foo"), hook.Policy)
+	assert.Equal(t, TypePreApply, hook.Type)
+	assert.Equal(t, "foo", hook.Policy)
 }
 
 func TestNewError(t *testing.T) {

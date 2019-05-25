@@ -179,7 +179,7 @@ apiVersion: v1
 kind: StatefulSet
 metadata:
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -196,7 +196,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -208,7 +208,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -227,7 +227,7 @@ spec: {}
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -236,7 +236,7 @@ metadata:
 spec: {}
 `),
 						},
-						Types: []hook.Type{hook.TypePreDelete},
+						Type: hook.TypePreDelete,
 					},
 					{
 						Resource: &resource.Resource{
@@ -246,7 +246,7 @@ spec: {}
 kind: Job
 metadata:
   annotations:
-    kcm/hooks: pre-delete
+    kcm/hook: pre-delete
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -255,7 +255,7 @@ metadata:
 spec: {}
 `),
 						},
-						Types: []hook.Type{hook.TypePreDelete},
+						Type: hook.TypePreDelete,
 					},
 				},
 			},

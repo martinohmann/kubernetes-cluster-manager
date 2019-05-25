@@ -18,6 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.7
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/text v0.1.0
 	github.com/martinohmann/go-difflib v1.1.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.0
