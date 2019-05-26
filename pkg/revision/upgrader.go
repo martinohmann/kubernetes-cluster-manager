@@ -14,15 +14,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Client applies and deletes manifests from a cluster.
 type Client interface {
+	// ApplyManifest applies raw manifest bytes.
 	ApplyManifest(context.Context, []byte) error
+
+	// DeleteManifest deletes raw manifest bytes.
 	DeleteManifest(context.Context, []byte) error
 }
 
+// Upgrader handles revision upgrades.
 type Upgrader interface {
+	// Upgrader takes a context and a revision and performs an upgrade.
+	// Depending on the type of revision it will carry out a complete creation
+	// or deletion of the revision's manifest resources or just do partial
+	// updates of resources that have been changed. It also executes hooks
+	// before and after processing the revision.
 	Upgrade(context.Context, *Revision) error
 }
 
+// UpgraderOptions configure an Upgrader.
 type UpgraderOptions struct {
 	DryRun           bool
 	IncludeUnchanged bool
@@ -31,6 +42,7 @@ type UpgraderOptions struct {
 	ManifestsDir     string
 }
 
+// upgrader is an implementations of Upgrader.
 type upgrader struct {
 	client           Client
 	dryRun           bool
@@ -40,6 +52,7 @@ type upgrader struct {
 	manifestsDir     string
 }
 
+// NewUpgrader creates a new Upgrader with client and options.
 func NewUpgrader(client Client, o *UpgraderOptions) Upgrader {
 	if o == nil {
 		o = &UpgraderOptions{}
@@ -57,6 +70,7 @@ func NewUpgrader(client Client, o *UpgraderOptions) Upgrader {
 	return u
 }
 
+// Upgrade implements Upgrader.
 func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	var err error
 
@@ -64,17 +78,16 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 		return errors.New("cannot perform upgrade on invalid revision")
 	}
 
-	filename := filepath.Join(u.manifestsDir, rev.Filename())
+	manifest := rev.Manifest()
+	filename := filepath.Join(u.manifestsDir, manifest.Filename())
 
 	c := rev.ChangeSet()
 
 	if diff := rev.Diff(); diff != "" {
-		log.Infof("Changes to component %s:\n%s", color.YellowString(rev.Name()), diff)
+		log.Infof("Changes to component %s:\n%s", color.YellowString(manifest.Name), diff)
 	}
 
 	if rev.IsRemoval() {
-		manifest := rev.Current
-
 		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
 			log.Warnf("Removing component %s", color.YellowString(manifest.Name))
 
@@ -91,15 +104,13 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 		return err
 	}
 
-	manifest := rev.Next
-
 	if rev.IsInitial() {
 		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
 			log.Warnf("Creating component %s", color.YellowString(manifest.Name))
 
 			return u.applyResources(ctx, manifest.Resources)
 		})
-	} else if c.HasChanges() || u.includeUnchanged {
+	} else if c.HasResourceChanges() || u.includeUnchanged {
 		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
 			log.Infof("Updating component %s", color.YellowString(manifest.Name))
 
@@ -168,12 +179,13 @@ func (u *upgrader) applyResources(ctx context.Context, r resource.Slice) error {
 	return u.client.ApplyManifest(ctx, r.Sort(resource.ApplyOrder).Bytes())
 }
 
-func (u *upgrader) execHooks(ctx context.Context, typ string, hooks hook.SliceMap) error {
-	if u.noHooks || !hooks.Has(typ) {
+func (u *upgrader) execHooks(ctx context.Context, typ string, hookMap hook.SliceMap) error {
+	hooks, ok := hookMap[typ]
+	if u.noHooks || !ok {
 		return nil
 	}
 
-	r := hooks.Get(typ).Resources()
+	r := hooks.Resources()
 
 	if len(r) == 0 {
 		return nil

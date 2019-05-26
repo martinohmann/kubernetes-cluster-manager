@@ -24,33 +24,18 @@ type Manifest struct {
 	content []byte
 }
 
-// NewManifest creates a new manifest with name from given rendered template
-// files.
-func NewManifest(name string, renderedTemplates map[string]string) (*Manifest, error) {
-	resources := make(resource.Slice, 0)
-	hooks := make(hook.SliceMap)
-
-	for _, content := range renderedTemplates {
-		r, h, err := Parse([]byte(content))
-		if err != nil {
-			return nil, err
-		}
-
-		resources = append(resources, r...)
-
-		for k, v := range h {
-			if _, ok := hooks[k]; ok {
-				hooks[k] = append(hooks[k], v...)
-			} else {
-				hooks[k] = v
-			}
-		}
+// New creates a new manifest with name and given content. Will error if
+// content parsing fails.
+func New(name string, content []byte) (*Manifest, error) {
+	resources, hooks, err := Parse(content)
+	if err != nil {
+		return nil, err
 	}
 
 	m := &Manifest{
 		Name:      name,
-		Resources: resources.Sort(resource.ApplyOrder),
-		Hooks:     hooks.Sort(),
+		Resources: resources,
+		Hooks:     hooks,
 	}
 
 	return m, nil
@@ -84,13 +69,14 @@ func (m *Manifest) IsBlank() bool {
 	return true
 }
 
-// Content returns the rendered manifest as raw bytes.
+// Content returns the rendered manifest as raw bytes. Resources and hooks are
+// sorted to make the output of this stable.
 func (m *Manifest) Content() []byte {
 	if m.content == nil {
 		var buf bytes.Buffer
 
-		buf.Write(m.Resources.Bytes())
-		buf.Write(m.Hooks.Bytes())
+		buf.Write(m.Resources.Sort(resource.ApplyOrder).Bytes())
+		buf.Write(m.Hooks.SortSlices().Bytes())
 
 		m.content = buf.Bytes()
 	}
@@ -122,6 +108,7 @@ func ReadDir(dir string) ([]*Manifest, error) {
 			continue
 		}
 
+		name := strings.TrimSuffix(f.Name(), ext)
 		filename := filepath.Join(dir, f.Name())
 
 		buf, err := ioutil.ReadFile(filename)
@@ -129,16 +116,12 @@ func ReadDir(dir string) ([]*Manifest, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		resources, hooks, err := Parse(buf)
+		manifest, err := New(name, buf)
 		if err != nil {
 			return nil, err
 		}
 
-		manifests = append(manifests, &Manifest{
-			Name:      strings.TrimSuffix(f.Name(), ext),
-			Resources: resources,
-			Hooks:     hooks,
-		})
+		manifests = append(manifests, manifest)
 	}
 
 	return manifests, nil
@@ -166,7 +149,21 @@ func RenderDir(r template.Renderer, dir string, v map[string]interface{}) ([]*Ma
 			return nil, err
 		}
 
-		manifest, err := NewManifest(name, renderedTemplates)
+		var buf resource.Buffer
+
+		for path, content := range renderedTemplates {
+			ext := filepath.Ext(path)
+
+			if ext != ".yaml" && ext != ".yml" {
+				// We are only interested in rendered yaml files and will just
+				// discard the rest.
+				continue
+			}
+
+			buf.Write([]byte(content))
+		}
+
+		manifest, err := New(name, buf.Bytes())
 		if err != nil {
 			return nil, err
 		}
@@ -177,6 +174,7 @@ func RenderDir(r template.Renderer, dir string, v map[string]interface{}) ([]*Ma
 	return manifests, nil
 }
 
+// FindMatching finds a manifest in a haystack. Matching is done by name.
 func FindMatching(haystack []*Manifest, needle *Manifest) (*Manifest, bool) {
 	for _, m := range haystack {
 		if m.Name == needle.Name {

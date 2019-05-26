@@ -15,14 +15,14 @@ func TestNew(t *testing.T) {
 	}
 
 	annotations := map[string]string{
-		Annotation:       "pre-apply",
+		Annotation:       "pre-create",
 		PolicyAnnotation: "foo",
 	}
 
 	hook, err := New(r, annotations)
 
 	require.NoError(t, err)
-	assert.Equal(t, TypePreApply, hook.Type)
+	assert.Equal(t, TypePreCreate, hook.Type)
 	assert.Equal(t, "foo", hook.Policy)
 }
 

@@ -4,23 +4,23 @@ import "github.com/martinohmann/go-difflib/difflib"
 
 // Diff creates a git style diff for the revision.
 func (r *Revision) Diff() string {
-	var a, b, filename string
+	var a, b, fromFile, toFile string
 
 	if r.Current != nil {
-		filename = r.Current.Filename()
+		fromFile = r.Current.Filename()
 		a = string(r.Current.Content())
 	}
 
 	if r.Next != nil {
-		filename = r.Next.Filename()
+		toFile = r.Next.Filename()
 		b = string(r.Next.Content())
 	}
 
 	diff := difflib.UnifiedDiff{
 		A:        difflib.SplitLines(a),
 		B:        difflib.SplitLines(b),
-		FromFile: filename,
-		ToFile:   filename,
+		FromFile: fromFile,
+		ToFile:   toFile,
 		Context:  5,
 		Color:    true,
 	}

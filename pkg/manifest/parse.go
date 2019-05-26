@@ -10,6 +10,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// Parse takes a byte slice of yaml documents and parses all resources and
+// hooks from it. Will ignore documents that are not valid yaml or do not
+// describe a kubernetes resource. An error will be returned if there are
+// errors while marshalling from and to yaml or if hooks are invalid.
 func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 	resources := make(resource.Slice, 0)
 	hooks := make(hook.SliceMap)
@@ -50,10 +54,11 @@ func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 			continue
 		}
 
-		r := resource.New(buf, head)
+		res := resource.New(buf, head)
+		annotations := head.Metadata.Annotations
 
-		if _, ok := head.Metadata.Annotations[hook.Annotation]; ok {
-			h, err := hook.New(r, head.Metadata.Annotations)
+		if _, ok := annotations[hook.Annotation]; ok {
+			h, err := hook.New(res, annotations)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -67,11 +72,8 @@ func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 			continue
 		}
 
-		resources = append(resources, r)
+		resources = append(resources, res)
 	}
-
-	resources.Sort(resource.ApplyOrder)
-	hooks.Sort()
 
 	return resources, hooks, nil
 }

@@ -86,22 +86,19 @@ data:
 }
 
 func TestManifest_Content(t *testing.T) {
-	renderedTemplates := map[string]string{
-		"templates/NOTES.txt": "this note should not appear in the manifest content",
-		"templates/job.yaml": `---
+	content := []byte(`---
 apiVersion: v1
 kind: Job
 metadata:
   name: another-job
   annotations:
-    kcm/hook: post-apply
+    kcm/hook: post-create
   labels:
     app.kubernetes.io/name: chart
     helm.sh/chart: cluster-0.1.0
     app.kubernetes.io/instance: kcm
 spec: {}
-`,
-		"templates/misc.yaml": `---
+---
 apiVersion: v1
 kind: Deployment
 metadata:
@@ -117,7 +114,7 @@ kind: Job
 metadata:
   name: install-job
   annotations:
-    kcm/hook: post-apply
+    kcm/hook: post-create
   labels:
     app.kubernetes.io/name: chart
     helm.sh/chart: cluster-0.1.0
@@ -146,8 +143,7 @@ metadata:
     helm.sh/chart: cluster-0.1.0
     app.kubernetes.io/instance: kcm
 spec: {}
-`,
-	}
+`)
 
 	expected := `---
 apiVersion: v1
@@ -177,7 +173,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hook: post-apply
+    kcm/hook: post-create
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -190,7 +186,7 @@ apiVersion: v1
 kind: Job
 metadata:
   annotations:
-    kcm/hook: post-apply
+    kcm/hook: post-create
   labels:
     app.kubernetes.io/instance: kcm
     app.kubernetes.io/name: chart
@@ -213,7 +209,7 @@ spec: {}
 
 `
 
-	m, err := NewManifest("foo", renderedTemplates)
+	m, err := New("foo", content)
 
 	require.NoError(t, err)
 

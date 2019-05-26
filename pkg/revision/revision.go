@@ -11,6 +11,8 @@ import (
 // Revision is the step before applying the next version of a manifest and
 // potentially deleting leftovers from the old version. A revision with nil
 // Next is considered as a deletion of all resources defined in the manifest.
+// Consequently, a revision with a nil Current is considered an initial
+// resource creation and will apply all resources.
 type Revision struct {
 	Current *manifest.Manifest
 	Next    *manifest.Manifest
@@ -28,10 +30,13 @@ type ChangeSet struct {
 	Hooks hook.SliceMap
 }
 
-func (c *ChangeSet) HasChanges() bool {
+// HasResourceChanges returns true if there are resource changes waiting to be
+// applied. Resource changes are resource additions, deletions and updates.
+func (c *ChangeSet) HasResourceChanges() bool {
 	return len(c.AddedResources) > 0 || len(c.UpdatedResources) > 0 || len(c.RemovedResources) > 0
 }
 
+// Slice is a slice of revisions.
 type Slice []*Revision
 
 // Reverse reverses the order of a slice of *Revision. This is necessary to
@@ -67,24 +72,8 @@ func (r *Revision) IsValid() bool {
 	return r.Current != nil || r.Next != nil
 }
 
-func (r *Revision) Name() string {
-	m := r.Manifest()
-	if m != nil {
-		return m.Name
-	}
-
-	return ""
-}
-
-func (r *Revision) Filename() string {
-	m := r.Manifest()
-	if m != nil {
-		return m.Filename()
-	}
-
-	return ""
-}
-
+// Manifest returns the most recent manifest in the revision. If Next is
+// present it will be returned, Current otherwise.
 func (r *Revision) Manifest() *manifest.Manifest {
 	if r.Next != nil {
 		return r.Next
@@ -118,7 +107,7 @@ func NewSlice(current, next []*manifest.Manifest) Slice {
 }
 
 // ChangeSet creates a ChangeSet for r. The change set categorizes resources
-// into buckets (e.g. added, changed, unchanged, removed) and also contains the
+// into buckets (e.g. added, updated, unchanged, removed) and also contains the
 // most recent hooks for this revision.
 func (r *Revision) ChangeSet() *ChangeSet {
 	if r.IsRemoval() {

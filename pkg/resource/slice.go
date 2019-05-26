@@ -1,15 +1,13 @@
 package resource
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
+// Slice is a slice of resources.
 type Slice []*Resource
 
 // Bytes converts the resource slice to raw bytes.
 func (s Slice) Bytes() []byte {
-	var buf buffer
+	var buf Buffer
 
 	for _, r := range s {
 		buf.Write(r.Content)
@@ -23,11 +21,12 @@ func (s Slice) Sort(order ResourceOrder) Slice {
 	return sortResources(s, order)
 }
 
+// String implements fmt.Stringer
 func (s Slice) String() string {
 	names := make([]string, len(s))
 
 	for i, r := range s {
-		names[i] = fmt.Sprintf("%s/%s", strings.ToLower(r.Kind), r.Name)
+		names[i] = r.String()
 	}
 
 	return strings.Join(names, "\n")

@@ -4,8 +4,10 @@ package resource
 
 import "sort"
 
+// ResourceOrder is a slice of strings that defines the ordering of resources.
 type ResourceOrder []string
 
+// ApplyOrder is the resource order for apply operations.
 var ApplyOrder ResourceOrder = []string{
 	"Namespace",
 	"ResourceQuota",
@@ -36,6 +38,7 @@ var ApplyOrder ResourceOrder = []string{
 	"APIService",
 }
 
+// DeleteOrder is the resource order for delete operations.
 var DeleteOrder ResourceOrder = []string{
 	"APIService",
 	"Ingress",

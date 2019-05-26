@@ -1,5 +1,6 @@
 package manifest
 
+// ByName is a sortable slice of manifests.
 type ByName []*Manifest
 
 // Len implements Len from sort.Interface.

@@ -273,8 +273,8 @@ spec: {}
 
 			require.NoError(t, err)
 
-			assert.Equal(t, tc.expectedResources, r)
-			assert.Equal(t, tc.expectedHooks, h)
+			assert.Equal(t, tc.expectedResources, r.Sort(resource.ApplyOrder))
+			assert.Equal(t, tc.expectedHooks, h.SortSlices())
 		})
 	}
 }

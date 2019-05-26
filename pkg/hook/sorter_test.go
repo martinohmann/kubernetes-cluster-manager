@@ -8,7 +8,7 @@ import (
 )
 
 var unsorted = SliceMap{
-	TypePreApply: Slice{
+	TypePreCreate: Slice{
 		{Policy: "baz", Resource: &resource.Resource{Kind: "Job", Name: "foo"}},
 		{Policy: "foo", Resource: &resource.Resource{Kind: "Job", Name: "baz"}},
 		{Policy: "bar", Resource: &resource.Resource{Kind: "Job", Name: "foo"}},
@@ -17,12 +17,12 @@ var unsorted = SliceMap{
 
 func TestSlice_Sort(t *testing.T) {
 	expected := SliceMap{
-		TypePreApply: Slice{
+		TypePreCreate: Slice{
 			{Policy: "foo", Resource: &resource.Resource{Kind: "Job", Name: "baz"}},
 			{Policy: "bar", Resource: &resource.Resource{Kind: "Job", Name: "foo"}},
 			{Policy: "baz", Resource: &resource.Resource{Kind: "Job", Name: "foo"}},
 		},
 	}
 
-	assert.Equal(t, expected, unsorted.Sort())
+	assert.Equal(t, expected, unsorted.SortSlices())
 }

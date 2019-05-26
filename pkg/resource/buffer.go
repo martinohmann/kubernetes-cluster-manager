@@ -2,12 +2,14 @@ package resource
 
 import "bytes"
 
-type buffer struct {
+// Buffer wraps a bytes.Buffer and delimits the bytes of every write so that
+// the resulting byte slice is valid multi-document yaml.
+type Buffer struct {
 	w bytes.Buffer
 }
 
 // Write implements io.Writer.
-func (w *buffer) Write(p []byte) (n int, err error) {
+func (w *Buffer) Write(p []byte) (n int, err error) {
 	_, err = w.w.Write([]byte("---\n"))
 	if err != nil {
 		return
@@ -27,6 +29,6 @@ func (w *buffer) Write(p []byte) (n int, err error) {
 }
 
 // Bytes returns the content of the underlying bytes.Buffer.
-func (w *buffer) Bytes() []byte {
+func (w *Buffer) Bytes() []byte {
 	return w.w.Bytes()
 }

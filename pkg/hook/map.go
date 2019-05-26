@@ -5,18 +5,10 @@ import (
 	"sort"
 )
 
+// SliceMap is a map of hook slices.
 type SliceMap map[string]Slice
 
-func (m SliceMap) Get(typ string) Slice {
-	return m[typ]
-}
-
-func (m SliceMap) Has(typ string) bool {
-	hooks, ok := m[typ]
-
-	return ok && len(hooks) > 0
-}
-
+// Bytes returns the raw resource bytes for all hooks in the map.
 func (m SliceMap) Bytes() []byte {
 	var buf bytes.Buffer
 
@@ -35,7 +27,8 @@ func (m SliceMap) Bytes() []byte {
 	return buf.Bytes()
 }
 
-func (m SliceMap) Sort() SliceMap {
+// SortSlices sorts all slices of the map.
+func (m SliceMap) SortSlices() SliceMap {
 	for _, v := range m {
 		v.Sort()
 	}

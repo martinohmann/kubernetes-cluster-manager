@@ -16,7 +16,7 @@ metadata:
   name: delete-job
 `)}},
 		},
-		TypePostApply: Slice{
+		TypePostCreate: Slice{
 			{Resource: &resource.Resource{Content: []byte(`apiVersion: v1
 kind: Job
 metadata:
@@ -62,15 +62,4 @@ metadata:
 `)
 
 	assert.Equal(t, string(expected), string(m.Bytes()))
-}
-
-func TestSliceMap_Get(t *testing.T) {
-	s := Slice{{Resource: &resource.Resource{Kind: "Job", Name: "somejob"}}}
-	m := SliceMap{TypePostDelete: s, TypePreApply: Slice{}}
-
-	assert.True(t, m.Has(TypePostDelete))
-	assert.False(t, m.Has(TypePreApply))
-	assert.False(t, m.Has(TypePostApply))
-
-	assert.Equal(t, s, m.Get(TypePostDelete))
 }
