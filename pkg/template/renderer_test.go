@@ -1,29 +1,22 @@
-package renderer
+package template
 
 import (
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestHelmRenderManifests(t *testing.T) {
-	o := &Options{
-		TemplatesDir: "testdata/helm",
-	}
+func TestRender(t *testing.T) {
+	r := NewRenderer()
 
-	r := NewHelm(o)
-
-	values := kcm.Values{
+	values := map[string]interface{}{
 		"config": map[string]interface{}{
 			"bar": "baz",
 		},
 	}
 
-	expected := `---
-# Source: chart/templates/configmap.yaml
----
+	expectedConfigMap := `---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -34,10 +27,9 @@ metadata:
 data:
   bar: "baz"
   foo: "bar"
+`
 
----
-# Source: chart/templates/service.yaml
----
+	expectedService := `---
 apiVersion: v1
 kind: Service
 metadata:
@@ -55,14 +47,22 @@ spec:
   selector:
     app.kubernetes.io/name: chart
     app.kubernetes.io/instance: kcm
-
 `
 
-	manifests, err := r.RenderManifests(values)
+	renderedTemplates, err := r.Render("testdata/charts/chart", values)
 
 	require.NoError(t, err)
-	require.Len(t, manifests, 1)
+	require.Len(t, renderedTemplates, 3)
+	assert.Equal(t, expectedConfigMap, renderedTemplates["chart/templates/configmap.yaml"])
+	assert.Equal(t, expectedService, renderedTemplates["chart/templates/service.yaml"])
+}
 
-	assert.Equal(t, "chart", manifests[0].Name)
-	assert.Equal(t, expected, string(manifests[0].Content))
+func TestRenderError(t *testing.T) {
+	r := NewRenderer()
+
+	values := map[string]interface{}{}
+
+	_, err := r.Render("testdata/charts/notahelmchart", values)
+
+	require.Error(t, err)
 }

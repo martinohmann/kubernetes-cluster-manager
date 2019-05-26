@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"os"
-	"path/filepath"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
@@ -11,7 +10,8 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/revision"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -27,9 +27,11 @@ type Options struct {
 	Values        string `json:"values,omitempty" yaml:"values,omitempty"`
 	Deletions     string `json:"deletions,omitempty" yaml:"deletions,omitempty"`
 	ManifestsDir  string `json:"manifestsDir,omitempty" yaml:"manifestsDir,omitempty"`
+	TemplatesDir  string `json:"templatesDir,omitempty" yaml:"templatesDir,omitempty"`
 	SkipManifests bool   `json:"skipManifests,omitempty" yaml:"skipManifests,omitempty"`
 	AllManifests  bool   `json:"allManifests,omitempty" yaml:"allManifests,omitempty"`
 	NoSave        bool   `json:"noSave,omitempty" yaml:"noSave,omitempty"`
+	NoHooks       bool   `json:"noHooks,omitempty" yaml:"noHooks,omitempty"`
 }
 
 // Manager is a Kubernetes cluster manager that will orchestrate changes to the
@@ -37,14 +39,14 @@ type Options struct {
 type Manager struct {
 	credentialSource credentials.Source
 	provisioner      provisioner.Provisioner
-	renderer         renderer.Renderer
+	renderer         template.Renderer
 }
 
 // NewManager creates a new cluster manager.
 func NewManager(
 	credentialSource credentials.Source,
 	provisioner provisioner.Provisioner,
-	renderer renderer.Renderer,
+	renderer template.Renderer,
 ) *Manager {
 	return &Manager{
 		credentialSource: credentialSource,
@@ -92,17 +94,17 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
-	nextManifests, err := m.renderer.RenderManifests(values)
+	nextManifests, err := manifest.RenderDir(m.renderer, o.TemplatesDir, values)
 	if err != nil {
 		return err
 	}
 
-	previousManifests, err := manifest.ReadDir(o.ManifestsDir)
+	currentManifests, err := manifest.ReadDir(o.ManifestsDir)
 	if err != nil {
 		return err
 	}
 
-	revisions := manifest.CreateRevisions(previousManifests, nextManifests)
+	revisions := revision.NewSlice(currentManifests, nextManifests)
 
 	creds, err := m.readCredentials(ctx, o)
 	if err != nil {
@@ -132,52 +134,17 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
+	upgrader := revision.NewUpgrader(kubectl, &revision.UpgraderOptions{
+		DryRun:           o.DryRun,
+		ManifestsDir:     o.ManifestsDir,
+		NoSave:           o.NoSave,
+		IncludeUnchanged: o.AllManifests,
+		NoHooks:          o.NoHooks,
+	})
+
 	for _, revision := range revisions {
-		if !revision.HasNext() {
-			if err := deleteManifest(ctx, o, kubectl, revision.Prev); err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		manifest := revision.Next
-		filename := filepath.Join(o.ManifestsDir, manifest.Filename())
-		changeSet, err := file.NewChangeSet(filename, manifest.Content)
-		if err != nil {
+		if err = upgrader.Upgrade(ctx, revision); err != nil {
 			return err
-		}
-
-		m.logChanges(changeSet)
-
-		if !o.AllManifests && !changeSet.HasChanges() {
-			continue
-		}
-
-		_, err = processResourceDeletions(ctx, o, kubectl, revision.GetVanishedResources())
-		if err != nil {
-			return err
-		}
-
-		if manifest.IsBlank() {
-			log.Warnf("Manifest %s does not contain any resources, skipping apply", filename)
-		} else {
-			if o.DryRun {
-				log.Warnf("Would apply manifest %s", filename)
-				log.Debug(string(manifest.Content))
-			} else {
-				log.Infof("Applying manifest %s", filename)
-				if err := kubectl.ApplyManifest(ctx, manifest.Content); err != nil {
-					return err
-				}
-
-			}
-		}
-
-		if !o.DryRun && !o.NoSave {
-			if err := changeSet.Apply(); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -218,10 +185,12 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		return err
 	}
 
-	manifests, err := m.renderer.RenderManifests(values)
+	manifests, err := manifest.RenderDir(template.NewRenderer(), o.TemplatesDir, values)
 	if err != nil {
 		return err
 	}
+
+	revisions := revision.NewSlice(manifests, nil)
 
 	creds, err := m.readCredentials(ctx, o)
 	if err != nil {
@@ -236,8 +205,16 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		}
 	}
 
-	for _, manifest := range manifests {
-		if err = deleteManifest(ctx, o, kubectl, manifest); err != nil {
+	upgrader := revision.NewUpgrader(kubectl, &revision.UpgraderOptions{
+		DryRun:           o.DryRun,
+		ManifestsDir:     o.ManifestsDir,
+		NoSave:           o.NoSave,
+		IncludeUnchanged: o.AllManifests,
+		NoHooks:          o.NoHooks,
+	})
+
+	for _, revision := range revisions.Reverse() {
+		if err = upgrader.Upgrade(ctx, revision); err != nil {
 			return err
 		}
 	}
@@ -245,15 +222,6 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 	deletions.PreDestroy, _ = processResourceDeletions(ctx, o, kubectl, deletions.PreDestroy)
 
 	return m.finalizeChanges(o, o.Deletions, deletions)
-}
-
-func (m *Manager) logChanges(changeSet *file.ChangeSet) {
-	filename := changeSet.Filename()
-	if changeSet.HasChanges() {
-		log.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
-	} else {
-		log.Infof("No changes to %s", filename)
-	}
 }
 
 func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) error {
@@ -267,7 +235,11 @@ func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) er
 		return err
 	}
 
-	m.logChanges(changeSet)
+	if changeSet.HasChanges() {
+		log.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
+	} else {
+		log.Infof("No changes to %s", filename)
+	}
 
 	if o.DryRun || o.NoSave {
 		return nil

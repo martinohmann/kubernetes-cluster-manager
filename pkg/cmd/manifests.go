@@ -39,6 +39,7 @@ func newApplyCommand() *cobra.Command {
 	o.AddFlags(cmd)
 
 	cmd.Flags().BoolVar(&o.ManagerOptions.AllManifests, "all-manifests", false, "Apply all manifests, even unchanged")
+	cmd.Flags().BoolVar(&o.ManagerOptions.NoHooks, "no-hooks", false, "Skip executing hooks")
 
 	return cmd
 }

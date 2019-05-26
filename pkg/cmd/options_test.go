@@ -64,20 +64,14 @@ func TestOptionsCreateManager(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "invalid renderer",
-			o:           &Options{Provisioner: "null", Renderer: "bar"},
-			expectError: true,
-		},
-		{
 			name:        "missing cluster options",
-			o:           &Options{Provisioner: "null", Renderer: "helm"},
+			o:           &Options{Provisioner: "null"},
 			expectError: true,
 		},
 		{
 			name: "valid cluster options",
 			o: &Options{
 				Provisioner: "null",
-				Renderer:    "helm",
 				Credentials: credentials.Credentials{
 					Kubeconfig: "/tmp/kubeconfig",
 				},
@@ -88,7 +82,6 @@ func TestOptionsCreateManager(t *testing.T) {
 			name: "value fetcher credential source",
 			o: &Options{
 				Provisioner: "terraform",
-				Renderer:    "helm",
 			},
 			expectError: false,
 		},

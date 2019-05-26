@@ -13,7 +13,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -22,18 +22,15 @@ import (
 
 type Options struct {
 	Provisioner string `json:"provisioner,omitempty" yaml:"provisioner,omitempty"`
-	Renderer    string `json:"renderer,omitempty" yaml:"renderer,omitempty"`
 	WorkingDir  string `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`
 
 	Credentials        credentials.Credentials `json:"credentials,omitempty" yaml:"credentials,omitempty"`
 	ManagerOptions     cluster.Options         `json:"managerOptions,omitempty" yaml:"managerOptions,omitempty"`
 	ProvisionerOptions provisioner.Options     `json:"provisionerOptions,omitempty" yaml:"provisionerOptions,omitempty"`
-	RendererOptions    renderer.Options        `json:"rendererOptions,omitempty" yaml:"rendererOptions,omitempty"`
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Provisioner, "provisioner", "", `Infrastructure provisioner to use`)
-	cmd.Flags().StringVar(&o.Renderer, "renderer", "helm", `Manifest renderer to use`)
 	cmd.Flags().StringVarP(&o.WorkingDir, "working-dir", "w", "", "Working directory")
 
 	cmd.Flags().StringVar(&o.Credentials.Kubeconfig, "cluster-kubeconfig", "", "Path to kubeconfig file")
@@ -44,7 +41,6 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 	cmdutil.AddConfigFlag(cmd)
 	cmdutil.BindManagerFlags(cmd, &o.ManagerOptions)
 	cmdutil.BindProvisionerFlags(cmd, &o.ProvisionerOptions)
-	cmdutil.BindRendererFlags(cmd, &o.RendererOptions)
 }
 
 func (o *Options) Complete(cmd *cobra.Command) error {
@@ -61,10 +57,6 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
 	if o.Provisioner == "" {
 		o.Provisioner = "null"
-	}
-
-	if o.Renderer == "" {
-		o.Renderer = "null"
 	}
 
 	return err
@@ -127,11 +119,6 @@ func (o *Options) createManager() (*cluster.Manager, error) {
 		return nil, err
 	}
 
-	manifestRenderer, err := renderer.Create(o.Renderer, &o.RendererOptions)
-	if err != nil {
-		return nil, err
-	}
-
 	var credentialSource credentials.Source
 	if !o.Credentials.Empty() {
 		credentialSource = credentials.NewStaticSource(&o.Credentials)
@@ -141,5 +128,5 @@ func (o *Options) createManager() (*cluster.Manager, error) {
 		return nil, errors.New("please provide valid kubernetes credentials via the --cluster-* flags")
 	}
 
-	return cluster.NewManager(credentialSource, infraProvisioner, manifestRenderer), nil
+	return cluster.NewManager(credentialSource, infraProvisioner, template.NewRenderer()), nil
 }

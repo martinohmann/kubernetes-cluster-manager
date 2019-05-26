@@ -2,12 +2,8 @@ package cluster
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -35,25 +31,4 @@ func processResourceDeletions(
 	}
 
 	return kubectl.DeleteResources(ctx, resources)
-}
-
-func deleteManifest(ctx context.Context, o *Options, kubectl *kubernetes.Kubectl, manifest *manifest.Manifest) error {
-	filename := filepath.Join(o.ManifestsDir, manifest.Filename())
-
-	if o.DryRun {
-		log.Warnf("Would delete manifest %s", filename)
-		log.Debug(string(manifest.Content))
-	} else {
-		log.Infof("Deleting manifest %s", filename)
-		if err := kubectl.DeleteManifest(ctx, manifest.Content); err != nil {
-			return err
-		}
-
-		err := os.Remove(filename)
-		if err != nil && !os.IsNotExist(err) {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
 }

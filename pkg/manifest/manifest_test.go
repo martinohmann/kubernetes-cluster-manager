@@ -1,19 +1,20 @@
 package manifest
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestManifestFilename(t *testing.T) {
+func TestManifest_Filename(t *testing.T) {
 	m := &Manifest{Name: "manifest"}
 
 	assert.Equal(t, "manifest.yaml", m.Filename())
 }
 
-func TestIsBlank(t *testing.T) {
+func TestManifest_IsBlank(t *testing.T) {
 	cases := []struct {
 		name  string
 		m     *Manifest
@@ -30,17 +31,17 @@ func TestIsBlank(t *testing.T) {
 		},
 		{
 			name:  "only whitespace",
-			m:     &Manifest{Content: []byte("\n  \n ")},
+			m:     &Manifest{content: []byte("\n  \n ")},
 			blank: true,
 		},
 		{
 			name:  "whitespace and comments",
-			m:     &Manifest{Content: []byte("# a comment \n  # another comment\n")},
+			m:     &Manifest{content: []byte("# a comment \n  # another comment\n")},
 			blank: true,
 		},
 		{
 			name: "whitespace, comments and separators",
-			m: &Manifest{Content: []byte(`---
+			m: &Manifest{content: []byte(`---
 # a comment
 
   # another comment
@@ -51,7 +52,7 @@ func TestIsBlank(t *testing.T) {
 		},
 		{
 			name: "whitespace, comments, separators and key-value pair",
-			m: &Manifest{Content: []byte(`---
+			m: &Manifest{content: []byte(`---
 # a comment
 somekey: somevalue
   # another comment
@@ -61,7 +62,7 @@ somekey: somevalue
 		},
 		{
 			name: "configmap",
-			m: &Manifest{Content: []byte(`---
+			m: &Manifest{content: []byte(`---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -84,66 +85,193 @@ data:
 	}
 }
 
-func TestManifestMatches(t *testing.T) {
-	cases := []struct {
-		name    string
-		a, b    *Manifest
-		matches bool
-	}{
-		{
-			name:    "both nil",
-			matches: true,
-		},
-		{
-			name: "m nil",
-			b:    &Manifest{},
-		},
-		{
-			name: "other nil",
-			a:    &Manifest{},
-		},
-		{
-			name: "different name",
-			a:    &Manifest{Name: "foo"},
-			b:    &Manifest{Name: "bar"},
-		},
-		{
-			name:    "same name",
-			a:       &Manifest{Name: "foo"},
-			b:       &Manifest{Name: "foo"},
-			matches: true,
-		},
-		{
-			name:    "same name, different content",
-			a:       &Manifest{Name: "foo", Content: []byte(`a`)},
-			b:       &Manifest{Name: "foo", Content: []byte(`b`)},
-			matches: true,
-		},
-	}
+func TestManifest_Content(t *testing.T) {
+	content := []byte(`---
+apiVersion: v1
+kind: Job
+metadata:
+  name: another-job
+  annotations:
+    kcm/hook: post-create
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+---
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: kcm-chart
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+---
+apiVersion: v1
+kind: Job
+metadata:
+  name: install-job
+  annotations:
+    kcm/hook: post-create
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kcm-chart
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+data:
+  SOMEVAR: someval
+---
+apiVersion: v1
+kind: Job
+metadata:
+  name: deletion-job
+  annotations:
+    kcm/hook: pre-delete
+  labels:
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+    app.kubernetes.io/instance: kcm
+spec: {}
+`)
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.matches, tc.a.Matches(tc.b))
-		})
-	}
+	expected := `---
+apiVersion: v1
+data:
+  SOMEVAR: someval
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: kcm-chart
+
+---
+apiVersion: v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: kcm-chart
+spec: {}
+
+---
+apiVersion: v1
+kind: Job
+metadata:
+  annotations:
+    kcm/hook: post-create
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: another-job
+spec: {}
+
+---
+apiVersion: v1
+kind: Job
+metadata:
+  annotations:
+    kcm/hook: post-create
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: install-job
+spec: {}
+
+---
+apiVersion: v1
+kind: Job
+metadata:
+  annotations:
+    kcm/hook: pre-delete
+  labels:
+    app.kubernetes.io/instance: kcm
+    app.kubernetes.io/name: chart
+    helm.sh/chart: cluster-0.1.0
+  name: deletion-job
+spec: {}
+
+`
+
+	m, err := New("foo", content)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, expected, string(m.Content()))
 }
 
 func TestReadDir(t *testing.T) {
-	expected := []*Manifest{
-		{
-			Name: "foo",
-			Content: []byte(`---
+	expected := []byte(`---
 kind: Pod
 metadata:
   name: foo
   namespace: bar
-`),
-		},
-	}
+
+`)
 
 	manifests, err := ReadDir("testdata/manifests")
 
 	require.NoError(t, err)
+	require.Len(t, manifests, 1)
+	assert.Equal(t, "foo", manifests[0].Name)
+	assert.Equal(t, expected, manifests[0].Content())
+}
 
-	assert.Equal(t, expected, manifests)
+type testRenderer struct{}
+
+func (r *testRenderer) Render(dir string, v map[string]interface{}) (map[string]string, error) {
+	tpl := filepath.Join(filepath.Base(dir), "template.yaml")
+	return map[string]string{
+		tpl: `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foo
+  namespace: bar
+
+`,
+	}, nil
+}
+
+func TestRenderDir(t *testing.T) {
+	r := &testRenderer{}
+
+	manifests, err := RenderDir(r, "testdata/components", nil)
+
+	require.NoError(t, err)
+	require.Len(t, manifests, 2)
+	assert.Equal(t, "one", manifests[0].Name)
+	assert.Equal(t, "two", manifests[1].Name)
+}
+
+func TestFindMatching(t *testing.T) {
+	manifests := []*Manifest{
+		{Name: "foo"},
+		{Name: "bar"},
+	}
+
+	m, ok := FindMatching(manifests, &Manifest{Name: "bar"})
+
+	assert.True(t, ok)
+	assert.Equal(t, "bar", m.Name)
+
+	_, ok = FindMatching(manifests, &Manifest{Name: "baz"})
+
+	assert.False(t, ok)
 }

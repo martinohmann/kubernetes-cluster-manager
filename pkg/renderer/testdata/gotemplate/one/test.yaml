@@ -1,1 +1,0 @@
-{{ .bar | upper | indent 4 }}

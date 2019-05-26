@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2 // indirect
-	github.com/Masterminds/sprig v2.18.0+incompatible
+	github.com/Masterminds/sprig v2.18.0+incompatible // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/fatih/color v1.7.0
@@ -18,6 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.7
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/text v0.1.0
 	github.com/martinohmann/go-difflib v1.1.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.0

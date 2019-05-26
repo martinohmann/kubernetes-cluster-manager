@@ -1,5 +1,3 @@
-// build +integration
-
 package cluster
 
 import (
@@ -14,7 +12,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/renderer"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +20,7 @@ func createManager() *Manager {
 	m := NewManager(
 		credentials.NewStaticSource(&credentials.Credentials{Context: "test"}),
 		provisioner.NewTerraform(&provisioner.Options{}),
-		renderer.NewHelm(&renderer.Options{TemplatesDir: "testdata/charts"}),
+		template.NewRenderer(),
 	)
 
 	return m
@@ -50,6 +48,7 @@ postApply:
 			Values:       values.Name(),
 			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
+			TemplatesDir: "testdata/charts",
 		}
 
 		p := createManager()
@@ -62,17 +61,49 @@ postApply:
 		executor.ExpectCommand("kubectl delete deployment --ignore-not-found --namespace default --context test bar")
 
 		expectedManifest := `---
-# Source: testchart/templates/configmap.yaml
----
 apiVersion: v1
+data:
+  bar: baz
+  baz: somevalue
+  foo: output-from-terraform
 kind: ConfigMap
 metadata:
   name: test
   namespace: kube-system
-data:
-  foo: output-from-terraform
-  bar: baz
-  baz: somevalue
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9376
+  selector:
+    app: MyApp
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    kcm/hook: post-create
+  name: pi
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - perl
+        - -Mbignum=bpi
+        - -wle
+        - print bpi(2000)
+        image: perl
+        name: pi
+      restartPolicy: Never
 
 `
 		expectedDeletions := `preApply: []
@@ -118,6 +149,7 @@ preDestroy:
 			Values:       values.Name(),
 			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
+			TemplatesDir: "testdata/charts",
 		}
 
 		p := createManager()

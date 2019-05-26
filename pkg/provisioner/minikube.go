@@ -37,7 +37,7 @@ func (m *Minikube) Provision(ctx context.Context) error {
 		return nil
 	}
 
-	cmd := exec.Command("minikube", "start")
+	cmd := exec.Command("minikube", "start", "--keep-context")
 
 	_, err := command.Run(cmd)
 
