@@ -4,14 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 )
 
 type testOutputter struct{}
 
-func (testOutputter) Output(ctx context.Context) (kcm.Values, error) {
-	return kcm.Values{
+func (testOutputter) Output(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
 		"kubeconfig": "/tmp/kubeconfig",
 	}, nil
 }

@@ -2,8 +2,6 @@ package provisioner
 
 import (
 	"context"
-
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 )
 
 // Provisioner is the interface for an infrastructure provisioner.
@@ -24,11 +22,12 @@ type Reconciler interface {
 	Reconcile(context.Context) error
 }
 
-// Outputter can output kcm.Values.
+// Outputter can output values that are made available while rendering
+// templates and may also contain kubernetes credentials.
 type Outputter interface {
 	// Output obtains output values from the infrastructure provisioner. These
 	// values are made available during kubernetes manifest renderering.
-	Output(context.Context) (kcm.Values, error)
+	Output(context.Context) (map[string]interface{}, error)
 }
 
 // Options are made available to infrastructure provisioners.

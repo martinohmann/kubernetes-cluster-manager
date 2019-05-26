@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
+	"github.com/imdario/mergo"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
@@ -248,7 +248,7 @@ func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) er
 	return changeSet.Apply()
 }
 
-func (m *Manager) readValues(ctx context.Context, filename string) (v kcm.Values, err error) {
+func (m *Manager) readValues(ctx context.Context, filename string) (v map[string]interface{}, err error) {
 	if err = file.ReadYAML(filename, &v); err != nil {
 		return
 	}
@@ -257,7 +257,7 @@ func (m *Manager) readValues(ctx context.Context, filename string) (v kcm.Values
 		values, err := o.Output(ctx)
 		if err == nil && len(values) > 0 {
 			log.Info("Merging values from provisioner")
-			v.Merge(values)
+			err = mergo.Merge(&v, values, mergo.WithOverride)
 		}
 	}
 

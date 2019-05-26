@@ -7,7 +7,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +51,7 @@ func TestTerraformOutput(t *testing.T) {
 
 		executor.ExpectCommand("terraform output --json").WillReturn(output)
 
-		expectedValues := kcm.Values{
+		expectedValues := map[string]interface{}{
 			"foo": "bar",
 			"bar": []interface{}{"baz"},
 		}
@@ -77,7 +76,7 @@ func TestTerraformOutputIssue21(t *testing.T) {
 		values, err := m.Output(context.Background())
 
 		require.NoError(t, err)
-		assert.Equal(t, kcm.Values{}, values)
+		assert.Equal(t, map[string]interface{}{}, values)
 		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }

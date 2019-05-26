@@ -8,7 +8,6 @@ import (
 	"regexp"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	"github.com/pkg/errors"
 )
 
@@ -81,7 +80,7 @@ func (m *Terraform) Reconcile(ctx context.Context) (err error) {
 }
 
 // Output implements Outputter.
-func (m *Terraform) Output(ctx context.Context) (kcm.Values, error) {
+func (m *Terraform) Output(ctx context.Context) (map[string]interface{}, error) {
 	args := []string{
 		"terraform",
 		"output",
@@ -90,13 +89,15 @@ func (m *Terraform) Output(ctx context.Context) (kcm.Values, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
+	v := make(map[string]interface{})
+
 	out, err := command.RunSilently(cmd)
 	if err != nil {
 		// If there was no tfstate written yet and we try to fetch output
 		// variables from terraform it will fail with an error. In that case we
 		// ignore the error and just return empty values.
 		if noTerraformRootModuleRegexp.MatchString(err.Error()) {
-			return kcm.Values{}, nil
+			return v, nil
 		}
 
 		return nil, err
@@ -106,8 +107,6 @@ func (m *Terraform) Output(ctx context.Context) (kcm.Values, error) {
 	if err := json.Unmarshal([]byte(out), &outputValues); err != nil {
 		return nil, err
 	}
-
-	v := make(kcm.Values)
 
 	for key, ov := range outputValues {
 		v[key] = ov.Value

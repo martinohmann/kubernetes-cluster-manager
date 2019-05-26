@@ -6,7 +6,6 @@ import (
 	"os/exec"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )
@@ -45,10 +44,10 @@ func (m *Minikube) Provision(ctx context.Context) error {
 }
 
 // Output implements Outputter.
-func (m *Minikube) Output(ctx context.Context) (kcm.Values, error) {
+func (m *Minikube) Output(ctx context.Context) (map[string]interface{}, error) {
 	home, _ := homedir.Dir()
 
-	v := kcm.Values{
+	v := map[string]interface{}{
 		"kubeconfig": fmt.Sprintf("%s/.kube/config", home),
 		"context":    "minikube",
 	}
