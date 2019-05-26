@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
-	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kcm"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,7 @@ func TestMinikubeOutput(t *testing.T) {
 
 	home, _ := homedir.Dir()
 
-	expectedValues := kcm.Values{
+	expectedValues := map[string]interface{}{
 		"context":    "minikube",
 		"kubeconfig": home + "/.kube/config",
 	}
