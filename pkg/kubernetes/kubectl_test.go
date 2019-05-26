@@ -40,3 +40,21 @@ func TestDeleteManifest(t *testing.T) {
 		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }
+
+func TestClusterInfo(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
+		creds := &credentials.Credentials{
+			Kubeconfig: "/tmp/kubeconfig",
+			Context:    "test",
+		}
+
+		kubectl := NewKubectl(creds)
+
+		executor.ExpectCommand("kubectl cluster-info --context test --kubeconfig /tmp/kubeconfig")
+
+		_, err := kubectl.ClusterInfo(context.Background())
+
+		assert.NoError(t, err)
+		assert.NoError(t, executor.ExpectationsWereMet())
+	})
+}
