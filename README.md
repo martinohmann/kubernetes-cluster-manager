@@ -70,7 +70,6 @@ Quick examples
 ```sh
 $ kcm provision \
   --provisioner terraform \
-  --renderer helm \
   --working-dir /path/to/terraform/repo \
   --templates-dir /path/to/helm/charts \
   --dry-run
@@ -95,7 +94,6 @@ will skip any infrastructure changes:
 
 ```sh
 $ kcm manifests apply \
-  --renderer gotemplate \
   --templates-dir templates/ \
   --manifests-dir manifest/ \
   --cluster-kubeconfig ~/.kube/config \
