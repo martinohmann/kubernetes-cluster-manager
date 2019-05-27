@@ -49,7 +49,6 @@ credentials:
 	assert.Equal(t, "/tmp/kubeconfig", o.Credentials.Kubeconfig)
 	assert.Equal(t, true, o.ManagerOptions.DryRun)
 	assert.Equal(t, "/values.yaml", o.ManagerOptions.Values)
-	assert.Equal(t, "/deletions.yaml", o.ManagerOptions.Deletions)
 }
 
 func TestOptionsCreateManager(t *testing.T) {

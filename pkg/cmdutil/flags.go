@@ -32,7 +32,6 @@ func BindManagerFlags(cmd *cobra.Command, o *cluster.Options) {
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Do not make any changes")
 	cmd.Flags().StringVar(&o.ManifestsDir, "manifests-dir", "./manifests", "Path to rendered manifests")
 	cmd.Flags().StringVar(&o.TemplatesDir, "templates-dir", "./templates", "Path to components containing manifest templates")
-	cmd.Flags().StringVar(&o.Deletions, "deletions", "deletions.yaml", `Deletions file path`)
 	cmd.Flags().StringVar(&o.Values, "values", "values.yaml", `Values file path`)
 	cmd.Flags().BoolVar(&o.NoSave, "no-save", false, "Do not save file changes")
 }

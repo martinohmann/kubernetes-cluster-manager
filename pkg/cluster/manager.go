@@ -2,9 +2,12 @@ package cluster
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/imdario/mergo"
+	"github.com/martinohmann/go-difflib/difflib"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
@@ -25,7 +28,6 @@ const (
 type Options struct {
 	DryRun        bool   `json:"dryRun,omitempty" yaml:"dryRun,omitempty"`
 	Values        string `json:"values,omitempty" yaml:"values,omitempty"`
-	Deletions     string `json:"deletions,omitempty" yaml:"deletions,omitempty"`
 	ManifestsDir  string `json:"manifestsDir,omitempty" yaml:"manifestsDir,omitempty"`
 	TemplatesDir  string `json:"templatesDir,omitempty" yaml:"templatesDir,omitempty"`
 	SkipManifests bool   `json:"skipManifests,omitempty" yaml:"skipManifests,omitempty"`
@@ -75,21 +77,14 @@ func (m *Manager) Provision(ctx context.Context, o *Options) error {
 	return m.ApplyManifests(ctx, o)
 }
 
-// ApplyManifests renders and applies all manifests to the cluster. It also
-// takes care of pending resource deletions that should be performed before
-// and after applying.
+// ApplyManifests applies all manifests to the cluster.
 func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 	values, err := m.readValues(ctx, o.Values)
 	if err != nil {
 		return err
 	}
 
-	deletions, err := m.readDeletions(o.Deletions)
-	if err != nil {
-		return err
-	}
-
-	err = m.finalizeChanges(o, o.Values, values)
+	err = m.updateValuesFile(o.Values, values, o)
 	if err != nil {
 		return err
 	}
@@ -125,15 +120,6 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		}
 	}
 
-	defer func() {
-		m.finalizeChanges(o, o.Deletions, deletions)
-	}()
-
-	deletions.PreApply, err = processResourceDeletions(ctx, o, kubectl, deletions.PreApply)
-	if err != nil {
-		return err
-	}
-
 	upgrader := revision.NewUpgrader(kubectl, &revision.UpgraderOptions{
 		DryRun:           o.DryRun,
 		ManifestsDir:     o.ManifestsDir,
@@ -148,9 +134,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		}
 	}
 
-	deletions.PostApply, err = processResourceDeletions(ctx, o, kubectl, deletions.PostApply)
-
-	return err
+	return nil
 }
 
 // Destroy deletes all applied manifests from a cluster and tears down the
@@ -171,16 +155,10 @@ func (m *Manager) Destroy(ctx context.Context, o *Options) error {
 	return m.provisioner.Destroy(ctx)
 }
 
-// DeleteManifests renders and deletes all manifests from the cluster. It
-// also takes care of other resource deletions that should be performed
-// after the manifests have been deleted from the cluster.
+// DeleteManifests deletes all manifests from the cluster in reverse apply
+// order.
 func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 	values, err := m.readValues(ctx, o.Values)
-	if err != nil {
-		return err
-	}
-
-	deletions, err := m.readDeletions(o.Deletions)
 	if err != nil {
 		return err
 	}
@@ -219,33 +197,38 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		}
 	}
 
-	deletions.PreDestroy, _ = processResourceDeletions(ctx, o, kubectl, deletions.PreDestroy)
-
-	return m.finalizeChanges(o, o.Deletions, deletions)
+	return nil
 }
 
-func (m *Manager) finalizeChanges(o *Options, filename string, v interface{}) error {
+func (m *Manager) updateValuesFile(filename string, v map[string]interface{}, o *Options) error {
+	content, err := ioutil.ReadFile(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
 	buf, err := yaml.Marshal(v)
 	if err != nil {
 		return err
 	}
 
-	changeSet, err := file.NewChangeSet(filename, buf)
-	if err != nil {
-		return err
+	diff := difflib.UnifiedDiff{
+		A:        difflib.SplitLines(string(content)),
+		B:        difflib.SplitLines(string(buf)),
+		FromFile: filename,
+		ToFile:   filename,
+		Context:  5,
+		Color:    true,
 	}
 
-	if changeSet.HasChanges() {
-		log.Infof("Changes to %s:\n%s", filename, changeSet.Diff())
-	} else {
-		log.Infof("No changes to %s", filename)
+	if out, _ := difflib.GetUnifiedDiffString(diff); out != "" {
+		log.Infof("Changes to %s:\n%s", color.YellowString(filename), out)
 	}
 
 	if o.DryRun || o.NoSave {
 		return nil
 	}
 
-	return changeSet.Apply()
+	return ioutil.WriteFile(filename, buf, 0660)
 }
 
 func (m *Manager) readValues(ctx context.Context, filename string) (v map[string]interface{}, err error) {
@@ -260,12 +243,6 @@ func (m *Manager) readValues(ctx context.Context, filename string) (v map[string
 			err = mergo.Merge(&v, values, mergo.WithOverride)
 		}
 	}
-
-	return
-}
-
-func (m *Manager) readDeletions(filename string) (d *Deletions, err error) {
-	err = file.ReadYAML(filename, &d)
 
 	return
 }

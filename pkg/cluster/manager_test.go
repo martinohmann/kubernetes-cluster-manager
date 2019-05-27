@@ -28,15 +28,6 @@ func createManager() *Manager {
 
 func TestProvision(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
-		deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
-preApply:
-- kind: Pod
-  name: foo
-  namespace: kube-system
-postApply:
-- kind: Deployment
-  name: bar`))
-		defer os.Remove(deletions.Name())
 		values, _ := file.NewTempFile("values.yaml", []byte(`baz: somevalue`))
 		defer os.Remove(values.Name())
 		manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
@@ -46,7 +37,6 @@ postApply:
 
 		o := &Options{
 			Values:       values.Name(),
-			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
 			TemplatesDir: "testdata/charts",
 		}
@@ -56,9 +46,7 @@ postApply:
 		executor.ExpectCommand("terraform apply --auto-approve")
 		executor.ExpectCommand("terraform output --json").WillReturn(`{"foo":{"value": "output-from-terraform"}}`)
 		executor.ExpectCommand("kubectl cluster-info.*")
-		executor.ExpectCommand("kubectl delete pod --ignore-not-found --namespace kube-system --context test foo")
 		executor.ExpectCommand("kubectl apply -f -")
-		executor.ExpectCommand("kubectl delete deployment --ignore-not-found --namespace default --context test bar")
 
 		expectedManifest := `---
 apiVersion: v1
@@ -106,10 +94,6 @@ spec:
       restartPolicy: Never
 
 `
-		expectedDeletions := `preApply: []
-postApply: []
-preDestroy: []
-`
 		expectedValues := `baz: somevalue
 foo: output-from-terraform
 `
@@ -120,10 +104,6 @@ foo: output-from-terraform
 
 		assert.Equal(t, expectedManifest, string(buf))
 
-		buf, _ = ioutil.ReadFile(deletions.Name())
-
-		assert.Equal(t, expectedDeletions, string(buf))
-
 		buf, _ = ioutil.ReadFile(values.Name())
 
 		assert.Equal(t, expectedValues, string(buf))
@@ -133,11 +113,6 @@ foo: output-from-terraform
 
 func TestDestroy(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
-		deletions, _ := file.NewTempFile("deletions.yaml", []byte(`
-preDestroy:
-- kind: PersistentVolumeClaim
-  name: bar`))
-		defer os.Remove(deletions.Name())
 		values, _ := file.NewTempFile("values.yaml", []byte(`baz: somevalue`))
 		defer os.Remove(values.Name())
 		manifest, _ := file.NewTempFile("manifest.yaml", []byte(``))
@@ -147,7 +122,6 @@ preDestroy:
 
 		o := &Options{
 			Values:       values.Name(),
-			Deletions:    deletions.Name(),
 			ManifestsDir: manifestsDir,
 			TemplatesDir: "testdata/charts",
 		}
@@ -157,19 +131,10 @@ preDestroy:
 		executor.ExpectCommand("terraform output --json").WillReturn(`{}`)
 		executor.ExpectCommand("kubectl cluster-info.*")
 		executor.ExpectCommand("kubectl delete -f - --ignore-not-found --context test")
-		executor.ExpectCommand("kubectl delete persistentvolumeclaim --ignore-not-found --namespace default --context test bar")
 		executor.ExpectCommand("terraform destroy --auto-approve")
-
-		expectedDeletions := `preApply: []
-postApply: []
-preDestroy: []
-`
 
 		assert.NoError(t, p.Destroy(context.Background(), o))
 
-		buf, _ := ioutil.ReadFile(deletions.Name())
-
-		assert.Equal(t, expectedDeletions, string(buf))
 		assert.NoError(t, executor.ExpectationsWereMet())
 	}, command.NewExecutor(nil))
 }
