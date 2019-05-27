@@ -2,6 +2,3 @@
 provisioner: terraform
 provisionerOptions:
   parallelism: 10
-renderer: helm
-rendererOptions:
-  templatesDir: ../charts/
