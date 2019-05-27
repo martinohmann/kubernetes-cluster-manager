@@ -51,7 +51,7 @@ func (k *Kubectl) ApplyManifest(ctx context.Context, manifest []byte) error {
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
-			_, err := command.Run(cmd)
+			_, err := command.RunWithContext(ctx, cmd)
 			return err
 		},
 		backoffStrategy,
@@ -76,7 +76,7 @@ func (k *Kubectl) DeleteManifest(ctx context.Context, manifest []byte) error {
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
-			_, err := command.Run(cmd)
+			_, err := command.RunWithContext(ctx, cmd)
 			return err
 		},
 		backoffStrategy,
@@ -96,7 +96,7 @@ func (k *Kubectl) ClusterInfo(ctx context.Context) (string, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
-	return command.RunSilently(cmd)
+	return command.RunSilentlyWithContext(ctx, cmd)
 }
 
 // buildCredentialArgs builds kubectl args from credentials.
