@@ -77,9 +77,7 @@ func (m *Manager) Provision(ctx context.Context, o *Options) error {
 	return m.ApplyManifests(ctx, o)
 }
 
-// ApplyManifests renders and applies all manifests to the cluster. It also
-// takes care of pending resource deletions that should be performed before
-// and after applying.
+// ApplyManifests applies all manifests to the cluster.
 func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 	values, err := m.readValues(ctx, o.Values)
 	if err != nil {
@@ -157,9 +155,8 @@ func (m *Manager) Destroy(ctx context.Context, o *Options) error {
 	return m.provisioner.Destroy(ctx)
 }
 
-// DeleteManifests renders and deletes all manifests from the cluster. It
-// also takes care of other resource deletions that should be performed
-// after the manifests have been deleted from the cluster.
+// DeleteManifests deletes all manifests from the cluster in reverse apply
+// order.
 func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 	values, err := m.readValues(ctx, o.Values)
 	if err != nil {
