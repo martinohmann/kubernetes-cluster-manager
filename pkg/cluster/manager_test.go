@@ -124,6 +124,7 @@ func TestDestroy(t *testing.T) {
 			Values:       values.Name(),
 			ManifestsDir: manifestsDir,
 			TemplatesDir: "testdata/charts",
+			AllManifests: true,
 		}
 
 		p := createManager()

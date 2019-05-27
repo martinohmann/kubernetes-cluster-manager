@@ -158,12 +158,24 @@ func (m *Manager) Destroy(ctx context.Context, o *Options) error {
 // DeleteManifests deletes all manifests from the cluster in reverse apply
 // order.
 func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
-	values, err := m.readValues(ctx, o.Values)
-	if err != nil {
-		return err
+	var manifests []*manifest.Manifest
+	var err error
+
+	if o.AllManifests {
+		// To be able to attempt the deletion of manifests that are already
+		// removed from the manifests dir we render them again.
+		var values map[string]interface{}
+
+		values, err = m.readValues(ctx, o.Values)
+		if err != nil {
+			return err
+		}
+
+		manifests, err = manifest.RenderDir(template.NewRenderer(), o.TemplatesDir, values)
+	} else {
+		manifests, err = manifest.ReadDir(o.ManifestsDir)
 	}
 
-	manifests, err := manifest.RenderDir(template.NewRenderer(), o.TemplatesDir, values)
 	if err != nil {
 		return err
 	}

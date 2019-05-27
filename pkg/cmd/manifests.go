@@ -61,5 +61,7 @@ func newDeleteCommand() *cobra.Command {
 
 	o.AddFlags(cmd)
 
+	cmd.Flags().BoolVar(&o.ManagerOptions.AllManifests, "all-manifests", false, "Attempt to delete all manifests, even the ones already absent")
+
 	return cmd
 }
