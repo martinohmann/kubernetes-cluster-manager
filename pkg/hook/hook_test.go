@@ -19,6 +19,7 @@ func TestNew(t *testing.T) {
 		Annotation:            TypePreCreate,
 		WaitForAnnotation:     "condition=complete",
 		WaitTimeoutAnnotation: "100s",
+		PolicyAnnotation:      PolicyDeleteAfterCompletion,
 	}
 
 	hook, err := New(r, annotations)
@@ -27,6 +28,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, TypePreCreate, hook.Type)
 	assert.Equal(t, "condition=complete", hook.WaitFor)
 	assert.Equal(t, 100*time.Second, hook.WaitTimeout)
+	assert.Equal(t, true, hook.DeleteAfterCompletion)
 }
 
 func TestNewError(t *testing.T) {
