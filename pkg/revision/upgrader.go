@@ -7,11 +7,19 @@ import (
 	"path/filepath"
 
 	"github.com/fatih/color"
+	"github.com/gammazero/workerpool"
 	"github.com/kr/text"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	// MaxWorkers is the maximum number of go-routines to use for concurrent
+	// actions.
+	MaxWorkers = 10
 )
 
 // Client applies and deletes manifests from a cluster.
@@ -21,6 +29,9 @@ type Client interface {
 
 	// DeleteManifest deletes raw manifest bytes.
 	DeleteManifest(context.Context, []byte) error
+
+	// Wait waits for a resource condition to be met.
+	Wait(context.Context, kubernetes.WaitOptions) error
 }
 
 // Upgrader handles revision upgrades.
@@ -84,12 +95,12 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	c := rev.ChangeSet()
 
 	if diff := rev.Diff(); diff != "" {
-		log.Infof("Changes to component %s:\n%s", color.YellowString(manifest.Name), diff)
+		log.Infof("changes to component %s:\n%s", color.YellowString(manifest.Name), diff)
 	}
 
 	if rev.IsRemoval() {
 		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
-			log.Warnf("Removing component %s", color.YellowString(manifest.Name))
+			log.Warnf("removing component %s", color.YellowString(manifest.Name))
 
 			return u.deleteResources(ctx, manifest.Resources)
 		})
@@ -106,13 +117,13 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 
 	if rev.IsInitial() {
 		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
-			log.Warnf("Creating component %s", color.YellowString(manifest.Name))
+			log.Warnf("creating component %s", color.YellowString(manifest.Name))
 
 			return u.applyResources(ctx, manifest.Resources)
 		})
 	} else if c.HasResourceChanges() || u.includeUnchanged {
 		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
-			log.Infof("Updating component %s", color.YellowString(manifest.Name))
+			log.Infof("updating component %s", color.YellowString(manifest.Name))
 
 			err := u.deleteResources(ctx, c.RemovedResources)
 			if err != nil {
@@ -137,7 +148,7 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 }
 
 func (u *upgrader) wrapHooks(ctx context.Context, hooks hook.SliceMap, hookTypes hook.TypePair, f func() error) error {
-	err := u.execHooks(ctx, hookTypes.Pre, hooks)
+	err := u.execHooks(ctx, hooks[hookTypes.Pre])
 	if err != nil {
 		return err
 	}
@@ -146,7 +157,7 @@ func (u *upgrader) wrapHooks(ctx context.Context, hooks hook.SliceMap, hookTypes
 		return err
 	}
 
-	return u.execHooks(ctx, hookTypes.Post, hooks)
+	return u.execHooks(ctx, hooks[hookTypes.Post])
 }
 
 func (u *upgrader) deleteResources(ctx context.Context, r resource.Slice) error {
@@ -155,11 +166,11 @@ func (u *upgrader) deleteResources(ctx context.Context, r resource.Slice) error 
 	}
 
 	if u.dryRun {
-		log.Infof("Would delete %d resources:\n%s", len(r), text.Indent(r.String(), "  "))
+		log.Infof("would delete %d resources:\n%s", len(r), text.Indent(r.String(), "  "))
 		return nil
 	}
 
-	log.Infof("Deleting %d resources", len(r))
+	log.Infof("deleting %d resources", len(r))
 
 	return u.client.DeleteManifest(ctx, r.Sort(resource.DeleteOrder).Bytes())
 }
@@ -170,18 +181,17 @@ func (u *upgrader) applyResources(ctx context.Context, r resource.Slice) error {
 	}
 
 	if u.dryRun {
-		log.Infof("Would apply %d resources:\n%s", len(r), text.Indent(r.String(), "  "))
+		log.Infof("would apply %d resources:\n%s", len(r), text.Indent(r.String(), "  "))
 		return nil
 	}
 
-	log.Infof("Applying %d resources", len(r))
+	log.Infof("applying %d resources", len(r))
 
 	return u.client.ApplyManifest(ctx, r.Sort(resource.ApplyOrder).Bytes())
 }
 
-func (u *upgrader) execHooks(ctx context.Context, typ string, hookMap hook.SliceMap) error {
-	hooks, ok := hookMap[typ]
-	if u.noHooks || !ok {
+func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
+	if u.noHooks || hooks == nil {
 		return nil
 	}
 
@@ -192,16 +202,54 @@ func (u *upgrader) execHooks(ctx context.Context, typ string, hookMap hook.Slice
 	}
 
 	if u.dryRun {
-		log.Infof("Would execute %d %s hooks:\n%s", len(r), typ, text.Indent(r.String(), "  "))
+		log.Infof("would execute %d hooks:\n%s", len(hooks), text.Indent(hooks.String(), "  "))
 		return nil
 	}
 
-	log.Infof("Executing %d %s hooks", len(r), typ)
+	log.Infof("executing %d hooks", len(hooks))
 
 	err := u.client.DeleteManifest(ctx, r.Sort(resource.DeleteOrder).Bytes())
 	if err != nil {
 		return err
 	}
 
-	return u.client.ApplyManifest(ctx, r.Sort(resource.ApplyOrder).Bytes())
+	err = u.client.ApplyManifest(ctx, r.Sort(resource.ApplyOrder).Bytes())
+	if err != nil {
+		return err
+	}
+
+	pool := workerpool.New(MaxWorkers)
+
+	for _, hook := range hooks {
+		if hook.WaitFor == "" {
+			continue
+		}
+
+		h := hook
+
+		pool.Submit(func() {
+			log.Infof("waiting for hook %s", h.String())
+
+			err := u.client.Wait(ctx, kubernetes.WaitOptions{
+				Kind:      h.Resource.Kind,
+				Name:      h.Resource.Name,
+				Namespace: h.Resource.Namespace,
+				For:       h.WaitFor,
+				Timeout:   h.WaitTimeout,
+			})
+
+			if err != nil {
+				log.Errorf("waiting for hook failed: %s", err.Error())
+			} else if h.DeleteAfterCompletion {
+				err := u.client.DeleteManifest(ctx, h.Resource.Content)
+				if err != nil {
+					log.Error(err)
+				}
+			}
+		})
+	}
+
+	pool.StopWait()
+
+	return nil
 }

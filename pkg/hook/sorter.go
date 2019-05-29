@@ -27,7 +27,7 @@ func (s *hookSorter) Less(i, j int) bool {
 	a, b := s.hooks[i], s.hooks[j]
 
 	if a.Resource.Name == b.Resource.Name {
-		return a.Policy < b.Policy
+		return a.WaitFor < b.WaitFor
 	}
 
 	return a.Resource.Name < b.Resource.Name

@@ -2,9 +2,11 @@ package revision
 
 import (
 	"context"
-	"fmt"
+	"sync/atomic"
 	"testing"
 
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/stretchr/testify/assert"
@@ -12,17 +14,21 @@ import (
 )
 
 type mockClient struct {
-	applyCalled, deleteCalled int
+	applyCalled, deleteCalled, waitCalled uint64
 }
 
 func (c *mockClient) ApplyManifest(ctx context.Context, buf []byte) error {
-	fmt.Println(string(buf))
-	c.applyCalled++
+	atomic.AddUint64(&c.applyCalled, 1)
 	return nil
 }
 
 func (c *mockClient) DeleteManifest(ctx context.Context, buf []byte) error {
-	c.deleteCalled++
+	atomic.AddUint64(&c.deleteCalled, 1)
+	return nil
+}
+
+func (c *mockClient) Wait(ctx context.Context, o kubernetes.WaitOptions) error {
+	atomic.AddUint64(&c.waitCalled, 1)
 	return nil
 }
 
@@ -96,18 +102,59 @@ metadata:
 
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, client.deleteCalled)
+	assert.Equal(t, uint64(1), client.deleteCalled)
 
 	err = u.Upgrade(context.Background(), rev2)
 
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, client.applyCalled)
+	assert.Equal(t, uint64(1), client.applyCalled)
 
 	err = u.Upgrade(context.Background(), rev3)
 
 	require.NoError(t, err)
 
-	assert.Equal(t, 2, client.applyCalled)
-	assert.Equal(t, 2, client.deleteCalled)
+	assert.Equal(t, uint64(2), client.applyCalled)
+	assert.Equal(t, uint64(2), client.deleteCalled)
+}
+
+func TestUpgrader_execHooks(t *testing.T) {
+	client := &mockClient{}
+
+	hooks := hook.Slice{
+		{
+			Type: hook.TypePreCreate,
+			Resource: &resource.Resource{
+				Name: "foo",
+				Kind: "Job",
+			},
+			WaitFor:               "condition=complete",
+			DeleteAfterCompletion: true,
+		},
+		{
+			Type: hook.TypePreCreate,
+			Resource: &resource.Resource{
+				Name: "bar",
+				Kind: "Job",
+			},
+		},
+		{
+			Type: hook.TypePreCreate,
+			Resource: &resource.Resource{
+				Name: "baz",
+				Kind: "Job",
+			},
+			WaitFor: "condition=complete",
+		},
+	}
+
+	u := &upgrader{client: client, noSave: true}
+
+	err := u.execHooks(context.Background(), hooks)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, uint64(2), client.deleteCalled)
+	assert.Equal(t, uint64(2), client.waitCalled)
+	assert.Equal(t, uint64(1), client.applyCalled)
 }

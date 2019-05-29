@@ -2,6 +2,7 @@ package hook
 
 import (
 	"testing"
+	"time"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/stretchr/testify/assert"
@@ -15,15 +16,17 @@ func TestNew(t *testing.T) {
 	}
 
 	annotations := map[string]string{
-		Annotation:       "pre-create",
-		PolicyAnnotation: "foo",
+		Annotation:            TypePreCreate,
+		WaitForAnnotation:     "condition=complete",
+		WaitTimeoutAnnotation: "100s",
 	}
 
 	hook, err := New(r, annotations)
 
 	require.NoError(t, err)
 	assert.Equal(t, TypePreCreate, hook.Type)
-	assert.Equal(t, "foo", hook.Policy)
+	assert.Equal(t, "condition=complete", hook.WaitFor)
+	assert.Equal(t, 100*time.Second, hook.WaitTimeout)
 }
 
 func TestNewError(t *testing.T) {
