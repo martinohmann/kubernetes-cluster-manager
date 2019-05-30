@@ -8,7 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gammazero/workerpool"
-	"github.com/kr/text"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
@@ -166,7 +166,7 @@ func (u *upgrader) deleteResources(ctx context.Context, r resource.Slice) error 
 	}
 
 	if u.dryRun {
-		log.Infof("would delete %d resources:\n%s", len(r), text.Indent(r.String(), "  "))
+		log.Infof("would delete %d resources:\n%s", len(r), indent(r.String()))
 		return nil
 	}
 
@@ -181,7 +181,7 @@ func (u *upgrader) applyResources(ctx context.Context, r resource.Slice) error {
 	}
 
 	if u.dryRun {
-		log.Infof("would apply %d resources:\n%s", len(r), text.Indent(r.String(), "  "))
+		log.Infof("would apply %d resources:\n%s", len(r), indent(r.String()))
 		return nil
 	}
 
@@ -202,7 +202,7 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 	}
 
 	if u.dryRun {
-		log.Infof("would execute %d hooks:\n%s", len(hooks), text.Indent(hooks.String(), "  "))
+		log.Infof("would execute %d hooks:\n%s", len(hooks), indent(hooks.String()))
 		return nil
 	}
 
@@ -218,7 +218,12 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 		return err
 	}
 
+	return u.waitForHooks(ctx, hooks)
+}
+
+func (u *upgrader) waitForHooks(ctx context.Context, hooks hook.Slice) error {
 	pool := workerpool.New(MaxWorkers)
+	errs := &multierror.Error{ErrorFormat: errorFormatFunc}
 
 	for _, hook := range hooks {
 		if hook.WaitFor == "" {
@@ -239,11 +244,11 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 			})
 
 			if err != nil {
-				log.Errorf("waiting for hook failed: %s", err.Error())
+				errs = multierror.Append(errs, errors.Wrapf(err, "waiting for hook %s failed", h))
 			} else if h.DeleteAfterCompletion {
 				err := u.client.DeleteManifest(ctx, h.Resource.Content)
 				if err != nil {
-					log.Error(err)
+					errs = multierror.Append(errs, errors.Wrapf(err, "failed to delete hook %s", h))
 				}
 			}
 		})
@@ -251,5 +256,5 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 
 	pool.StopWait()
 
-	return nil
+	return errs.ErrorOrNil()
 }

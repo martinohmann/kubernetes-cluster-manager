@@ -158,3 +158,44 @@ func TestUpgrader_execHooks(t *testing.T) {
 	assert.Equal(t, uint64(2), client.waitCalled)
 	assert.Equal(t, uint64(1), client.applyCalled)
 }
+
+func TestUpgrader_execHooksDryRun(t *testing.T) {
+	client := &mockClient{}
+
+	hooks := hook.Slice{
+		{
+			Type: hook.TypePreCreate,
+			Resource: &resource.Resource{
+				Name: "foo",
+				Kind: "Job",
+			},
+			WaitFor:               "condition=complete",
+			DeleteAfterCompletion: true,
+		},
+		{
+			Type: hook.TypePreCreate,
+			Resource: &resource.Resource{
+				Name: "bar",
+				Kind: "Job",
+			},
+		},
+		{
+			Type: hook.TypePreCreate,
+			Resource: &resource.Resource{
+				Name: "baz",
+				Kind: "Job",
+			},
+			WaitFor: "condition=complete",
+		},
+	}
+
+	u := &upgrader{client: client, noSave: true, dryRun: true}
+
+	err := u.execHooks(context.Background(), hooks)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, uint64(0), client.deleteCalled)
+	assert.Equal(t, uint64(0), client.waitCalled)
+	assert.Equal(t, uint64(0), client.applyCalled)
+}
