@@ -54,7 +54,11 @@ func Parse(buf []byte) (resource.Slice, hook.SliceMap, error) {
 			continue
 		}
 
-		res := resource.New(buf, head)
+		res, err := resource.New(buf, head)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		annotations := head.Metadata.Annotations
 
 		if _, ok := annotations[hook.Annotation]; ok {

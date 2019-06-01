@@ -14,7 +14,10 @@ import (
 )
 
 type mockClient struct {
-	applyCalled, deleteCalled, waitCalled uint64
+	applyCalled          uint64
+	deleteCalled         uint64
+	waitCalled           uint64
+	deleteResourceCalled uint64
 }
 
 func (c *mockClient) ApplyManifest(ctx context.Context, buf []byte) error {
@@ -24,6 +27,11 @@ func (c *mockClient) ApplyManifest(ctx context.Context, buf []byte) error {
 
 func (c *mockClient) DeleteManifest(ctx context.Context, buf []byte) error {
 	atomic.AddUint64(&c.deleteCalled, 1)
+	return nil
+}
+
+func (c *mockClient) DeleteResource(ctx context.Context, selector resource.Head) error {
+	atomic.AddUint64(&c.deleteResourceCalled, 1)
 	return nil
 }
 
@@ -37,25 +45,34 @@ func TestUpgrader_Upgrade(t *testing.T) {
 
 	resources1 := resource.Slice{
 		{
-			Kind:      "ConfigMap",
+			Kind:      resource.KindStatefulSet,
 			Name:      "bar",
 			Namespace: "baz",
 			Content: []byte(`apiVersion: v1
-kind: ConfigMap
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: bar
   namespace: baz
+  annotations:
+    kcm/deletion-policy: delete-pvcs
+spec:
+  replicas: 2
+  volumeClaimTemplates:
+  - metadata:
+      name: data
 `),
+			DeletePersistentVolumeClaims: true,
 		},
 	}
 
 	resources2 := resource.Slice{
 		{
-			Kind:      "Pod",
+			Kind:      "ConfigMap",
 			Name:      "bar",
 			Namespace: "baz",
 			Content: []byte(`apiVersion: v1
-kind: Pod
+kind: ConfigMap
 metadata:
   name: bar
   namespace: baz
@@ -103,6 +120,7 @@ metadata:
 	require.NoError(t, err)
 
 	assert.Equal(t, uint64(1), client.deleteCalled)
+	assert.Equal(t, uint64(2), client.deleteResourceCalled)
 
 	err = u.Upgrade(context.Background(), rev2)
 
@@ -116,6 +134,7 @@ metadata:
 
 	assert.Equal(t, uint64(2), client.applyCalled)
 	assert.Equal(t, uint64(2), client.deleteCalled)
+	assert.Equal(t, uint64(4), client.deleteResourceCalled)
 }
 
 func TestUpgrader_execHooks(t *testing.T) {
@@ -126,7 +145,7 @@ func TestUpgrader_execHooks(t *testing.T) {
 			Type: hook.TypePreCreate,
 			Resource: &resource.Resource{
 				Name: "foo",
-				Kind: "Job",
+				Kind: resource.KindJob,
 			},
 			WaitFor:               "condition=complete",
 			DeleteAfterCompletion: true,
@@ -135,14 +154,14 @@ func TestUpgrader_execHooks(t *testing.T) {
 			Type: hook.TypePreCreate,
 			Resource: &resource.Resource{
 				Name: "bar",
-				Kind: "Job",
+				Kind: resource.KindJob,
 			},
 		},
 		{
 			Type: hook.TypePreCreate,
 			Resource: &resource.Resource{
 				Name: "baz",
-				Kind: "Job",
+				Kind: resource.KindJob,
 			},
 			WaitFor: "condition=complete",
 		},
@@ -167,7 +186,7 @@ func TestUpgrader_execHooksDryRun(t *testing.T) {
 			Type: hook.TypePreCreate,
 			Resource: &resource.Resource{
 				Name: "foo",
-				Kind: "Job",
+				Kind: resource.KindJob,
 			},
 			WaitFor:               "condition=complete",
 			DeleteAfterCompletion: true,
@@ -176,14 +195,14 @@ func TestUpgrader_execHooksDryRun(t *testing.T) {
 			Type: hook.TypePreCreate,
 			Resource: &resource.Resource{
 				Name: "bar",
-				Kind: "Job",
+				Kind: resource.KindJob,
 			},
 		},
 		{
 			Type: hook.TypePreCreate,
 			Resource: &resource.Resource{
 				Name: "baz",
-				Kind: "Job",
+				Kind: resource.KindJob,
 			},
 			WaitFor: "condition=complete",
 		},

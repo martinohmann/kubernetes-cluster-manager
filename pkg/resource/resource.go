@@ -3,6 +3,25 @@ package resource
 import (
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
+)
+
+const (
+	// AnnotationDeletionPolicy can be set on a resources to control the
+	// behaviour of the resource deletion operation.
+	AnnotationDeletionPolicy = "kcm/deletion-policy"
+
+	// PolicyDeletePersistentVolumeClaims will cause the deletion of all PVCs
+	// that were created for a StatefulSet.
+	PolicyDeletePersistentVolumeClaims = "delete-pvcs"
+)
+
+const (
+	// Kinds of Kubernetes resources that are treated in a special way by kcm.
+	KindJob                   = "Job"
+	KindPersistentVolumeClaim = "PersistentVolumeClaim"
+	KindStatefulSet           = "StatefulSet"
 )
 
 // Resource is a kubernetes resource.
@@ -11,6 +30,8 @@ type Resource struct {
 	Name      string
 	Namespace string
 	Content   []byte
+
+	DeletePersistentVolumeClaims bool
 }
 
 // Head defines the yaml structure of a resource head. This is used
@@ -18,6 +39,15 @@ type Resource struct {
 type Head struct {
 	Kind     string   `yaml:"kind"`
 	Metadata Metadata `yaml:"metadata"`
+}
+
+// String implements fmt.Stringer
+func (h Head) String() string {
+	if h.Metadata.Namespace == "" {
+		return fmt.Sprintf("%s/%s", strings.ToLower(h.Kind), h.Metadata.Name)
+	}
+
+	return fmt.Sprintf("%s/%s/%s", h.Metadata.Namespace, strings.ToLower(h.Kind), h.Metadata.Name)
 }
 
 // Metadata is the resource metadata we are interested in.
@@ -28,18 +58,37 @@ type Metadata struct {
 }
 
 // New creates a new resource value with content and head.
-func New(content []byte, head Head) *Resource {
-	return &Resource{
+func New(content []byte, head Head) (*Resource, error) {
+	r := &Resource{
 		Kind:      head.Kind,
 		Name:      head.Metadata.Name,
 		Namespace: head.Metadata.Namespace,
 		Content:   content,
 	}
+
+	policy, ok := head.Metadata.Annotations[AnnotationDeletionPolicy]
+	if ok {
+		if policy != PolicyDeletePersistentVolumeClaims {
+			return nil, errors.Errorf("unsupported deletion policy %q", policy)
+		}
+
+		if r.Kind != KindStatefulSet {
+			return nil, errors.Errorf("deletion policy %q can only be applied to StatefulSets, got %s", policy, r.Kind)
+		}
+
+		r.DeletePersistentVolumeClaims = true
+	}
+
+	return r, nil
 }
 
 // String implements fmt.Stringer
 func (r *Resource) String() string {
-	return fmt.Sprintf("%s/%s", strings.ToLower(r.Kind), r.Name)
+	if r.Namespace == "" {
+		return fmt.Sprintf("%s/%s", strings.ToLower(r.Kind), r.Name)
+	}
+
+	return fmt.Sprintf("%s/%s/%s", r.Namespace, strings.ToLower(r.Kind), r.Name)
 }
 
 // matches returns true if other matches r. Two resources match if their name,

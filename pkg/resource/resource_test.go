@@ -4,57 +4,78 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestFindMatching(t *testing.T) {
+func TestNew(t *testing.T) {
 	cases := []struct {
 		description string
-		r           *Resource
-		expected    bool
+		head        Head
+		expected    *Resource
+		expectError bool
 	}{
 		{
-			description: "both nil",
-			expected:    true,
+			description: "empty head",
+			expected:    &Resource{},
 		},
 		{
-			description: "a nil",
-			r:           &Resource{Name: "foo"},
+			description: "head with metadata",
+			head:        Head{Kind: KindJob, Metadata: Metadata{Name: "foo", Namespace: "bar"}},
+			expected:    &Resource{Kind: KindJob, Name: "foo", Namespace: "bar"},
 		},
 		{
-			description: "b nil",
-			r:           &Resource{Name: "foo"},
+			description: "stateful set with valid deletion policy",
+			head: Head{
+				Kind: KindStatefulSet,
+				Metadata: Metadata{
+					Name:      "foo",
+					Namespace: "bar",
+					Annotations: map[string]string{
+						AnnotationDeletionPolicy: PolicyDeletePersistentVolumeClaims,
+					},
+				},
+			},
+			expected: &Resource{Kind: KindStatefulSet, Name: "foo", Namespace: "bar", DeletePersistentVolumeClaims: true},
 		},
 		{
-			description: "different kind",
-			r:           &Resource{Name: "foo", Kind: "Deployment"},
+			description: "stateful set with invalid deletion policy",
+			head: Head{
+				Kind: KindStatefulSet,
+				Metadata: Metadata{
+					Name:      "foo",
+					Namespace: "bar",
+					Annotations: map[string]string{
+						AnnotationDeletionPolicy: "baz",
+					},
+				},
+			},
+			expectError: true,
 		},
 		{
-			description: "different namespace",
-			r:           &Resource{Name: "foo", Kind: "Pod", Namespace: "default"},
-		},
-		{
-			description: "same name, kind and namespace",
-			r:           &Resource{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-			expected:    true,
+			description: "resource that does not support deletion policy annotation",
+			head: Head{
+				Kind: KindJob,
+				Metadata: Metadata{
+					Name:      "foo",
+					Namespace: "bar",
+					Annotations: map[string]string{
+						AnnotationDeletionPolicy: PolicyDeletePersistentVolumeClaims,
+					},
+				},
+			},
+			expectError: true,
 		},
 	}
-
-	resources := []*Resource{
-		nil,
-		{Name: "foo", Kind: "Pod", Namespace: "kube-system"},
-		New(nil, Head{Kind: "Pod", Metadata: Metadata{Name: "foo", Namespace: "kube-system"}}),
-	}
-
-	_ = resources
 
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
-			r, ok := FindMatching(resources, tc.r)
+			r, err := New(nil, tc.head)
 
-			assert.Equal(t, tc.expected, ok)
-
-			if tc.expected {
-				assert.Equal(t, tc.r, r)
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, r)
 			}
 		})
 	}

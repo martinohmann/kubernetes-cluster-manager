@@ -10,9 +10,9 @@ import (
 
 func TestSlice_String(t *testing.T) {
 	s := Slice{
-		{Resource: &resource.Resource{Name: "foo", Kind: "Job"}, Type: TypePreCreate},
-		{Resource: &resource.Resource{Name: "bar", Kind: "Job"}, Type: TypePostDelete, WaitFor: "condition=complete"},
-		{Resource: &resource.Resource{Name: "baz", Kind: "Job"}, Type: TypePreUpgrade, WaitFor: "condition=complete", WaitTimeout: 10 * time.Second},
+		{Resource: &resource.Resource{Name: "foo", Kind: resource.KindJob}, Type: TypePreCreate},
+		{Resource: &resource.Resource{Name: "bar", Kind: resource.KindJob}, Type: TypePostDelete, WaitFor: "condition=complete"},
+		{Resource: &resource.Resource{Name: "baz", Kind: resource.KindJob}, Type: TypePreUpgrade, WaitFor: "condition=complete", WaitTimeout: 10 * time.Second},
 	}
 
 	expected := `pre-create/job/foo
