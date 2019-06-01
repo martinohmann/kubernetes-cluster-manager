@@ -8,12 +8,17 @@ import (
 )
 
 const (
+	// AnnotationDeletionPolicy can be set on a resources to control the
+	// behaviour of the resource deletion operation.
 	AnnotationDeletionPolicy = "kcm/deletion-policy"
 
+	// PolicyDeletePersistentVolumeClaims will cause the deletion of all PVCs
+	// that were created for a StatefulSet.
 	PolicyDeletePersistentVolumeClaims = "delete-pvcs"
 )
 
 const (
+	// Kinds of Kubernetes resources that are treated in a special way by kcm.
 	KindJob                   = "Job"
 	KindPersistentVolumeClaim = "PersistentVolumeClaim"
 	KindStatefulSet           = "StatefulSet"

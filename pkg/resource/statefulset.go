@@ -7,8 +7,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// partialStatefulSet only contains the neccessary fields for parsing PVCs from
-// a StatefulSet resource.
+// partialStatefulSet only contains the neccessary fields for parsing volume
+// claim templates from a StatefulSet resource.
 type partialStatefulSet struct {
 	Kind     string   `yaml:"kind"`
 	Metadata Metadata `yaml:"metadata"`
