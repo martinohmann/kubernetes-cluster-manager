@@ -75,8 +75,8 @@ type Hook struct {
 func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 	var err error
 
-	if r.Kind != "Job" {
-		return nil, errors.Errorf(`unsupported hook kind %q. Currently only "Job" is supported.`, r.Kind)
+	if r.Kind != resource.KindJob {
+		return nil, errors.Errorf(`unsupported hook kind %q. Currently only %q is supported.`, r.Kind, resource.KindJob)
 	}
 
 	typ := annotations[Annotation]

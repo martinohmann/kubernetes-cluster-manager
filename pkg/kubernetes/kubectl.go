@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+	"strings"
 
 	"github.com/cenkalti/backoff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 )
 
 const (
@@ -76,6 +78,37 @@ func (k *Kubectl) DeleteManifest(ctx context.Context, manifest []byte) error {
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
+			_, err := command.RunWithContext(ctx, cmd)
+			return err
+		},
+		backoffStrategy,
+	)
+
+	return err
+}
+
+// DeleteResource deletes a resource by its kind, name and namespace.
+func (k *Kubectl) DeleteResource(ctx context.Context, selector resource.Head) error {
+	namespace := selector.Metadata.Namespace
+	if namespace == "" {
+		namespace = DefaultNamespace
+	}
+
+	args := []string{
+		"kubectl",
+		"delete",
+		strings.ToLower(selector.Kind),
+		selector.Metadata.Name,
+		"--namespace",
+		namespace,
+		"--ignore-not-found",
+	}
+
+	args = append(args, k.buildCredentialArgs()...)
+
+	err := backoff.Retry(
+		func() error {
+			cmd := exec.Command(args[0], args[1:]...)
 			_, err := command.RunWithContext(ctx, cmd)
 			return err
 		},

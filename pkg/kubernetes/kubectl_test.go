@@ -6,6 +6,7 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,6 +38,29 @@ func TestDeleteManifest(t *testing.T) {
 		executor.ExpectCommand("kubectl delete -f - --ignore-not-found --context test --kubeconfig /tmp/kubeconfig")
 
 		assert.NoError(t, kubectl.DeleteManifest(context.Background(), []byte{}))
+		assert.NoError(t, executor.ExpectationsWereMet())
+	})
+}
+
+func TestDeleteResource(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
+		creds := &credentials.Credentials{
+			Kubeconfig: "/tmp/kubeconfig",
+			Context:    "test",
+		}
+
+		kubectl := NewKubectl(creds)
+
+		executor.ExpectCommand("kubectl delete statefulset foo --namespace default --ignore-not-found --context test --kubeconfig /tmp/kubeconfig")
+
+		res := resource.Head{
+			Kind: resource.KindStatefulSet,
+			Metadata: resource.Metadata{
+				Name: "foo",
+			},
+		}
+
+		assert.NoError(t, kubectl.DeleteResource(context.Background(), res))
 		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }

@@ -11,6 +11,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -29,6 +30,9 @@ type Client interface {
 
 	// DeleteManifest deletes raw manifest bytes.
 	DeleteManifest(context.Context, []byte) error
+
+	// DeleteResource deletes a resource by its kind, name and namespace.
+	DeleteResource(context.Context, resource.Head) error
 
 	// Wait waits for a resource condition to be met.
 	Wait(context.Context, kubernetes.WaitOptions) error
@@ -92,19 +96,14 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	manifest := rev.Manifest()
 	filename := filepath.Join(u.manifestsDir, manifest.Filename())
 
-	c := rev.ChangeSet()
+	changeSet := rev.ChangeSet()
 
 	if diff := rev.Diff(); diff != "" {
 		log.Infof("changes to component %s:\n%s", color.YellowString(manifest.Name), diff)
 	}
 
 	if rev.IsRemoval() {
-		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
-			log.Warnf("removing component %s", color.YellowString(manifest.Name))
-
-			return u.deleteResources(ctx, manifest.Resources)
-		})
-
+		err = u.processManifestDeletion(ctx, manifest)
 		if err == nil && !u.dryRun {
 			err := os.Remove(filename)
 			if err != nil && !os.IsNotExist(err) {
@@ -116,28 +115,9 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	}
 
 	if rev.IsInitial() {
-		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
-			log.Warnf("creating component %s", color.YellowString(manifest.Name))
-
-			return u.applyResources(ctx, manifest.Resources)
-		})
-	} else if c.HasResourceChanges() || u.includeUnchanged {
-		err = u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
-			log.Infof("updating component %s", color.YellowString(manifest.Name))
-
-			err := u.deleteResources(ctx, c.RemovedResources)
-			if err != nil {
-				return err
-			}
-
-			resources := append(c.AddedResources, c.UpdatedResources...)
-
-			if u.includeUnchanged {
-				resources = append(resources, c.UnchangedResources...)
-			}
-
-			return u.applyResources(ctx, resources)
-		})
+		err = u.processManifestCreation(ctx, manifest)
+	} else if changeSet.HasResourceChanges() || u.includeUnchanged {
+		err = u.processManifestUpdate(ctx, manifest, changeSet)
 	}
 
 	if err == nil && !u.dryRun && !u.noSave {
@@ -145,6 +125,71 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	}
 
 	return err
+}
+
+func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manifest.Manifest) error {
+	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
+		log.Warnf("removing component %s", color.YellowString(manifest.Name))
+
+		err := u.deleteResources(ctx, manifest.Resources)
+		if err != nil {
+			return err
+		}
+
+		claims := manifest.Resources.PersistentVolumeClaimsForDeletion()
+
+		return u.deletePersistentVolumeClaims(ctx, claims)
+	})
+}
+
+func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manifest.Manifest) error {
+	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
+		log.Warnf("creating component %s", color.YellowString(manifest.Name))
+
+		return u.applyResources(ctx, manifest.Resources)
+	})
+}
+
+func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest.Manifest, changeSet *ChangeSet) error {
+	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
+		log.Infof("updating component %s", color.YellowString(manifest.Name))
+
+		err := u.deleteResources(ctx, changeSet.RemovedResources)
+		if err != nil {
+			return err
+		}
+
+		claims := manifest.Resources.PersistentVolumeClaimsForDeletion()
+
+		err = u.deletePersistentVolumeClaims(ctx, claims)
+		if err != nil {
+			return err
+		}
+
+		resources := append(changeSet.AddedResources, changeSet.UpdatedResources...)
+
+		if u.includeUnchanged {
+			resources = append(resources, changeSet.UnchangedResources...)
+		}
+
+		return u.applyResources(ctx, resources)
+	})
+}
+
+func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, claims []resource.Head) error {
+	for _, claim := range claims {
+		if u.dryRun {
+			log.Warnf("would delete %s", claim.String())
+			continue
+		}
+
+		err := u.client.DeleteResource(ctx, claim)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (u *upgrader) wrapHooks(ctx context.Context, hooks hook.SliceMap, hookTypes hook.TypePair, f func() error) error {

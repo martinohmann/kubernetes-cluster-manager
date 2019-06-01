@@ -19,23 +19,23 @@ func TestNew(t *testing.T) {
 	}{
 		{
 			description: "unsupported resource kind",
-			resource:    &resource.Resource{Name: "foo", Kind: "StatefulSet"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindStatefulSet},
 			expectError: true,
 		},
 		{
 			description: "missing hook annotation",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			expectError: true,
 		},
 		{
 			description: "invalid hook annotation",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{Annotation: "nonexistent-hook-type"},
 			expectError: true,
 		},
 		{
 			description: "invalid wait timeout",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{
 				Annotation:            TypePreCreate,
 				WaitTimeoutAnnotation: "bar",
@@ -44,27 +44,27 @@ func TestNew(t *testing.T) {
 		},
 		{
 			description: "valid hook with wait condition",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{
 				Annotation:        TypePreCreate,
 				WaitForAnnotation: "condition=complete",
 			},
 			expected: &Hook{
-				Resource: &resource.Resource{Name: "foo", Kind: "Job"},
+				Resource: &resource.Resource{Name: "foo", Kind: resource.KindJob},
 				Type:     TypePreCreate,
 				WaitFor:  "condition=complete",
 			},
 		},
 		{
 			description: "valid hook with wait condition and timeout",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{
 				Annotation:            TypePreCreate,
 				WaitForAnnotation:     "condition=complete",
 				WaitTimeoutAnnotation: "100s",
 			},
 			expected: &Hook{
-				Resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+				Resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 				Type:        TypePreCreate,
 				WaitFor:     "condition=complete",
 				WaitTimeout: 100 * time.Second,
@@ -72,7 +72,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			description: "valid hook with wait condition, timeout and delete-after-completion policy",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{
 				Annotation:            TypePreCreate,
 				WaitForAnnotation:     "condition=complete",
@@ -80,7 +80,7 @@ func TestNew(t *testing.T) {
 				PolicyAnnotation:      PolicyDeleteAfterCompletion,
 			},
 			expected: &Hook{
-				Resource:              &resource.Resource{Name: "foo", Kind: "Job"},
+				Resource:              &resource.Resource{Name: "foo", Kind: resource.KindJob},
 				Type:                  TypePreCreate,
 				WaitFor:               "condition=complete",
 				WaitTimeout:           100 * time.Second,
@@ -89,7 +89,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			description: "missing wait-for condition when delete-after-completion policy defined",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{
 				Annotation:       TypePreCreate,
 				PolicyAnnotation: PolicyDeleteAfterCompletion,
@@ -98,7 +98,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			description: "invalid hook policy",
-			resource:    &resource.Resource{Name: "foo", Kind: "Job"},
+			resource:    &resource.Resource{Name: "foo", Kind: resource.KindJob},
 			annotations: map[string]string{
 				Annotation:            TypePreCreate,
 				WaitForAnnotation:     "condition=complete",
