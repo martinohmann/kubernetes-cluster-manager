@@ -159,7 +159,7 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 			return err
 		}
 
-		claims := manifest.Resources.PersistentVolumeClaimsForDeletion()
+		claims := changeSet.RemovedResources.PersistentVolumeClaimsForDeletion()
 
 		err = u.deletePersistentVolumeClaims(ctx, claims)
 		if err != nil {

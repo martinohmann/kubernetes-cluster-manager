@@ -45,20 +45,6 @@ func TestUpgrader_Upgrade(t *testing.T) {
 
 	resources1 := resource.Slice{
 		{
-			Kind:      "ConfigMap",
-			Name:      "bar",
-			Namespace: "baz",
-			Content: []byte(`apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: bar
-  namespace: baz
-`),
-		},
-	}
-
-	resources2 := resource.Slice{
-		{
 			Kind:      resource.KindStatefulSet,
 			Name:      "bar",
 			Namespace: "baz",
@@ -77,6 +63,20 @@ spec:
       name: data
 `),
 			DeletePersistentVolumeClaims: true,
+		},
+	}
+
+	resources2 := resource.Slice{
+		{
+			Kind:      "ConfigMap",
+			Name:      "bar",
+			Namespace: "baz",
+			Content: []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bar
+  namespace: baz
+`),
 		},
 	}
 
@@ -120,6 +120,7 @@ spec:
 	require.NoError(t, err)
 
 	assert.Equal(t, uint64(1), client.deleteCalled)
+	assert.Equal(t, uint64(2), client.deleteResourceCalled)
 
 	err = u.Upgrade(context.Background(), rev2)
 
@@ -133,7 +134,7 @@ spec:
 
 	assert.Equal(t, uint64(2), client.applyCalled)
 	assert.Equal(t, uint64(2), client.deleteCalled)
-	assert.Equal(t, uint64(2), client.deleteResourceCalled)
+	assert.Equal(t, uint64(4), client.deleteResourceCalled)
 }
 
 func TestUpgrader_execHooks(t *testing.T) {
