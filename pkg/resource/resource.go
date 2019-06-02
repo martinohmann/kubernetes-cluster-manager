@@ -32,6 +32,9 @@ type Resource struct {
 	Content   []byte
 
 	DeletePersistentVolumeClaims bool
+
+	contentHint []byte
+	hint        Hint
 }
 
 // Head defines the yaml structure of a resource head. This is used

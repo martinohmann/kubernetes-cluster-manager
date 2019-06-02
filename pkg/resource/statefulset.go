@@ -24,9 +24,9 @@ type partialVolumeClaimTemplate struct {
 }
 
 // buildPersistentVolumeClaims build a PersistentVolumeClaim Head for each
-// volume claim template it finds in statefuleSet, taking the number of
+// volume claim template it finds in statefulSet, taking the number of
 // replicas into account.
-func buildPersistentVolumeClaims(statefulSet *partialStatefulSet) []Head {
+func buildPersistentVolumeClaims(statefulSet *partialStatefulSet) Slice {
 	replicas := statefulSet.Spec.Replicas
 	if replicas < 1 {
 		replicas = 1
@@ -34,16 +34,14 @@ func buildPersistentVolumeClaims(statefulSet *partialStatefulSet) []Head {
 
 	volumeClaimTemplates := statefulSet.Spec.VolumeClaimTemplates
 
-	claims := make([]Head, 0, len(volumeClaimTemplates)*replicas)
+	claims := make(Slice, 0, len(volumeClaimTemplates)*replicas)
 
 	for _, vct := range volumeClaimTemplates {
 		for i := 0; i < replicas; i++ {
-			claims = append(claims, Head{
-				Kind: KindPersistentVolumeClaim,
-				Metadata: Metadata{
-					Name:      buildPersistentVolumeClaimName(statefulSet, vct, i),
-					Namespace: statefulSet.Metadata.Namespace,
-				},
+			claims = append(claims, &Resource{
+				Kind:      KindPersistentVolumeClaim,
+				Name:      buildPersistentVolumeClaimName(statefulSet, vct, i),
+				Namespace: statefulSet.Metadata.Namespace,
 			})
 		}
 	}
@@ -66,8 +64,8 @@ func buildPersistentVolumeClaimName(statefulSet *partialStatefulSet, vct *partia
 // should be deleted after the StatefulSet is deleted. This is a workaround
 // until a similar feature (https://github.com/kubernetes/kubernetes/issues/55045)
 // is implemented in Kubernetes itself.
-func (s Slice) PersistentVolumeClaimsForDeletion() []Head {
-	claims := make([]Head, 0)
+func (s Slice) PersistentVolumeClaimsForDeletion() Slice {
+	claims := make(Slice, 0)
 
 	for _, r := range s {
 		if r.Kind != KindStatefulSet || !r.DeletePersistentVolumeClaims {
@@ -85,5 +83,5 @@ func (s Slice) PersistentVolumeClaimsForDeletion() []Head {
 		claims = append(claims, buildPersistentVolumeClaims(&statefulSet)...)
 	}
 
-	return claims
+	return claims.WithHint(Removal)
 }

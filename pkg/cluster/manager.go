@@ -34,6 +34,7 @@ type Options struct {
 	AllManifests  bool   `json:"allManifests,omitempty" yaml:"allManifests,omitempty"`
 	NoSave        bool   `json:"noSave,omitempty" yaml:"noSave,omitempty"`
 	NoHooks       bool   `json:"noHooks,omitempty" yaml:"noHooks,omitempty"`
+	FullDiff      bool   `json:"fullDiff,omitempty" yaml:"fullDiff,omitempty"`
 }
 
 // Manager is a Kubernetes cluster manager that will orchestrate changes to the
@@ -126,6 +127,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 		NoSave:           o.NoSave,
 		IncludeUnchanged: o.AllManifests,
 		NoHooks:          o.NoHooks,
+		FullDiff:         o.FullDiff,
 	})
 
 	for _, revision := range revisions {
@@ -201,6 +203,7 @@ func (m *Manager) DeleteManifests(ctx context.Context, o *Options) error {
 		NoSave:           o.NoSave,
 		IncludeUnchanged: o.AllManifests,
 		NoHooks:          o.NoHooks,
+		FullDiff:         o.FullDiff,
 	})
 
 	for _, revision := range revisions.Reverse() {

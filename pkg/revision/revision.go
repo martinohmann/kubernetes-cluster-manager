@@ -113,7 +113,7 @@ func (r *Revision) ChangeSet() *ChangeSet {
 	if r.IsRemoval() {
 		return &ChangeSet{
 			Revision:         r,
-			RemovedResources: r.Current.Resources,
+			RemovedResources: r.Current.Resources.WithHint(resource.Removal),
 			Hooks:            r.Current.Hooks,
 		}
 	}
@@ -121,7 +121,7 @@ func (r *Revision) ChangeSet() *ChangeSet {
 	if r.IsInitial() {
 		return &ChangeSet{
 			Revision:       r,
-			AddedResources: r.Next.Resources,
+			AddedResources: r.Next.Resources.WithHint(resource.Addition),
 			Hooks:          r.Next.Hooks,
 		}
 	}
@@ -134,18 +134,18 @@ func (r *Revision) ChangeSet() *ChangeSet {
 	for _, current := range r.Current.Resources {
 		res, ok := resource.FindMatching(r.Next.Resources, current)
 		if !ok {
-			c.RemovedResources = append(c.RemovedResources, current)
+			c.RemovedResources = append(c.RemovedResources, current.WithHint(resource.Removal))
 		} else if bytes.Compare(current.Content, res.Content) == 0 {
 			c.UnchangedResources = append(c.UnchangedResources, res)
 		} else {
-			c.UpdatedResources = append(c.UpdatedResources, res)
+			c.UpdatedResources = append(c.UpdatedResources, res.WithHint(resource.Update).WithContentHint(current.Content))
 		}
 	}
 
 	for _, next := range r.Next.Resources {
 		_, ok := resource.FindMatching(r.Current.Resources, next)
 		if !ok {
-			c.AddedResources = append(c.AddedResources, next)
+			c.AddedResources = append(c.AddedResources, next.WithHint(resource.Addition))
 		}
 	}
 
