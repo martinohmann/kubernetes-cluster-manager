@@ -9,17 +9,16 @@ import (
 	"github.com/kr/text"
 )
 
-// formatPrefixMap contains a mapping of hints to prefix symbols for the
-// output.
-var formatPrefixMap = map[Hint]string{
+// hintPrefixMap contains a mapping of hints to prefix symbols for the output.
+var hintPrefixMap = map[Hint]string{
 	NoChange: "*",
 	Addition: "+",
 	Update:   "~",
 	Removal:  "-",
 }
 
-// formatColorFuncMap contains a mapping of hints to color printing functions.
-var formatColorFuncMap = map[Hint]func(string, ...interface{}) string{
+// hintColorFuncMap contains a mapping of hints to color printing functions.
+var hintColorFuncMap = map[Hint]func(string, ...interface{}) string{
 	Addition: color.GreenString,
 	Update:   color.YellowString,
 	Removal:  color.RedString,
@@ -35,8 +34,8 @@ func Format(r *Resource) string {
 // contentHint via WithContentHint, a diff will be added to the formatted
 // output only if the diff itself is not empty.
 func format(r *Resource) string {
-	colorFunc := formatColorFunc(r.hint)
-	prefix := formatPrefixMap[r.hint]
+	colorFunc := hintColorFunc(r.hint)
+	prefix := hintPrefix(r.hint)
 	s := r.String()
 
 	switch r.hint {
@@ -75,10 +74,20 @@ func FormatSlice(s Slice) string {
 	return sb.String()
 }
 
-// formatColorFunc will return the color func for given hint. Will fall back to
-// fmt.Sprintf if there is no color func defined given hint.
-func formatColorFunc(h Hint) func(string, ...interface{}) string {
-	colorFunc := formatColorFuncMap[h]
+// hintPrefix returns the prefix symbol for h or ? if no mapping exists.
+func hintPrefix(h Hint) string {
+	prefix, ok := hintPrefixMap[h]
+	if ok {
+		return prefix
+	}
+
+	return "?"
+}
+
+// hintColorFunc will return the color func for given hint. Will fall back to
+// fmt.Sprintf if h does not exist in the hintColorFuncMap.
+func hintColorFunc(h Hint) func(string, ...interface{}) string {
+	colorFunc := hintColorFuncMap[h]
 	if colorFunc == nil {
 		return fmt.Sprintf
 	}
@@ -87,7 +96,7 @@ func formatColorFunc(h Hint) func(string, ...interface{}) string {
 }
 
 // summarize walks s and counts all the different hints it finds on the
-// resources. It will then compile a summary of these and return the as a
+// resources. It will then compile a summary of these and return it as a
 // string.
 func summarize(s Slice) string {
 	buckets := make(map[Hint]int)
@@ -108,8 +117,10 @@ func summarize(s Slice) string {
 
 	for i, k := range keys {
 		h := Hint(k)
-		colorFunc := formatColorFunc(h)
-		summary[i] = fmt.Sprintf("%s %s: %d", colorFunc(formatPrefixMap[h]), h, buckets[h])
+		colorFunc := hintColorFunc(h)
+		prefix := hintPrefix(h)
+
+		summary[i] = fmt.Sprintf("%s %s: %d", colorFunc(prefix), h, buckets[h])
 	}
 
 	return strings.Join(summary, ", ")

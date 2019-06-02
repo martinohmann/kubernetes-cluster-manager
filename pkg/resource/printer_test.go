@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPrinter_Print(t *testing.T) {
+func TestPrinter_PrintSlice(t *testing.T) {
 	cases := []struct {
 		description string
 		s           Slice
