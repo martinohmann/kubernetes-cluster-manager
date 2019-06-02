@@ -5,6 +5,7 @@ kubernetes-cluster-manager (`kcm`)
 [![codecov](https://codecov.io/gh/martinohmann/kubernetes-cluster-manager/branch/master/graph/badge.svg)](https://codecov.io/gh/martinohmann/kubernetes-cluster-manager)
 [![Go Report Card](https://goreportcard.com/badge/github.com/martinohmann/kubernetes-cluster-manager?style=flat)](https://goreportcard.com/report/github.com/martinohmann/kubernetes-cluster-manager)
 [![GoDoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager?status.svg)](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager)
+[![Hits-of-Code](https://hitsofcode.com/github.com/martinohmann/kubernetes-cluster-manager)](https://hitsofcode.com/view/github.com/martinohmann/kubernetes-cluster-manager)
 
 Inspired by [Zalando's
 CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager). The
