@@ -162,7 +162,7 @@ func TestRevision_ChangeSet(t *testing.T) {
 					},
 				},
 			},
-			removed: testResourceNameSlice("bar"),
+			removed: testResourceNameSlice("bar").WithHint(resource.Removal),
 			hooks: hook.SliceMap{
 				hook.TypePreCreate: testHookNameSlice("baz"),
 			},
@@ -177,7 +177,7 @@ func TestRevision_ChangeSet(t *testing.T) {
 					},
 				},
 			},
-			added: testResourceNameSlice("bar"),
+			added: testResourceNameSlice("bar").WithHint(resource.Addition),
 			hooks: hook.SliceMap{
 				hook.TypePreCreate: testHookNameSlice("baz"),
 			},
@@ -198,10 +198,10 @@ func TestRevision_ChangeSet(t *testing.T) {
 					},
 				},
 			},
-			added:     testResourceNameSlice("baz"),
-			updated:   resource.Slice{{Name: "qux", Content: []byte("---\nchanges")}},
+			added:     testResourceNameSlice("baz").WithHint(resource.Addition),
+			updated:   resource.Slice{{Name: "qux", Content: []byte("---\nchanges")}}.WithHint(resource.Update),
 			unchanged: testResourceNameSlice("bar"),
-			removed:   testResourceNameSlice("foo"),
+			removed:   testResourceNameSlice("foo").WithHint(resource.Removal),
 			hooks: hook.SliceMap{
 				hook.TypePreCreate: testHookNameSlice("baz"),
 			},

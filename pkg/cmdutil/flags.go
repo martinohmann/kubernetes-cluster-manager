@@ -34,4 +34,6 @@ func BindManagerFlags(cmd *cobra.Command, o *cluster.Options) {
 	cmd.Flags().StringVar(&o.TemplatesDir, "templates-dir", "./templates", "Path to components containing manifest templates")
 	cmd.Flags().StringVar(&o.Values, "values", "values.yaml", `Values file path`)
 	cmd.Flags().BoolVar(&o.NoSave, "no-save", false, "Do not save file changes")
+	cmd.Flags().BoolVar(&o.NoHooks, "no-hooks", false, "Skip executing hooks")
+	cmd.Flags().BoolVar(&o.FullDiff, "full-diff", false, "Display full component diff if there are changes")
 }

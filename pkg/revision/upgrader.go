@@ -55,16 +55,19 @@ type UpgraderOptions struct {
 	NoHooks          bool
 	NoSave           bool
 	ManifestsDir     string
+	FullDiff         bool
 }
 
 // upgrader is an implementations of Upgrader.
 type upgrader struct {
 	client           Client
+	printer          *resource.Printer
 	dryRun           bool
 	includeUnchanged bool
 	noHooks          bool
 	noSave           bool
 	manifestsDir     string
+	fullDiff         bool
 }
 
 // NewUpgrader creates a new Upgrader with client and options.
@@ -75,11 +78,13 @@ func NewUpgrader(client Client, o *UpgraderOptions) Upgrader {
 
 	u := &upgrader{
 		client:           client,
+		printer:          resource.NewPrinter(writerFunc(log.Info)),
 		dryRun:           o.DryRun,
 		includeUnchanged: o.IncludeUnchanged,
 		noHooks:          o.NoHooks,
 		noSave:           o.NoSave,
 		manifestsDir:     o.ManifestsDir,
+		fullDiff:         o.FullDiff,
 	}
 
 	return u
@@ -98,8 +103,12 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 
 	changeSet := rev.ChangeSet()
 
-	if diff := rev.Diff(); diff != "" {
-		log.Infof("changes to component %s:\n%s", color.YellowString(manifest.Name), diff)
+	if u.fullDiff {
+		if diff := rev.Diff(); diff != "" {
+			log.Infof("changes to component %s:\n%s", color.YellowString(manifest.Name), diff)
+		} else {
+			log.Infof("no changes to component %s", color.YellowString(manifest.Name))
+		}
 	}
 
 	if rev.IsRemoval() {
@@ -131,6 +140,8 @@ func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manife
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
 		log.Warnf("removing component %s", color.YellowString(manifest.Name))
 
+		u.printer.PrintSlice(manifest.Resources)
+
 		err := u.deleteResources(ctx, manifest.Resources)
 		if err != nil {
 			return err
@@ -146,6 +157,8 @@ func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manife
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
 		log.Warnf("creating component %s", color.YellowString(manifest.Name))
 
+		u.printer.PrintSlice(manifest.Resources)
+
 		return u.applyResources(ctx, manifest.Resources)
 	})
 }
@@ -153,6 +166,8 @@ func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manife
 func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest.Manifest, changeSet *ChangeSet) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
 		log.Infof("updating component %s", color.YellowString(manifest.Name))
+
+		u.printer.PrintSlice(changeSet.RemovedResources)
 
 		err := u.deleteResources(ctx, changeSet.RemovedResources)
 		if err != nil {
@@ -172,18 +187,29 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 			resources = append(resources, changeSet.UnchangedResources...)
 		}
 
+		u.printer.PrintSlice(resources)
+
 		return u.applyResources(ctx, resources)
 	})
 }
 
-func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, claims []resource.Head) error {
-	for _, claim := range claims {
-		if u.dryRun {
-			log.Warnf("would delete %s", claim.String())
-			continue
-		}
+func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, claims resource.Slice) error {
+	u.printer.PrintSlice(claims)
 
-		err := u.client.DeleteResource(ctx, claim)
+	if u.dryRun {
+		log.Debug("skipping pvc deletions due to dry run")
+		return nil
+	}
+
+	for _, claim := range claims {
+		err := u.client.DeleteResource(ctx, resource.Head{
+			Kind: claim.Kind,
+			Metadata: resource.Metadata{
+				Name:      claim.Name,
+				Namespace: claim.Namespace,
+			},
+		})
+
 		if err != nil {
 			return err
 		}
@@ -211,11 +237,9 @@ func (u *upgrader) deleteResources(ctx context.Context, r resource.Slice) error 
 	}
 
 	if u.dryRun {
-		log.Infof("would delete %d resources:\n%s", len(r), indent(r.String()))
+		log.Debug("skipping resource deletions due to dry run")
 		return nil
 	}
-
-	log.Infof("deleting %d resources", len(r))
 
 	return u.client.DeleteManifest(ctx, r.Sort(resource.DeleteOrder).Bytes())
 }
@@ -226,11 +250,9 @@ func (u *upgrader) applyResources(ctx context.Context, r resource.Slice) error {
 	}
 
 	if u.dryRun {
-		log.Infof("would apply %d resources:\n%s", len(r), indent(r.String()))
+		log.Debug("skipping resource updates due to dry run")
 		return nil
 	}
-
-	log.Infof("applying %d resources", len(r))
 
 	return u.client.ApplyManifest(ctx, r.Sort(resource.ApplyOrder).Bytes())
 }
@@ -246,19 +268,21 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 		return nil
 	}
 
+	log.Infof("executing %d hooks", len(hooks))
+
+	u.printer.PrintSlice(r)
+
 	if u.dryRun {
-		log.Infof("would execute %d hooks:\n%s", len(hooks), indent(hooks.String()))
+		log.Debug("skipping hooks due to dry run")
 		return nil
 	}
 
-	log.Infof("executing %d hooks", len(hooks))
-
-	err := u.client.DeleteManifest(ctx, r.Sort(resource.DeleteOrder).Bytes())
+	err := u.deleteResources(ctx, r)
 	if err != nil {
 		return err
 	}
 
-	err = u.client.ApplyManifest(ctx, r.Sort(resource.ApplyOrder).Bytes())
+	err = u.applyResources(ctx, r)
 	if err != nil {
 		return err
 	}
@@ -268,7 +292,7 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 
 func (u *upgrader) waitForHooks(ctx context.Context, hooks hook.Slice) error {
 	pool := workerpool.New(MaxWorkers)
-	errs := &multierror.Error{ErrorFormat: errorFormatFunc}
+	errs := &multierror.Error{}
 
 	for _, hook := range hooks {
 		if hook.WaitFor == "" {
@@ -302,4 +326,14 @@ func (u *upgrader) waitForHooks(ctx context.Context, hooks hook.Slice) error {
 	pool.StopWait()
 
 	return errs.ErrorOrNil()
+}
+
+// writerFunc is a func which satisfies the io.Writer interface.
+type writerFunc func(args ...interface{})
+
+// Write implements io.Writer.
+func (w writerFunc) Write(p []byte) (n int, err error) {
+	w(string(p))
+
+	return len(p), nil
 }

@@ -51,12 +51,12 @@ spec:
 `)},
 	}
 
-	expected := []Head{
-		{Kind: KindPersistentVolumeClaim, Metadata: Metadata{Name: "www-web-0", Namespace: "foo"}},
-		{Kind: KindPersistentVolumeClaim, Metadata: Metadata{Name: "www-web-1", Namespace: "foo"}},
-		{Kind: KindPersistentVolumeClaim, Metadata: Metadata{Name: "cache-web-0", Namespace: "foo"}},
-		{Kind: KindPersistentVolumeClaim, Metadata: Metadata{Name: "cache-web-1", Namespace: "foo"}},
-		{Kind: KindPersistentVolumeClaim, Metadata: Metadata{Name: "data-cache-0", Namespace: "bar"}},
+	expected := Slice{
+		{Kind: KindPersistentVolumeClaim, Name: "www-web-0", Namespace: "foo", hint: Removal},
+		{Kind: KindPersistentVolumeClaim, Name: "www-web-1", Namespace: "foo", hint: Removal},
+		{Kind: KindPersistentVolumeClaim, Name: "cache-web-0", Namespace: "foo", hint: Removal},
+		{Kind: KindPersistentVolumeClaim, Name: "cache-web-1", Namespace: "foo", hint: Removal},
+		{Kind: KindPersistentVolumeClaim, Name: "data-cache-0", Namespace: "bar", hint: Removal},
 	}
 
 	pvcs := s.PersistentVolumeClaimsForDeletion()
