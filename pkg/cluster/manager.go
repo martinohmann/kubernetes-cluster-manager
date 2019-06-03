@@ -114,7 +114,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 			return errors.WithStack(err)
 		}
 
-		log.Info("Waiting for cluster to become available...")
+		log.Info("waiting for cluster to become available...")
 
 		if err := kubectl.WaitForCluster(ctx); err != nil {
 			return err
@@ -150,7 +150,7 @@ func (m *Manager) Destroy(ctx context.Context, o *Options) error {
 	}
 
 	if o.DryRun {
-		log.Warn("Would destroy cluster infrastructure")
+		log.Warn("would destroy cluster infrastructure")
 		return nil
 	}
 
@@ -236,7 +236,7 @@ func (m *Manager) updateValuesFile(filename string, v map[string]interface{}, o 
 	}
 
 	if out, _ := difflib.GetUnifiedDiffString(diff); out != "" {
-		log.Infof("Changes to %s:\n%s", color.YellowString(filename), out)
+		log.Infof("changes to %s:\n%s", color.YellowString(filename), out)
 	}
 
 	if o.DryRun || o.NoSave {
@@ -254,7 +254,7 @@ func (m *Manager) readValues(ctx context.Context, filename string) (v map[string
 	if o, ok := m.provisioner.(provisioner.Outputter); ok {
 		values, err := o.Output(ctx)
 		if err == nil && len(values) > 0 {
-			log.Info("Merging values from provisioner")
+			log.Info("merging values from provisioner")
 			err = mergo.Merge(&v, values, mergo.WithOverride)
 		}
 	}
@@ -269,8 +269,8 @@ func (m *Manager) readCredentials(ctx context.Context, o *Options) (*credentials
 	}
 
 	if !o.DryRun && creds.Empty() {
-		return nil, errors.New("Empty kubernetes credentials found! " +
-			"Provide `kubeconfig` (and optionally `context`) or " +
+		return nil, errors.New("empty kubernetes credentials found, " +
+			"provide `kubeconfig` (and optionally `context`) or " +
 			"`server` and `token` via the provisioner or set the corresponding --cluster-* flags")
 	}
 
@@ -279,7 +279,7 @@ func (m *Manager) readCredentials(ctx context.Context, o *Options) (*credentials
 		c.Token = "<sensitive>"
 	}
 
-	log.Debugf("Using kubernetes credentials: %#v", c)
+	log.Debugf("using kubernetes credentials: %#v", c)
 
 	return creds, nil
 }

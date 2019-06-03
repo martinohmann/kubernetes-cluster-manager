@@ -76,12 +76,12 @@ func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 	var err error
 
 	if r.Kind != resource.KindJob {
-		return nil, errors.Errorf(`unsupported hook kind %q. Currently only %q is supported.`, r.Kind, resource.KindJob)
+		return nil, errors.Errorf(`unsupported hook kind %q, currently only %q is supported.`, r.Kind, resource.KindJob)
 	}
 
 	typ := annotations[Annotation]
 	if !isValidType(typ) {
-		return nil, errors.Errorf(`invalid hook type %q. Allowed values: %s`, typ, strings.Join(Types, ", "))
+		return nil, errors.Errorf(`invalid hook type %q, allowed values: %s`, typ, strings.Join(Types, ", "))
 	}
 
 	h := &Hook{
@@ -103,7 +103,7 @@ func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 		policies := strings.Split(ps, ",")
 		for _, p := range policies {
 			if !isValidPolicy(p) {
-				return nil, errors.Errorf(`invalid hook policy %q. Allowed values: %s`, p, strings.Join(Policies, ", "))
+				return nil, errors.Errorf(`invalid hook policy %q, allowed values: %s`, p, strings.Join(Policies, ", "))
 			}
 
 			switch p {

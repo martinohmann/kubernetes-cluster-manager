@@ -32,7 +32,7 @@ func Create(name string, o *Options) (Provisioner, error) {
 	}
 
 	return nil, errors.Errorf(
-		"unsupported provisioner %q. Available provisioners: %s",
+		"unsupported provisioner %q, available provisioners: %s",
 		name,
 		reflect.ValueOf(provisioners).MapKeys(),
 	)

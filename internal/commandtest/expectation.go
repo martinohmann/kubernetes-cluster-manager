@@ -32,17 +32,17 @@ func (e *ExpectedCommand) WillExecute() *ExpectedCommand {
 
 // String implements fmt.Stringer.
 func (e *ExpectedCommand) String() string {
-	msg := fmt.Sprintf("Command %q", e.command)
+	msg := fmt.Sprintf("command %q", e.command)
 	if e.execute {
 		msg += ", which should execute"
 	} else if e.out != "" || e.err != nil {
 		msg += ", which should:"
 		if e.out != "" {
-			msg += fmt.Sprintf("\n return output: %s", e.out)
+			msg += fmt.Sprintf("\n- return output: %s", e.out)
 		}
 
 		if e.err != nil {
-			msg += fmt.Sprintf("\n return error: %s", e.err)
+			msg += fmt.Sprintf("\n- return error: %s", e.err)
 		}
 	}
 
