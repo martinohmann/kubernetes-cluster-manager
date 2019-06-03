@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/go-playground/assert.v1"
+	assert "gopkg.in/go-playground/assert.v1"
 )
 
 func helperCommandContext(ctx context.Context, s ...string) (cmd *exec.Cmd) {
@@ -61,7 +61,7 @@ func TestRunError(t *testing.T) {
 
 	require.Error(t, err)
 
-	assert.Equal(t, `Unknown command "nonexistent-command"`+"\n", out)
+	assert.Equal(t, `unknown command "nonexistent-command"`+"\n", out)
 }
 
 func TestRunSilentlyError(t *testing.T) {
@@ -71,7 +71,7 @@ func TestRunSilentlyError(t *testing.T) {
 
 	require.Error(t, err)
 
-	assert.Equal(t, `Unknown command "nonexistent-command"`+"\n", out)
+	assert.Equal(t, `unknown command "nonexistent-command"`+"\n", out)
 }
 
 func TestRunSilentlyWithContextCancelAfter(t *testing.T) {
@@ -201,7 +201,7 @@ func TestHelperProcess(*testing.T) {
 			fmt.Println("timeout")
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown command %q\n", cmd)
+		fmt.Fprintf(os.Stderr, "unknown command %q\n", cmd)
 		os.Exit(2)
 	}
 }

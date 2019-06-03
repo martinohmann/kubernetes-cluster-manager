@@ -51,7 +51,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 			return err
 		}
 
-		log.Infof("Using config %s, config values take precedence over command line flags", color.YellowString(config))
+		log.Infof("using config %s, config values take precedence over command line flags", color.YellowString(config))
 	}
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)
@@ -64,7 +64,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 
 func (o *Options) Run(exec func(context.Context, *cluster.Manager, *cluster.Options) error) error {
 	if o.WorkingDir != "" {
-		log.Infof("Switching working dir to %s", o.WorkingDir)
+		log.Infof("switching working dir to %s", o.WorkingDir)
 		if err := os.Chdir(o.WorkingDir); err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (o *Options) Run(exec func(context.Context, *cluster.Manager, *cluster.Opti
 		for {
 			select {
 			case s := <-signalChan:
-				log.Infof("Received signal %s, cleaning up...", s)
+				log.Infof("received signal %s, cleaning up...", s)
 				cancel()
 			case <-done:
 				return

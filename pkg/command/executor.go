@@ -120,7 +120,7 @@ func (e *executor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (o
 }
 
 func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (string, error) {
-	e.logger.Debugf("Executing %s", color.YellowString(Line(cmd)))
+	e.logger.Debugf("executing %s", color.YellowString(Line(cmd)))
 
 	if err := cmd.Start(); err != nil {
 		return "", err
@@ -138,7 +138,7 @@ func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (s
 		select {
 		case <-ctxDone:
 			if cmd.Process != nil {
-				log.Infof("Terminating running process...")
+				log.Infof("terminating running process...")
 				cmd.Process.Signal(cancelSignal)
 			}
 		case <-waitDone:
