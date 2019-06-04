@@ -143,7 +143,7 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 // policy.
 func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manifest.Manifest) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
-		log.Warnf("removing component %s", color.YellowString(manifest.Name))
+		log.Warnf("deleting all resources for component %s", color.YellowString(manifest.Name))
 
 		u.printer.PrintSlice(manifest.Resources)
 
@@ -154,7 +154,7 @@ func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manife
 
 		claims := manifest.Resources.PersistentVolumeClaimsForDeletion()
 
-		return u.deletePersistentVolumeClaims(ctx, claims)
+		return u.deletePersistentVolumeClaims(ctx, manifest, claims)
 	})
 }
 
@@ -162,7 +162,7 @@ func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manife
 // will run the pre-create and post-create hooks.
 func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manifest.Manifest) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
-		log.Warnf("creating component %s", color.YellowString(manifest.Name))
+		log.Warnf("applying all resources for component %s", color.YellowString(manifest.Name))
 
 		u.printer.PrintSlice(manifest.Resources)
 
@@ -177,7 +177,7 @@ func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manife
 // post-upgrade hooks.
 func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest.Manifest, changeSet *ChangeSet) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
-		log.Infof("updating component %s", color.YellowString(manifest.Name))
+		log.Infof("deleting removed resources for component %s", color.YellowString(manifest.Name))
 
 		u.printer.PrintSlice(changeSet.RemovedResources)
 
@@ -188,7 +188,7 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 
 		claims := changeSet.RemovedResources.PersistentVolumeClaimsForDeletion()
 
-		err = u.deletePersistentVolumeClaims(ctx, claims)
+		err = u.deletePersistentVolumeClaims(ctx, manifest, claims)
 		if err != nil {
 			return err
 		}
@@ -199,6 +199,8 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 			resources = append(resources, changeSet.UnchangedResources...)
 		}
 
+		log.Infof("applying resources for component %s", color.YellowString(manifest.Name))
+
 		u.printer.PrintSlice(resources)
 
 		return u.applyResources(ctx, resources)
@@ -208,12 +210,12 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 // deletePersistentVolumeClaims removes the PersistentVolumeClaims in the
 // claims slice from the cluster. This will be a no-op when dry-run mode is
 // enabled.
-func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, claims resource.Slice) error {
+func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, manifest *manifest.Manifest, claims resource.Slice) error {
 	if len(claims) == 0 {
 		return nil
 	}
 
-	log.Info("removing persistent volume claims")
+	log.Infof("deleting pvcs of removed stateful sets for component %s", color.YellowString(manifest.Name))
 
 	u.printer.PrintSlice(claims)
 

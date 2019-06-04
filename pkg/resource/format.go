@@ -40,6 +40,7 @@ func format(r *Resource) string {
 
 	switch r.hint {
 	case Update:
+		prefix = colorFunc(prefix)
 		s = colorFunc(s)
 
 		diff := r.diff()
@@ -47,11 +48,9 @@ func format(r *Resource) string {
 		if diff != "" {
 			return fmt.Sprintf("%s %s\n\n%s", prefix, s, strings.TrimSpace(diff))
 		}
-	case Removal:
-		s = colorFunc(s)
 	}
 
-	return fmt.Sprintf("%s %s", colorFunc(prefix), s)
+	return colorFunc("%s %s", prefix, s)
 }
 
 // FormatSlice formats a slice of resources as string. If s is nil or empty the
