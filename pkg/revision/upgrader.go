@@ -8,14 +8,16 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gammazero/workerpool"
+	pluralize "github.com/gertd/go-pluralize"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/kr/text"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/log"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -61,14 +63,11 @@ type UpgraderOptions struct {
 
 // upgrader is an implementations of Upgrader.
 type upgrader struct {
-	client           Client
-	printer          *resource.Printer
-	dryRun           bool
-	includeUnchanged bool
-	noHooks          bool
-	noSave           bool
-	manifestsDir     string
-	fullDiff         bool
+	client          Client
+	options         *UpgraderOptions
+	resourcePrinter *resource.Printer
+	diffPrinter     *diff.Printer
+	logger          *logrus.Entry
 }
 
 // NewUpgrader creates a new Upgrader with client and options.
@@ -78,15 +77,11 @@ func NewUpgrader(client Client, o *UpgraderOptions) Upgrader {
 	}
 
 	u := &upgrader{
-		client:           client,
-		printer:          resource.NewPrinter(writerFunc(log.Info)),
-		dryRun:           o.DryRun,
-		includeUnchanged: o.IncludeUnchanged,
-		noHooks:          o.NoHooks,
-		noSave:           o.NoSave,
-		manifestsDir:     o.ManifestsDir,
-		fullDiff:         o.FullDiff,
+		client:  client,
+		options: o,
 	}
+
+	u.resetUpgradeContext()
 
 	return u
 }
@@ -100,21 +95,22 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	}
 
 	manifest := rev.Manifest()
-	filename := filepath.Join(u.manifestsDir, manifest.Filename())
+	filename := filepath.Join(u.options.ManifestsDir, manifest.Filename())
+
+	u.logger.Infof("starting upgrade for component %s", manifest.Name)
+
+	u.setupUpgradeContext(manifest.Name)
+	defer u.resetUpgradeContext()
 
 	changeSet := rev.ChangeSet()
 
-	if u.fullDiff {
-		if diff := rev.diff(); diff != "" {
-			log.Infof("changes to component %s:\n\n%s\n", color.YellowString(manifest.Name), text.Indent(diff, "  "))
-		} else {
-			log.Infof("no changes to component %s", color.YellowString(manifest.Name))
-		}
+	if u.options.FullDiff {
+		u.diffPrinter.Print(rev.DiffOptions())
 	}
 
 	if rev.IsRemoval() {
 		err = u.processManifestDeletion(ctx, manifest)
-		if err == nil && !u.dryRun {
+		if err == nil && !u.options.DryRun {
 			err := os.Remove(filename)
 			if err != nil && !os.IsNotExist(err) {
 				return errors.WithStack(err)
@@ -126,11 +122,11 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 
 	if rev.IsInitial() {
 		err = u.processManifestCreation(ctx, manifest)
-	} else if changeSet.HasResourceChanges() || u.includeUnchanged {
+	} else if changeSet.HasResourceChanges() || u.options.IncludeUnchanged {
 		err = u.processManifestUpdate(ctx, manifest, changeSet)
 	}
 
-	if err == nil && !u.dryRun && !u.noSave {
+	if err == nil && !u.options.DryRun && !u.options.NoSave {
 		return ioutil.WriteFile(filename, manifest.Content(), 0660)
 	}
 
@@ -143,9 +139,9 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 // policy.
 func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manifest.Manifest) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
-		log.Warnf("removing component %s", color.YellowString(manifest.Name))
+		u.logger.Warn("deleting all resources")
 
-		u.printer.PrintSlice(manifest.Resources)
+		u.resourcePrinter.PrintSlice(manifest.Resources)
 
 		err := u.deleteResources(ctx, manifest.Resources)
 		if err != nil {
@@ -154,7 +150,7 @@ func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manife
 
 		claims := manifest.Resources.PersistentVolumeClaimsForDeletion()
 
-		return u.deletePersistentVolumeClaims(ctx, claims)
+		return u.deletePersistentVolumeClaims(ctx, manifest, claims)
 	})
 }
 
@@ -162,9 +158,9 @@ func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manife
 // will run the pre-create and post-create hooks.
 func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manifest.Manifest) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
-		log.Warnf("creating component %s", color.YellowString(manifest.Name))
+		u.logger.Warn("applying all resources")
 
-		u.printer.PrintSlice(manifest.Resources)
+		u.resourcePrinter.PrintSlice(manifest.Resources)
 
 		return u.applyResources(ctx, manifest.Resources)
 	})
@@ -177,9 +173,9 @@ func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manife
 // post-upgrade hooks.
 func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest.Manifest, changeSet *ChangeSet) error {
 	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
-		log.Infof("updating component %s", color.YellowString(manifest.Name))
+		u.logger.Warn("deleting removed resources")
 
-		u.printer.PrintSlice(changeSet.RemovedResources)
+		u.resourcePrinter.PrintSlice(changeSet.RemovedResources)
 
 		err := u.deleteResources(ctx, changeSet.RemovedResources)
 		if err != nil {
@@ -188,18 +184,20 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 
 		claims := changeSet.RemovedResources.PersistentVolumeClaimsForDeletion()
 
-		err = u.deletePersistentVolumeClaims(ctx, claims)
+		err = u.deletePersistentVolumeClaims(ctx, manifest, claims)
 		if err != nil {
 			return err
 		}
 
 		resources := append(changeSet.AddedResources, changeSet.UpdatedResources...)
 
-		if u.includeUnchanged {
+		if u.options.IncludeUnchanged {
 			resources = append(resources, changeSet.UnchangedResources...)
 		}
 
-		u.printer.PrintSlice(resources)
+		u.logger.Info("applying resources")
+
+		u.resourcePrinter.PrintSlice(resources)
 
 		return u.applyResources(ctx, resources)
 	})
@@ -208,17 +206,17 @@ func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest
 // deletePersistentVolumeClaims removes the PersistentVolumeClaims in the
 // claims slice from the cluster. This will be a no-op when dry-run mode is
 // enabled.
-func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, claims resource.Slice) error {
+func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, manifest *manifest.Manifest, claims resource.Slice) error {
 	if len(claims) == 0 {
 		return nil
 	}
 
-	log.Info("removing persistent volume claims")
+	u.logger.Warn("deleting pvcs of removed stateful sets")
 
-	u.printer.PrintSlice(claims)
+	u.resourcePrinter.PrintSlice(claims)
 
-	if u.dryRun {
-		log.Debug("skipping pvc deletions due to dry run")
+	if u.options.DryRun {
+		u.logger.Debug("skipping pvc deletions due to dry run")
 		return nil
 	}
 
@@ -260,8 +258,8 @@ func (u *upgrader) deleteResources(ctx context.Context, r resource.Slice) error 
 		return nil
 	}
 
-	if u.dryRun {
-		log.Debug("skipping resource deletions due to dry run")
+	if u.options.DryRun {
+		u.logger.Debug("skipping resource deletions due to dry run")
 		return nil
 	}
 
@@ -275,8 +273,8 @@ func (u *upgrader) applyResources(ctx context.Context, r resource.Slice) error {
 		return nil
 	}
 
-	if u.dryRun {
-		log.Debug("skipping resource updates due to dry run")
+	if u.options.DryRun {
+		u.logger.Debug("skipping resource updates due to dry run")
 		return nil
 	}
 
@@ -287,7 +285,7 @@ func (u *upgrader) applyResources(ctx context.Context, r resource.Slice) error {
 // prior to applying them to ensure that Job resources are recreated properly.
 // This is a no-op if dry-run mode is enabled.
 func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
-	if u.noHooks || hooks == nil {
+	if u.options.NoHooks || hooks == nil {
 		return nil
 	}
 
@@ -297,12 +295,12 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 		return nil
 	}
 
-	log.Infof("executing %d hooks", len(hooks))
+	u.logger.Infof("executing %s", pluralize.Pluralize("hook", len(hooks), true))
 
-	u.printer.PrintSlice(r)
+	u.resourcePrinter.PrintSlice(r)
 
-	if u.dryRun {
-		log.Debug("skipping hooks due to dry run")
+	if u.options.DryRun {
+		u.logger.Debug("skipping hooks due to dry run")
 		return nil
 	}
 
@@ -333,7 +331,7 @@ func (u *upgrader) waitForHooks(ctx context.Context, hooks hook.Slice) error {
 		h := hook
 
 		pool.Submit(func() {
-			log.Infof("waiting for hook %s", h.String())
+			u.logger.Infof("waiting for hook %s", h.String())
 
 			err := u.client.Wait(ctx, kubernetes.WaitOptions{
 				Kind:      h.Resource.Kind,
@@ -359,12 +357,23 @@ func (u *upgrader) waitForHooks(ctx context.Context, hooks hook.Slice) error {
 	return errs.ErrorOrNil()
 }
 
-// writerFunc is a printf-style func which satisfies the io.Writer interface.
-type writerFunc func(args ...interface{})
+func (u *upgrader) setupUpgradeContext(name string) {
+	prefix := color.MagentaString(name)
 
-// Write implements io.Writer.
-func (w writerFunc) Write(p []byte) (n int, err error) {
-	w(string(p))
+	u.logger = logrus.WithContext(log.ContextWithPrefix(prefix))
 
-	return len(p), nil
+	u.setupPrinters()
+}
+
+func (u *upgrader) resetUpgradeContext() {
+	u.logger = logrus.NewEntry(logrus.StandardLogger())
+
+	u.setupPrinters()
+}
+
+func (u *upgrader) setupPrinters() {
+	logWriter := log.LineWriter(u.logger.Info)
+
+	u.resourcePrinter = resource.NewPrinter(logWriter)
+	u.diffPrinter = diff.NewPrinter(logWriter)
 }

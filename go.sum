@@ -25,6 +25,8 @@ github.com/gammazero/deque v0.0.0-20190521012701-46e4ffb7a622 h1:lxbhOGZ9pU3Kf8P
 github.com/gammazero/deque v0.0.0-20190521012701-46e4ffb7a622/go.mod h1:D90+MBHVc9Sk1lJAbEVgws0eYEurY4mv2TDso3Nxh3w=
 github.com/gammazero/workerpool v0.0.0-20190521015540-3b91a70bc0a1 h1:kPq55Qs4VvuX/Yf+qnNX9H6LCl/4p5vD3yNs7WJK1Q8=
 github.com/gammazero/workerpool v0.0.0-20190521015540-3b91a70bc0a1/go.mod h1:avlwxCMavNtjwf7NrfnzdIGU3OZYI5D1NFQ2Rn3nHKg=
+github.com/gertd/go-pluralize v0.0.1 h1:1qwmzm2heBQ6HR2zANshgEGVQWpdEVfB77GQ2dPF7vs=
+github.com/gertd/go-pluralize v0.0.1/go.mod h1:t5DfHcumb6m0RqyVJDrDLEzL2AGeaiqUXIcDNwLaeAs=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=

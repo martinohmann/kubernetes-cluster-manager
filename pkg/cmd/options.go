@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/fatih/color"
 	"github.com/imdario/mergo"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cluster"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/cmdutil"
@@ -51,7 +50,7 @@ func (o *Options) Complete(cmd *cobra.Command) error {
 			return err
 		}
 
-		log.Infof("using config %s, config values take precedence over command line flags", color.YellowString(config))
+		log.Infof("using config %s, config values take precedence over command line flags", config)
 	}
 
 	o.WorkingDir, err = homedir.Expand(o.WorkingDir)

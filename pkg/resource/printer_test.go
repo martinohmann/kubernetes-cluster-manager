@@ -20,7 +20,7 @@ func TestPrinter_PrintSlice(t *testing.T) {
 		{
 			description: "one resource",
 			s:           Slice{{Name: "foo", Namespace: "bar", Kind: KindStatefulSet, hint: Addition}},
-			expected:    "1 resources (+ addition: 1)\n\n  + bar/statefulset/foo\n\n",
+			expected:    "1 resource (+ addition: 1)\n\n  + bar/statefulset/foo\n\n",
 		},
 		{
 			description: "multiple resources",

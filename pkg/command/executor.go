@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"io"
@@ -10,8 +9,9 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/log"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type contextKey string
@@ -66,14 +66,14 @@ func RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) 
 }
 
 type executor struct {
-	logger *log.Logger
+	logger *logrus.Logger
 }
 
 // NewExecutor creates a new command executor. Accepts a logger for logging
 // command output. If nil is provided logrus.StandardLogger() will be used.
-func NewExecutor(l *log.Logger) Executor {
+func NewExecutor(l *logrus.Logger) Executor {
 	if l == nil {
-		l = log.StandardLogger()
+		l = logrus.StandardLogger()
 	}
 
 	return &executor{logger: l}
@@ -88,8 +88,11 @@ func (e *executor) Run(cmd *exec.Cmd) (string, error) {
 func (e *executor) RunWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
 	var out bytes.Buffer
 
-	cmd.Stdout = io.MultiWriter(&out, newLogWriter(cmd, e.logger.Info))
-	cmd.Stderr = io.MultiWriter(&out, newLogWriter(cmd, e.logger.Error))
+	prefix := color.BlueString(cmd.Args[0])
+	logger := e.logger.WithContext(log.ContextWithPrefix(prefix))
+
+	cmd.Stdout = io.MultiWriter(&out, log.LineWriter(logger.Info))
+	cmd.Stderr = io.MultiWriter(&out, log.LineWriter(logger.Error))
 
 	return e.run(ctx, &out, cmd)
 }
@@ -120,7 +123,7 @@ func (e *executor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (o
 }
 
 func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (string, error) {
-	e.logger.Debugf("executing %s", color.YellowString(Line(cmd)))
+	e.logger.WithField("args", cmd.Args).Debugf("executing command")
 
 	if err := cmd.Start(); err != nil {
 		return "", err
@@ -138,7 +141,7 @@ func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (s
 		select {
 		case <-ctxDone:
 			if cmd.Process != nil {
-				log.Infof("terminating running process...")
+				e.logger.Infof("terminating running process...")
 				cmd.Process.Signal(cancelSignal)
 			}
 		case <-waitDone:
@@ -150,31 +153,6 @@ func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (s
 	close(waitDone)
 
 	return out.String(), err
-}
-
-func newLogWriter(cmd *exec.Cmd, f func(...interface{})) logWriter {
-	return logWriter{
-		prefix: color.BlueString("[%s] ", cmd.Args[0]),
-		f:      f,
-	}
-}
-
-// logWriter wraps a logging function with an io.Writer
-type logWriter struct {
-	prefix string
-	f      func(args ...interface{})
-}
-
-// Write implements io.Writer.
-func (w logWriter) Write(p []byte) (n int, err error) {
-	s := bufio.NewScanner(bytes.NewReader(p))
-	s.Split(bufio.ScanLines)
-
-	for s.Scan() {
-		w.f(w.prefix + s.Text())
-	}
-
-	return len(p), nil
 }
 
 // Line returns the command line string for cmd.

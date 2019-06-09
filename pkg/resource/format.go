@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	pluralize "github.com/gertd/go-pluralize"
 	"github.com/kr/text"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 )
 
 // hintPrefixMap contains a mapping of hints to prefix symbols for the output.
@@ -40,18 +42,20 @@ func format(r *Resource) string {
 
 	switch r.hint {
 	case Update:
+		prefix = colorFunc(prefix)
 		s = colorFunc(s)
 
-		diff := r.diff()
+		d := diff.Diff(diff.Options{
+			A: r.contentHint,
+			B: r.Content,
+		})
 
-		if diff != "" {
-			return fmt.Sprintf("%s %s\n\n%s", prefix, s, strings.TrimSpace(diff))
+		if d != "" {
+			return fmt.Sprintf("%s %s\n\n%s", prefix, s, strings.TrimSpace(d))
 		}
-	case Removal:
-		s = colorFunc(s)
 	}
 
-	return fmt.Sprintf("%s %s", colorFunc(prefix), s)
+	return colorFunc("%s %s", prefix, s)
 }
 
 // FormatSlice formats a slice of resources as string. If s is nil or empty the
@@ -64,7 +68,7 @@ func FormatSlice(s Slice) string {
 
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "%d resources (%s)\n\n", len(s), summarize(s))
+	fmt.Fprintf(&sb, "%s (%s)\n\n", pluralize.Pluralize("resource", len(s), true), summarize(s))
 
 	for _, r := range s {
 		sb.WriteString(Format(r))

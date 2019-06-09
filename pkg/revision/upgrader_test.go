@@ -9,6 +9,7 @@ import (
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/resource"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -167,7 +168,7 @@ func TestUpgrader_execHooks(t *testing.T) {
 		},
 	}
 
-	u := &upgrader{client: client, noSave: true}
+	u := &upgrader{client: client, logger: log.NewEntry(log.StandardLogger()), options: &UpgraderOptions{NoSave: true}}
 
 	err := u.execHooks(context.Background(), hooks)
 
@@ -208,7 +209,7 @@ func TestUpgrader_execHooksDryRun(t *testing.T) {
 		},
 	}
 
-	u := &upgrader{client: client, noSave: true, dryRun: true}
+	u := &upgrader{client: client, logger: log.NewEntry(log.StandardLogger()), options: &UpgraderOptions{DryRun: true, NoSave: true}}
 
 	err := u.execHooks(context.Background(), hooks)
 
