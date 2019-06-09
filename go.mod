@@ -11,6 +11,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/gammazero/workerpool v0.0.0-20190521015540-3b91a70bc0a1
+	github.com/gertd/go-pluralize v0.0.1
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang/protobuf v1.3.1 // indirect

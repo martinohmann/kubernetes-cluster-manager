@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	pluralize "github.com/gertd/go-pluralize"
 	"github.com/kr/text"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 )
@@ -67,7 +68,7 @@ func FormatSlice(s Slice) string {
 
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "%d resources (%s)\n\n", len(s), summarize(s))
+	fmt.Fprintf(&sb, "%s (%s)\n\n", pluralize.Pluralize("resource", len(s), true), summarize(s))
 
 	for _, r := range s {
 		sb.WriteString(Format(r))

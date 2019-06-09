@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gammazero/workerpool"
+	pluralize "github.com/gertd/go-pluralize"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/hook"
@@ -294,7 +295,7 @@ func (u *upgrader) execHooks(ctx context.Context, hooks hook.Slice) error {
 		return nil
 	}
 
-	u.logger.Infof("executing %d hooks", len(hooks))
+	u.logger.Infof("executing %s", pluralize.Pluralize("hook", len(hooks), true))
 
 	u.resourcePrinter.PrintSlice(r)
 
