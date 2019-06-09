@@ -16,7 +16,9 @@ import (
 // ConfigureLogging configures the standard logger based on the values of parsed
 // cli flags.
 func ConfigureLogging() {
-	formatter := &log.ContextPrefixFormatter{&logrus.TextFormatter{}}
+	formatter := &log.ContextPrefixFormatter{
+		TextFormatter: &logrus.TextFormatter{},
+	}
 
 	logrus.SetFormatter(formatter)
 
