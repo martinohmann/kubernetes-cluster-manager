@@ -1,7 +1,5 @@
 package resource
 
-import "github.com/martinohmann/go-difflib/difflib"
-
 // Hint is the type for resource hints. Hints are used to add context to a
 // resource so that output formatters can make a decision on how to format it.
 type Hint int
@@ -46,22 +44,6 @@ func (r *Resource) WithContentHint(content []byte) *Resource {
 	r.contentHint = content
 
 	return r
-}
-
-// diff creates a git-style diff. This only works properly if a contentHint has
-// been previously set on the resource via WithContentHint. This is only used
-// internally when formatting an updated resource.
-func (r *Resource) diff() string {
-	diff := difflib.UnifiedDiff{
-		A:       difflib.SplitLines(string(r.contentHint)),
-		B:       difflib.SplitLines(string(r.Content)),
-		Context: 5,
-		Color:   true,
-	}
-
-	out, _ := difflib.GetUnifiedDiffString(diff)
-
-	return out
 }
 
 // WithHint sets a hint on all resources in the slice.

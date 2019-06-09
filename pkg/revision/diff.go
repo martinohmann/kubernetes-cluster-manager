@@ -1,31 +1,20 @@
 package revision
 
-import "github.com/martinohmann/go-difflib/difflib"
+import "github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 
-// diff creates a git style diff for the revision.
-func (r *Revision) diff() string {
-	var a, b, fromFile, toFile string
+// DiffOptions returns the diff.Options for this revision.
+func (r *Revision) DiffOptions() diff.Options {
+	var o diff.Options
 
 	if r.Current != nil {
-		fromFile = r.Current.Filename()
-		a = string(r.Current.Content())
+		o.A = r.Current.Content()
+		o.Filename = r.Current.Filename()
 	}
 
 	if r.Next != nil {
-		toFile = r.Next.Filename()
-		b = string(r.Next.Content())
+		o.B = r.Next.Content()
+		o.Filename = r.Next.Filename()
 	}
 
-	diff := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(a),
-		B:        difflib.SplitLines(b),
-		FromFile: fromFile,
-		ToFile:   toFile,
-		Context:  5,
-		Color:    true,
-	}
-
-	out, _ := difflib.GetUnifiedDiffString(diff)
-
-	return out
+	return o
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/kr/text"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 )
 
 // hintPrefixMap contains a mapping of hints to prefix symbols for the output.
@@ -43,10 +44,13 @@ func format(r *Resource) string {
 		prefix = colorFunc(prefix)
 		s = colorFunc(s)
 
-		diff := r.diff()
+		d := diff.Diff(diff.Options{
+			A: r.contentHint,
+			B: r.Content,
+		})
 
-		if diff != "" {
-			return fmt.Sprintf("%s %s\n\n%s", prefix, s, strings.TrimSpace(diff))
+		if d != "" {
+			return fmt.Sprintf("%s %s\n\n%s", prefix, s, strings.TrimSpace(d))
 		}
 	}
 

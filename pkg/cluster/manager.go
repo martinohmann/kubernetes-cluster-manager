@@ -5,18 +5,18 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/fatih/color"
 	"github.com/imdario/mergo"
-	"github.com/martinohmann/go-difflib/difflib"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/credentials"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/diff"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/file"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/kubernetes"
+	"github.com/martinohmann/kubernetes-cluster-manager/pkg/log"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/manifest"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/provisioner"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/revision"
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/template"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -114,7 +114,7 @@ func (m *Manager) ApplyManifests(ctx context.Context, o *Options) error {
 			return errors.WithStack(err)
 		}
 
-		log.Info("waiting for cluster to become available...")
+		logrus.Info("waiting for cluster to become available...")
 
 		if err := kubectl.WaitForCluster(ctx); err != nil {
 			return err
@@ -150,7 +150,7 @@ func (m *Manager) Destroy(ctx context.Context, o *Options) error {
 	}
 
 	if o.DryRun {
-		log.Warn("would destroy cluster infrastructure")
+		logrus.Warn("would destroy cluster infrastructure")
 		return nil
 	}
 
@@ -226,18 +226,13 @@ func (m *Manager) updateValuesFile(filename string, v map[string]interface{}, o 
 		return err
 	}
 
-	diff := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(string(content)),
-		B:        difflib.SplitLines(string(buf)),
-		FromFile: filename,
-		ToFile:   filename,
-		Context:  5,
-		Color:    true,
+	diffOptions := diff.Options{
+		Filename: filename,
+		A:        content,
+		B:        buf,
 	}
 
-	if out, _ := difflib.GetUnifiedDiffString(diff); out != "" {
-		log.Infof("changes to %s:\n%s", color.YellowString(filename), out)
-	}
+	diff.NewPrinter(log.LineWriter(logrus.Info)).Print(diffOptions)
 
 	if o.DryRun || o.NoSave {
 		return nil
@@ -254,7 +249,7 @@ func (m *Manager) readValues(ctx context.Context, filename string) (v map[string
 	if o, ok := m.provisioner.(provisioner.Outputter); ok {
 		values, err := o.Output(ctx)
 		if err == nil && len(values) > 0 {
-			log.Info("merging values from provisioner")
+			logrus.Info("merging values from provisioner")
 			err = mergo.Merge(&v, values, mergo.WithOverride)
 		}
 	}
@@ -279,7 +274,12 @@ func (m *Manager) readCredentials(ctx context.Context, o *Options) (*credentials
 		c.Token = "<sensitive>"
 	}
 
-	log.Debugf("using kubernetes credentials: %#v", c)
+	logrus.WithFields(logrus.Fields{
+		"kubeconfig": c.Kubeconfig,
+		"context":    c.Context,
+		"server":     c.Server,
+		"token":      c.Token,
+	}).Debugf("using kubernetes credentials")
 
 	return creds, nil
 }
