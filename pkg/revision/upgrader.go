@@ -96,7 +96,7 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 	manifest := rev.Manifest()
 	filename := filepath.Join(u.options.ManifestsDir, manifest.Filename())
 
-	u.logger.Infof("starting upgrade for component %s", color.CyanString(manifest.Name))
+	u.logger.Infof("starting upgrade for component %s", manifest.Name)
 
 	u.setupUpgradeContext(manifest.Name)
 	defer u.resetUpgradeContext()
@@ -357,7 +357,7 @@ func (u *upgrader) waitForHooks(ctx context.Context, hooks hook.Slice) error {
 }
 
 func (u *upgrader) setupUpgradeContext(name string) {
-	prefix := color.CyanString(name)
+	prefix := color.MagentaString(name)
 
 	u.logger = logrus.WithContext(log.ContextWithPrefix(prefix))
 
