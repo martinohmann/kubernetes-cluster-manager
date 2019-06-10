@@ -56,7 +56,7 @@ func (k *Kubectl) ApplyManifest(ctx context.Context, manifest []byte) error {
 			_, err := command.RunWithContext(ctx, cmd)
 			return err
 		},
-		backoffStrategy,
+		backoff.WithContext(backoffStrategy, ctx),
 	)
 
 	return err
@@ -81,7 +81,7 @@ func (k *Kubectl) DeleteManifest(ctx context.Context, manifest []byte) error {
 			_, err := command.RunWithContext(ctx, cmd)
 			return err
 		},
-		backoffStrategy,
+		backoff.WithContext(backoffStrategy, ctx),
 	)
 
 	return err
@@ -112,7 +112,7 @@ func (k *Kubectl) DeleteResource(ctx context.Context, selector resource.Head) er
 			_, err := command.RunWithContext(ctx, cmd)
 			return err
 		},
-		backoffStrategy,
+		backoff.WithContext(backoffStrategy, ctx),
 	)
 
 	return err
