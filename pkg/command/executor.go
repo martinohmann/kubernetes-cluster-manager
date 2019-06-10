@@ -50,7 +50,7 @@ func Run(cmd *exec.Cmd) (string, error) {
 	return DefaultExecutor.Run(cmd)
 }
 
-// Run runs a command with ctx using the default executor.
+// RunWithContext runs a command with ctx using the default executor.
 func RunWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
 	return DefaultExecutor.RunWithContext(ctx, cmd)
 }
@@ -60,7 +60,7 @@ func RunSilently(cmd *exec.Cmd) (string, error) {
 	return DefaultExecutor.RunSilently(cmd)
 }
 
-// RunSilently runs cmd with ctx silently using the default executor.
+// RunSilentlyWithContext runs cmd with ctx silently using the default executor.
 func RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
 	return DefaultExecutor.RunSilentlyWithContext(ctx, cmd)
 }

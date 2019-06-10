@@ -41,4 +41,4 @@ misspell: ## check spelling in go files
 
 .PHONY: lint
 lint: ## lint go files
-	golint .
+	golint ./...

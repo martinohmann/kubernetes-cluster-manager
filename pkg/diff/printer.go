@@ -7,12 +7,12 @@ import (
 	"github.com/kr/text"
 )
 
-// Printer can print resources in a formatted way.
+// Printer prints diffs.
 type Printer struct {
 	w io.Writer
 }
 
-// Printer creates a new Printer with w as the backing writer for the formatted
+// NewPrinter creates a new Printer with w as the backing writer for the formatted
 // output.
 func NewPrinter(w io.Writer) *Printer {
 	return &Printer{w: w}

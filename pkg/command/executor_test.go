@@ -89,13 +89,13 @@ func TestRunSilentlyWithContextCancelAfter(t *testing.T) {
 func TestCancelRunSilentlyWithContext(t *testing.T) {
 	ctx := context.Background()
 
-	testRunSilentlyWithContextCancel(t, ctx, "interrupt", "SIGINT received\n")
+	testRunSilentlyWithContextCancel(ctx, t, "interrupt", "SIGINT received\n")
 }
 
 func TestCancelRunSilentlyWithContextSignal(t *testing.T) {
 	ctx := context.WithValue(context.Background(), CancelSignal, syscall.SIGTERM)
 
-	testRunSilentlyWithContextCancel(t, ctx, "terminated", "SIGTERM received\n")
+	testRunSilentlyWithContextCancel(ctx, t, "terminated", "SIGTERM received\n")
 }
 
 type nopExecutor struct{}
@@ -118,7 +118,7 @@ func TestRestoreExecutor(t *testing.T) {
 	require.Equal(t, initial, DefaultExecutor)
 }
 
-func testRunSilentlyWithContextCancel(t *testing.T, ctx context.Context, c string, expected string) {
+func testRunSilentlyWithContextCancel(ctx context.Context, t *testing.T, c string, expected string) {
 	cmd := helperCommand(c)
 
 	ctx, cancel := context.WithCancel(ctx)

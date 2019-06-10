@@ -4,11 +4,11 @@ package resource
 
 import "sort"
 
-// ResourceOrder is a slice of strings that defines the ordering of resources.
-type ResourceOrder []string
+// Order is a slice of strings that defines the ordering of resources.
+type Order []string
 
 // ApplyOrder is the resource order for apply operations.
-var ApplyOrder ResourceOrder = []string{
+var ApplyOrder Order = []string{
 	"Namespace",
 	"ResourceQuota",
 	"LimitRange",
@@ -39,7 +39,7 @@ var ApplyOrder ResourceOrder = []string{
 }
 
 // DeleteOrder is the resource order for delete operations.
-var DeleteOrder ResourceOrder = []string{
+var DeleteOrder Order = []string{
 	"APIService",
 	"Ingress",
 	"Service",
@@ -75,7 +75,7 @@ type resourceSorter struct {
 	isDelete  bool
 }
 
-func newResourceSorter(resources []*Resource, order ResourceOrder) *resourceSorter {
+func newResourceSorter(resources []*Resource, order Order) *resourceSorter {
 	o := make(map[string]int)
 
 	for k, v := range order {
@@ -132,7 +132,7 @@ func (s *resourceSorter) Less(i, j int) bool {
 	return aPos < bPos
 }
 
-func sortResources(resources []*Resource, order ResourceOrder) []*Resource {
+func sortResources(resources []*Resource, order Order) []*Resource {
 	s := newResourceSorter(resources, order)
 
 	sort.Sort(s)
