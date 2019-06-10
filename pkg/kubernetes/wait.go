@@ -72,7 +72,7 @@ func (k *Kubectl) WaitForCluster(ctx context.Context) error {
 			out, err := k.ClusterInfo(ctx)
 			return errors.Wrapf(err, "failed to connect to cluster due to:\n%s", out)
 		},
-		pollingStrategy,
+		backoff.WithContext(pollingStrategy, ctx),
 	)
 
 	return err
