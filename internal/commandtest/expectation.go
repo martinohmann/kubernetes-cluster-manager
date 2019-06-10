@@ -11,7 +11,7 @@ type ExpectedCommand struct {
 	command   string
 }
 
-// WillReturnOutput will configure the ExpectedCommand to return out.
+// WillReturn will configure the ExpectedCommand to return the string out.
 func (e *ExpectedCommand) WillReturn(out string) *ExpectedCommand {
 	e.out = out
 	return e

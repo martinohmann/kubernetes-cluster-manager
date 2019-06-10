@@ -247,7 +247,9 @@ func (m *Manager) readValues(ctx context.Context, filename string) (v map[string
 	}
 
 	if o, ok := m.provisioner.(provisioner.Outputter); ok {
-		values, err := o.Output(ctx)
+		var values map[string]interface{}
+
+		values, err = o.Output(ctx)
 		if err == nil && len(values) > 0 {
 			logrus.Info("merging values from provisioner")
 			err = mergo.Merge(&v, values, mergo.WithOverride)

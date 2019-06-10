@@ -10,8 +10,8 @@ type Printer struct {
 	w io.Writer
 }
 
-// Printer creates a new Printer with w as the backing writer for the formatted
-// output.
+// NewPrinter creates a new Printer with w as the backing writer for the
+// formatted output.
 func NewPrinter(w io.Writer) *Printer {
 	return &Printer{w: w}
 }
@@ -21,7 +21,7 @@ func (p *Printer) Print(r *Resource) error {
 	return p.PrintSlice(Slice{r})
 }
 
-// Print prints a formatted resource slice.
+// PrintSlice prints a formatted resource slice.
 func (p *Printer) PrintSlice(s Slice) error {
 	if p == nil || len(s) == 0 {
 		return nil

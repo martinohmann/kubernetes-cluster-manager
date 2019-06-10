@@ -17,7 +17,7 @@ func (s Slice) Bytes() []byte {
 }
 
 // Sort sorts the slice in the given order.
-func (s Slice) Sort(order ResourceOrder) Slice {
+func (s Slice) Sort(order Order) Slice {
 	return sortResources(s, order)
 }
 
