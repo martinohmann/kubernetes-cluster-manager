@@ -64,6 +64,24 @@ func TestTerraformOutput(t *testing.T) {
 	})
 }
 
+func TestTerraformOutputNoRootModule(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
+		m := &Terraform{}
+
+		executor.ExpectCommand("terraform output --json").
+			WillReturn(`{}`).
+			WillReturnError(errors.New("The module root could not be found. There is nothing to output"))
+
+		expectedValues := map[string]interface{}{}
+
+		values, err := m.Output(context.Background())
+
+		require.NoError(t, err)
+		assert.Equal(t, expectedValues, values)
+		assert.NoError(t, executor.ExpectationsWereMet())
+	})
+}
+
 // Ref: https://github.com/martinohmann/kubernetes-cluster-manager/issues/21
 func TestTerraformOutputIssue21(t *testing.T) {
 	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {

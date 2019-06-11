@@ -103,26 +103,16 @@ func (e *executor) RunSilently(cmd *exec.Cmd) (out string, err error) {
 }
 
 // RunSilentlyWithContext implements RunSilentlyWithContext from Executor interface.
-func (e *executor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (out string, err error) {
+func (e *executor) RunSilentlyWithContext(ctx context.Context, cmd *exec.Cmd) (string, error) {
 	var buf bytes.Buffer
 
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 
-	out, err = e.run(ctx, &buf, cmd)
-	if err != nil {
-		err = errors.Wrapf(
-			err,
-			"command %s failed with output: %s",
-			color.YellowString(Line(cmd)),
-			strings.Trim(out, "\n"),
-		)
-	}
-
-	return
+	return e.run(ctx, &buf, cmd)
 }
 
-func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (string, error) {
+func (e *executor) run(ctx context.Context, buf *bytes.Buffer, cmd *exec.Cmd) (string, error) {
 	e.logger.WithField("args", cmd.Args).Debugf("executing command")
 
 	if err := cmd.Start(); err != nil {
@@ -130,6 +120,8 @@ func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (s
 	}
 
 	waitDone := make(chan struct{})
+	defer close(waitDone)
+
 	ctxDone := ctx.Done()
 
 	cancelSignal := os.Interrupt
@@ -149,10 +141,17 @@ func (e *executor) run(ctx context.Context, out *bytes.Buffer, cmd *exec.Cmd) (s
 	}()
 
 	err := cmd.Wait()
+	out := buf.String()
 
-	close(waitDone)
+	if err != nil {
+		err = errors.Wrapf(
+			err,
+			"command failed with output: %s",
+			strings.Trim(out, "\n"),
+		)
+	}
 
-	return out.String(), err
+	return out, err
 }
 
 // Line returns the command line string for cmd.

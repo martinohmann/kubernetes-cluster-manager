@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/cenkalti/backoff"
@@ -14,7 +15,7 @@ import (
 
 const (
 	// maxRetries defines the number of retries for kubectl commands.
-	maxRetries = 10
+	maxRetries = 5
 
 	// DefaultNamespace is the namespace that should be used where namespace is
 	// omitted.
@@ -24,6 +25,10 @@ const (
 var (
 	// backoffStrategy is the retries strategy used for failed kubectl commands.
 	backoffStrategy = backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxRetries)
+
+	// permanentErrorRegexp is used to detect errors that are not fixable by
+	// just retrying. If we hit one of those errors, we can abort early.
+	permanentErrorRegexp = regexp.MustCompile(`(ValidationError|no matches for kind|the server doesn't have a resource type)`)
 )
 
 // Kubectl defines a type for interacting with kubectl.
@@ -54,7 +59,8 @@ func (k *Kubectl) ApplyManifest(ctx context.Context, manifest []byte) error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := command.RunWithContext(ctx, cmd)
-			return err
+
+			return handlePermanentErrors(err)
 		},
 		backoff.WithContext(backoffStrategy, ctx),
 	)
@@ -79,7 +85,8 @@ func (k *Kubectl) DeleteManifest(ctx context.Context, manifest []byte) error {
 			cmd := exec.Command(args[0], args[1:]...)
 			cmd.Stdin = bytes.NewBuffer(manifest)
 			_, err := command.RunWithContext(ctx, cmd)
-			return err
+
+			return handlePermanentErrors(err)
 		},
 		backoff.WithContext(backoffStrategy, ctx),
 	)
@@ -110,7 +117,8 @@ func (k *Kubectl) DeleteResource(ctx context.Context, selector resource.Head) er
 		func() error {
 			cmd := exec.Command(args[0], args[1:]...)
 			_, err := command.RunWithContext(ctx, cmd)
-			return err
+
+			return handlePermanentErrors(err)
 		},
 		backoff.WithContext(backoffStrategy, ctx),
 	)
@@ -151,4 +159,17 @@ func (k *Kubectl) buildCredentialArgs() (args []string) {
 	}
 
 	return args
+}
+
+// handlePermanentErrors will wrap errors that are considered permanent with a
+// *backoff.PermanentError to abort the retry logic immediately.
+func handlePermanentErrors(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case permanentErrorRegexp.MatchString(err.Error()):
+		return backoff.Permanent(err)
+	default:
+		return err
+	}
 }
