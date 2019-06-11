@@ -46,7 +46,7 @@ func TestUpgrader_Upgrade(t *testing.T) {
 
 	resources1 := resource.Slice{
 		{
-			Kind:      resource.KindStatefulSet,
+			Kind:      resource.StatefulSet,
 			Name:      "bar",
 			Namespace: "baz",
 			Content: []byte(`apiVersion: v1
@@ -143,26 +143,26 @@ func TestUpgrader_execHooks(t *testing.T) {
 
 	hooks := hook.Slice{
 		{
-			Type: hook.TypePreCreate,
+			Type: hook.PreCreate,
 			Resource: &resource.Resource{
 				Name: "foo",
-				Kind: resource.KindJob,
+				Kind: resource.Job,
 			},
 			WaitFor:               "condition=complete",
 			DeleteAfterCompletion: true,
 		},
 		{
-			Type: hook.TypePreCreate,
+			Type: hook.PreCreate,
 			Resource: &resource.Resource{
 				Name: "bar",
-				Kind: resource.KindJob,
+				Kind: resource.Job,
 			},
 		},
 		{
-			Type: hook.TypePreCreate,
+			Type: hook.PreCreate,
 			Resource: &resource.Resource{
 				Name: "baz",
-				Kind: resource.KindJob,
+				Kind: resource.Job,
 			},
 			WaitFor: "condition=complete",
 		},
@@ -184,26 +184,26 @@ func TestUpgrader_execHooksDryRun(t *testing.T) {
 
 	hooks := hook.Slice{
 		{
-			Type: hook.TypePreCreate,
+			Type: hook.PreCreate,
 			Resource: &resource.Resource{
 				Name: "foo",
-				Kind: resource.KindJob,
+				Kind: resource.Job,
 			},
 			WaitFor:               "condition=complete",
 			DeleteAfterCompletion: true,
 		},
 		{
-			Type: hook.TypePreCreate,
+			Type: hook.PreCreate,
 			Resource: &resource.Resource{
 				Name: "bar",
-				Kind: resource.KindJob,
+				Kind: resource.Job,
 			},
 		},
 		{
-			Type: hook.TypePreCreate,
+			Type: hook.PreCreate,
 			Resource: &resource.Resource{
 				Name: "baz",
-				Kind: resource.KindJob,
+				Kind: resource.Job,
 			},
 			WaitFor: "condition=complete",
 		},

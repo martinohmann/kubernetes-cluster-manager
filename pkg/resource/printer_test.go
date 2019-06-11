@@ -19,16 +19,16 @@ func TestPrinter_PrintSlice(t *testing.T) {
 		},
 		{
 			description: "one resource",
-			s:           Slice{{Name: "foo", Namespace: "bar", Kind: KindStatefulSet, hint: Addition}},
+			s:           Slice{{Name: "foo", Namespace: "bar", Kind: StatefulSet, hint: Addition}},
 			expected:    "1 resource (+ addition: 1)\n\n  + bar/statefulset/foo\n\n",
 		},
 		{
 			description: "multiple resources",
 			s: Slice{
-				{Name: "foo", Namespace: "bar", Kind: KindStatefulSet, hint: Addition},
-				{Name: "bar", Namespace: "baz", Kind: KindPersistentVolumeClaim},
-				{Name: "baz", Namespace: "qux", Kind: KindJob, hint: Removal},
-				{Name: "qux", Kind: KindStatefulSet, hint: Update, contentHint: []byte("old"), Content: []byte("new")},
+				{Name: "foo", Namespace: "bar", Kind: StatefulSet, hint: Addition},
+				{Name: "bar", Namespace: "baz", Kind: PersistentVolumeClaim},
+				{Name: "baz", Namespace: "qux", Kind: Job, hint: Removal},
+				{Name: "qux", Kind: StatefulSet, hint: Update, contentHint: []byte("old"), Content: []byte("new")},
 			},
 			expected: `4 resources (* no change: 1, + addition: 1, ~ update: 1, - removal: 1)
 

@@ -39,7 +39,7 @@ func buildPersistentVolumeClaims(statefulSet *partialStatefulSet) Slice {
 	for _, vct := range volumeClaimTemplates {
 		for i := 0; i < replicas; i++ {
 			claims = append(claims, &Resource{
-				Kind:      KindPersistentVolumeClaim,
+				Kind:      PersistentVolumeClaim,
 				Name:      buildPersistentVolumeClaimName(statefulSet, vct, i),
 				Namespace: statefulSet.Metadata.Namespace,
 			})
@@ -68,7 +68,7 @@ func (s Slice) PersistentVolumeClaimsForDeletion() Slice {
 	claims := make(Slice, 0)
 
 	for _, r := range s {
-		if r.Kind != KindStatefulSet || !r.DeletePersistentVolumeClaims {
+		if r.Kind != StatefulSet || !r.DeletePersistentVolumeClaims {
 			continue
 		}
 

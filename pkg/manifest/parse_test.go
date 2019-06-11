@@ -218,7 +218,7 @@ spec: {}
 `),
 			expectedResources: resource.Slice{},
 			expectedHooks: hook.SliceMap{
-				hook.TypePreDelete: hook.Slice{
+				hook.PreDelete: hook.Slice{
 					{
 						Resource: &resource.Resource{
 							Name: "deletion-job",
@@ -236,7 +236,7 @@ metadata:
 spec: {}
 `),
 						},
-						Type: hook.TypePreDelete,
+						Type: hook.PreDelete,
 					},
 					{
 						Resource: &resource.Resource{
@@ -255,7 +255,7 @@ metadata:
 spec: {}
 `),
 						},
-						Type: hook.TypePreDelete,
+						Type: hook.PreDelete,
 					},
 				},
 			},
