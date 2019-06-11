@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/martinohmann/kubernetes-cluster-manager/internal/commandtest"
@@ -61,6 +62,25 @@ func TestDeleteResource(t *testing.T) {
 		}
 
 		assert.NoError(t, kubectl.DeleteResource(context.Background(), res))
+		assert.NoError(t, executor.ExpectationsWereMet())
+	})
+}
+
+func TestValidationErrors(t *testing.T) {
+	commandtest.WithMockExecutor(func(executor commandtest.MockExecutor) {
+		kubectl := NewKubectl(&credentials.Credentials{})
+
+		executor.ExpectCommand("kubectl delete someunknownkind foo --namespace default --ignore-not-found").
+			WillReturnError(errors.New(`error: the server doesn't have a resource type "someunknownkind"`))
+
+		res := resource.Head{
+			Kind: "SomeUnknownKind",
+			Metadata: resource.Metadata{
+				Name: "foo",
+			},
+		}
+
+		assert.Error(t, kubectl.DeleteResource(context.Background(), res))
 		assert.NoError(t, executor.ExpectationsWereMet())
 	})
 }

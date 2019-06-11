@@ -9,6 +9,7 @@ import (
 
 	"github.com/martinohmann/kubernetes-cluster-manager/pkg/command"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -97,6 +98,7 @@ func (m *Terraform) Output(ctx context.Context) (map[string]interface{}, error) 
 		// variables from terraform it will fail with an error. In that case we
 		// ignore the error and just return empty values.
 		if noTerraformRootModuleRegexp.MatchString(err.Error()) {
+			log.Warn("terraform root module was not found, most likely the tfstate was not written yet.")
 			return v, nil
 		}
 
