@@ -158,13 +158,13 @@ func TestRevision_ChangeSet(t *testing.T) {
 				Current: &manifest.Manifest{
 					Resources: testResourceNameSlice("bar"),
 					Hooks: hook.SliceMap{
-						hook.TypePreCreate: testHookNameSlice("baz"),
+						hook.PreCreate: testHookNameSlice("baz"),
 					},
 				},
 			},
 			removed: testResourceNameSlice("bar").WithHint(resource.Removal),
 			hooks: hook.SliceMap{
-				hook.TypePreCreate: testHookNameSlice("baz"),
+				hook.PreCreate: testHookNameSlice("baz"),
 			},
 		},
 		{
@@ -173,13 +173,13 @@ func TestRevision_ChangeSet(t *testing.T) {
 				Next: &manifest.Manifest{
 					Resources: testResourceNameSlice("bar"),
 					Hooks: hook.SliceMap{
-						hook.TypePreCreate: testHookNameSlice("baz"),
+						hook.PreCreate: testHookNameSlice("baz"),
 					},
 				},
 			},
 			added: testResourceNameSlice("bar").WithHint(resource.Addition),
 			hooks: hook.SliceMap{
-				hook.TypePreCreate: testHookNameSlice("baz"),
+				hook.PreCreate: testHookNameSlice("baz"),
 			},
 		},
 		{
@@ -188,13 +188,13 @@ func TestRevision_ChangeSet(t *testing.T) {
 				Current: &manifest.Manifest{
 					Resources: testResourceNameSlice("foo", "bar", "qux"),
 					Hooks: hook.SliceMap{
-						hook.TypePreCreate: testHookNameSlice("bar"),
+						hook.PreCreate: testHookNameSlice("bar"),
 					},
 				},
 				Next: &manifest.Manifest{
 					Resources: append(testResourceNameSlice("bar", "baz"), &resource.Resource{Name: "qux", Content: []byte("---\nchanges")}),
 					Hooks: hook.SliceMap{
-						hook.TypePreCreate: testHookNameSlice("baz"),
+						hook.PreCreate: testHookNameSlice("baz"),
 					},
 				},
 			},
@@ -203,7 +203,7 @@ func TestRevision_ChangeSet(t *testing.T) {
 			unchanged: testResourceNameSlice("bar"),
 			removed:   testResourceNameSlice("foo").WithHint(resource.Removal),
 			hooks: hook.SliceMap{
-				hook.TypePreCreate: testHookNameSlice("baz"),
+				hook.PreCreate: testHookNameSlice("baz"),
 			},
 		},
 	}

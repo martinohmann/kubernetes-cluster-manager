@@ -9,14 +9,14 @@ import (
 
 func TestSliceMap_Bytes(t *testing.T) {
 	m := SliceMap{
-		TypePreDelete: Slice{
+		PreDelete: Slice{
 			{Resource: &resource.Resource{Content: []byte(`apiVersion: v1
 kind: Job
 metadata:
   name: delete-job
 `)}},
 		},
-		TypePostCreate: Slice{
+		PostCreate: Slice{
 			{Resource: &resource.Resource{Content: []byte(`apiVersion: v1
 kind: Job
 metadata:

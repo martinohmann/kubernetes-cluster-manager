@@ -20,32 +20,32 @@ func TestNew(t *testing.T) {
 		},
 		{
 			description: "head with metadata",
-			head:        Head{Kind: KindJob, Metadata: Metadata{Name: "foo", Namespace: "bar"}},
-			expected:    &Resource{Kind: KindJob, Name: "foo", Namespace: "bar"},
+			head:        Head{Kind: Job, Metadata: Metadata{Name: "foo", Namespace: "bar"}},
+			expected:    &Resource{Kind: Job, Name: "foo", Namespace: "bar"},
 		},
 		{
 			description: "stateful set with valid deletion policy",
 			head: Head{
-				Kind: KindStatefulSet,
+				Kind: StatefulSet,
 				Metadata: Metadata{
 					Name:      "foo",
 					Namespace: "bar",
 					Annotations: map[string]string{
-						AnnotationDeletionPolicy: PolicyDeletePersistentVolumeClaims,
+						DeletionPolicyAnnotation: DeletePersistentVolumeClaimsPolicy,
 					},
 				},
 			},
-			expected: &Resource{Kind: KindStatefulSet, Name: "foo", Namespace: "bar", DeletePersistentVolumeClaims: true},
+			expected: &Resource{Kind: StatefulSet, Name: "foo", Namespace: "bar", DeletePersistentVolumeClaims: true},
 		},
 		{
 			description: "stateful set with invalid deletion policy",
 			head: Head{
-				Kind: KindStatefulSet,
+				Kind: StatefulSet,
 				Metadata: Metadata{
 					Name:      "foo",
 					Namespace: "bar",
 					Annotations: map[string]string{
-						AnnotationDeletionPolicy: "baz",
+						DeletionPolicyAnnotation: "baz",
 					},
 				},
 			},
@@ -54,12 +54,12 @@ func TestNew(t *testing.T) {
 		{
 			description: "resource that does not support deletion policy annotation",
 			head: Head{
-				Kind: KindJob,
+				Kind: Job,
 				Metadata: Metadata{
 					Name:      "foo",
 					Namespace: "bar",
 					Annotations: map[string]string{
-						AnnotationDeletionPolicy: PolicyDeletePersistentVolumeClaims,
+						DeletionPolicyAnnotation: DeletePersistentVolumeClaimsPolicy,
 					},
 				},
 			},

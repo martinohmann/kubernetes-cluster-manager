@@ -55,7 +55,7 @@ func TestDeleteResource(t *testing.T) {
 		executor.ExpectCommand("kubectl delete statefulset foo --namespace default --ignore-not-found --context test --kubeconfig /tmp/kubeconfig")
 
 		res := resource.Head{
-			Kind: resource.KindStatefulSet,
+			Kind: resource.StatefulSet,
 			Metadata: resource.Metadata{
 				Name: "foo",
 			},

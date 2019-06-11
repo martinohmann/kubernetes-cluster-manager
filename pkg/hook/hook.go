@@ -21,42 +21,42 @@ const (
 	PolicyAnnotation      = "kcm/hook-policy"
 
 	// Types of hooks.
-	TypePreCreate   = "pre-create"
-	TypePreDelete   = "pre-delete"
-	TypePreUpgrade  = "pre-upgrade"
-	TypePostCreate  = "post-create"
-	TypePostDelete  = "post-delete"
-	TypePostUpgrade = "post-upgrade"
+	PreCreate   = "pre-create"
+	PreDelete   = "pre-delete"
+	PreUpgrade  = "pre-upgrade"
+	PostCreate  = "post-create"
+	PostDelete  = "post-delete"
+	PostUpgrade = "post-upgrade"
 
 	// Policies for hooks.
-	PolicyDeleteAfterCompletion = "delete-after-completion"
+	DeleteAfterCompletionPolicy = "delete-after-completion"
 )
 
 var (
 	// Types contains all valid hook types.
 	Types = []string{
-		TypePreCreate,
-		TypePreDelete,
-		TypePreUpgrade,
-		TypePostCreate,
-		TypePostDelete,
-		TypePostUpgrade,
+		PreCreate,
+		PreDelete,
+		PreUpgrade,
+		PostCreate,
+		PostDelete,
+		PostUpgrade,
 	}
 
 	// Pairs of associated hook types.
-	TypeCreate  = TypePair{TypePreCreate, TypePostCreate}
-	TypeDelete  = TypePair{TypePreDelete, TypePostDelete}
-	TypeUpgrade = TypePair{TypePreUpgrade, TypePostUpgrade}
+	Create  = Pair{PreCreate, PostCreate}
+	Delete  = Pair{PreDelete, PostDelete}
+	Upgrade = Pair{PreUpgrade, PostUpgrade}
 
 	// Policies contains all valid hook policies.
 	Policies = []string{
-		PolicyDeleteAfterCompletion,
+		DeleteAfterCompletionPolicy,
 	}
 )
 
-// TypePair is a pair of associated hooks that are applied before and after a
+// Pair is a pair of associated hooks that are applied before and after a
 // revision upgrade.
-type TypePair struct {
+type Pair struct {
 	Pre, Post string
 }
 
@@ -75,8 +75,8 @@ type Hook struct {
 func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 	var err error
 
-	if r.Kind != resource.KindJob {
-		return nil, errors.Errorf(`unsupported hook kind %q, currently only %q is supported.`, r.Kind, resource.KindJob)
+	if r.Kind != resource.Job {
+		return nil, errors.Errorf(`unsupported hook kind %q, currently only %q is supported.`, r.Kind, resource.Job)
 	}
 
 	typ := annotations[Annotation]
@@ -107,7 +107,7 @@ func New(r *resource.Resource, annotations map[string]string) (*Hook, error) {
 			}
 
 			switch p {
-			case PolicyDeleteAfterCompletion:
+			case DeleteAfterCompletionPolicy:
 				if h.WaitFor == "" {
 					return nil, errors.Errorf(`policy %q requires to also specify the %s annotation with a valid condition`, p, WaitForAnnotation)
 				}

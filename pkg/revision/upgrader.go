@@ -138,7 +138,7 @@ func (u *upgrader) Upgrade(ctx context.Context, rev *Revision) error {
 // PersistentVolumeClaims of StatefulSets that enabled the delete-pvcs deletion
 // policy.
 func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manifest.Manifest) error {
-	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeDelete, func() error {
+	return u.wrapHooks(ctx, manifest.Hooks, hook.Delete, func() error {
 		u.logger.Warn("deleting all resources")
 
 		u.resourcePrinter.PrintSlice(manifest.Resources)
@@ -157,7 +157,7 @@ func (u *upgrader) processManifestDeletion(ctx context.Context, manifest *manife
 // processManifestCreation applies all manifest resources to the cluster. It
 // will run the pre-create and post-create hooks.
 func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manifest.Manifest) error {
-	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeCreate, func() error {
+	return u.wrapHooks(ctx, manifest.Hooks, hook.Create, func() error {
 		u.logger.Warn("applying all resources")
 
 		u.resourcePrinter.PrintSlice(manifest.Resources)
@@ -172,7 +172,7 @@ func (u *upgrader) processManifestCreation(ctx context.Context, manifest *manife
 // delete-pvcs deletion policy enabled. It will run the pre-upgrade and
 // post-upgrade hooks.
 func (u *upgrader) processManifestUpdate(ctx context.Context, manifest *manifest.Manifest, changeSet *ChangeSet) error {
-	return u.wrapHooks(ctx, manifest.Hooks, hook.TypeUpgrade, func() error {
+	return u.wrapHooks(ctx, manifest.Hooks, hook.Upgrade, func() error {
 		u.logger.Warn("deleting removed resources")
 
 		u.resourcePrinter.PrintSlice(changeSet.RemovedResources)
@@ -237,9 +237,9 @@ func (u *upgrader) deletePersistentVolumeClaims(ctx context.Context, manifest *m
 	return nil
 }
 
-// wrapHooks wraps given func f with hooks of hookType.
-func (u *upgrader) wrapHooks(ctx context.Context, hooks hook.SliceMap, hookTypes hook.TypePair, f func() error) error {
-	err := u.execHooks(ctx, hooks[hookTypes.Pre])
+// wrapHooks wraps given func f with hooks of given hookPair.
+func (u *upgrader) wrapHooks(ctx context.Context, hooks hook.SliceMap, hookPair hook.Pair, f func() error) error {
+	err := u.execHooks(ctx, hooks[hookPair.Pre])
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func (u *upgrader) wrapHooks(ctx context.Context, hooks hook.SliceMap, hookTypes
 		return err
 	}
 
-	return u.execHooks(ctx, hooks[hookTypes.Post])
+	return u.execHooks(ctx, hooks[hookPair.Post])
 }
 
 // deleteResources deletes all resources in r from the cluster. This will be a

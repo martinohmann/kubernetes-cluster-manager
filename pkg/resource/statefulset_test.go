@@ -8,8 +8,8 @@ import (
 
 func TestSlice_PersistentVolumeClaimsForDeletion(t *testing.T) {
 	s := Slice{
-		{Kind: KindJob},
-		{Kind: KindStatefulSet, Namespace: "foo", DeletePersistentVolumeClaims: true, Content: []byte(`---
+		{Kind: Job},
+		{Kind: StatefulSet, Namespace: "foo", DeletePersistentVolumeClaims: true, Content: []byte(`---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -25,7 +25,7 @@ spec:
   - metadata:
       name: cache
 `)},
-		{Kind: KindStatefulSet, Namespace: "bar", DeletePersistentVolumeClaims: true, Content: []byte(`---
+		{Kind: StatefulSet, Namespace: "bar", DeletePersistentVolumeClaims: true, Content: []byte(`---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -38,7 +38,7 @@ spec:
   - metadata:
       name: data
 `)},
-		{Kind: KindStatefulSet, Content: []byte(`---
+		{Kind: StatefulSet, Content: []byte(`---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -52,11 +52,11 @@ spec:
 	}
 
 	expected := Slice{
-		{Kind: KindPersistentVolumeClaim, Name: "www-web-0", Namespace: "foo", hint: Removal},
-		{Kind: KindPersistentVolumeClaim, Name: "www-web-1", Namespace: "foo", hint: Removal},
-		{Kind: KindPersistentVolumeClaim, Name: "cache-web-0", Namespace: "foo", hint: Removal},
-		{Kind: KindPersistentVolumeClaim, Name: "cache-web-1", Namespace: "foo", hint: Removal},
-		{Kind: KindPersistentVolumeClaim, Name: "data-cache-0", Namespace: "bar", hint: Removal},
+		{Kind: PersistentVolumeClaim, Name: "www-web-0", Namespace: "foo", hint: Removal},
+		{Kind: PersistentVolumeClaim, Name: "www-web-1", Namespace: "foo", hint: Removal},
+		{Kind: PersistentVolumeClaim, Name: "cache-web-0", Namespace: "foo", hint: Removal},
+		{Kind: PersistentVolumeClaim, Name: "cache-web-1", Namespace: "foo", hint: Removal},
+		{Kind: PersistentVolumeClaim, Name: "data-cache-0", Namespace: "bar", hint: Removal},
 	}
 
 	pvcs := s.PersistentVolumeClaimsForDeletion()

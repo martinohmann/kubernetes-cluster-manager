@@ -8,20 +8,20 @@ import (
 )
 
 const (
-	// AnnotationDeletionPolicy can be set on a resources to control the
+	// DeletionPolicyAnnotation can be set on a resources to control the
 	// behaviour of the resource deletion operation.
-	AnnotationDeletionPolicy = "kcm/deletion-policy"
+	DeletionPolicyAnnotation = "kcm/deletion-policy"
 
-	// PolicyDeletePersistentVolumeClaims will cause the deletion of all PVCs
+	// DeletePersistentVolumeClaimsPolicy will cause the deletion of all PVCs
 	// that were created for a StatefulSet.
-	PolicyDeletePersistentVolumeClaims = "delete-pvcs"
+	DeletePersistentVolumeClaimsPolicy = "delete-pvcs"
 )
 
 const (
 	// Kinds of Kubernetes resources that are treated in a special way by kcm.
-	KindJob                   = "Job"
-	KindPersistentVolumeClaim = "PersistentVolumeClaim"
-	KindStatefulSet           = "StatefulSet"
+	Job                   = "Job"
+	PersistentVolumeClaim = "PersistentVolumeClaim"
+	StatefulSet           = "StatefulSet"
 )
 
 // Resource is a kubernetes resource.
@@ -69,13 +69,13 @@ func New(content []byte, head Head) (*Resource, error) {
 		Content:   content,
 	}
 
-	policy, ok := head.Metadata.Annotations[AnnotationDeletionPolicy]
+	policy, ok := head.Metadata.Annotations[DeletionPolicyAnnotation]
 	if ok {
-		if policy != PolicyDeletePersistentVolumeClaims {
+		if policy != DeletePersistentVolumeClaimsPolicy {
 			return nil, errors.Errorf("unsupported deletion policy %q", policy)
 		}
 
-		if r.Kind != KindStatefulSet {
+		if r.Kind != StatefulSet {
 			return nil, errors.Errorf("deletion policy %q can only be applied to StatefulSets, got %s", policy, r.Kind)
 		}
 
