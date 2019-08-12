@@ -7,6 +7,8 @@ kubernetes-cluster-manager (`kcm`)
 [![GoDoc](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager?status.svg)](https://godoc.org/github.com/martinohmann/kubernetes-cluster-manager)
 [![Hits-of-Code](https://hitsofcode.com/github/martinohmann/kubernetes-cluster-manager)](https://hitsofcode.com/view/github/martinohmann/kubernetes-cluster-manager)
 
+**IMPORTANT NOTE: This project has been discontinued in favor of [`kubectl-chart`](https://github.com/martinohmann/kubectl-chart).**
+
 Inspired by [Zalando's
 CLM](https://github.com/zalando-incubator/cluster-lifecycle-manager). The
 Kubernetes Cluster Manager project was started because CLM is tightly coupled
